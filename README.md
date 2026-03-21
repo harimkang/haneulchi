@@ -1,61 +1,76 @@
 # Haneulchi
 
-Implementation scaffold for the macOS terminal-first workspace described in `docs/`.
+A terminal-first workspace for running, reviewing, and operating multi-project agent sessions on macOS.
 
-## Repository Layout
+Haneulchi keeps the terminal at the center, then adds the visibility needed to run multiple projects, sessions, and review loops without losing manual control. It is built for CLI-native builders who want reviewable outcomes instead of opaque automation.
 
-- `apps/macos`: SwiftUI/AppKit shell package.
-- `crates/`: Rust control-plane workspace.
-- `fixtures/`: sample projects, workflow contracts, and snapshot fixtures.
-- `tests/`: cross-layer contract, integration, and end-to-end notes.
-- `scripts/`: local bootstrap and verification helpers.
-- `config/`: preset and shell-integration placeholders.
+## Why Haneulchi Exists
+
+Your terminal is not the problem. The friction starts when tasks, sessions, worktrees, review, and operational signals get split across too many places.
+
+- From tabs to sessions
+- From output to evidence
+- From automation to controllable flow
+
+Haneulchi brings those flows back into one workspace without replacing the terminal itself.
+
+## What Makes It Different
+
+- Terminal-first by default
+- Reviewable outcomes instead of opaque background automation
+- Explicit human control at takeover and review points
+- Shared control plane across app surfaces, CLI, and runtime
+- First-class multi-project and multi-session operations
+
+## How It Works
+
+1. Plan work in a way that keeps task context attached to the session that is actually doing it.
+2. Run generic shells, CLI tools, and isolated agent sessions from a terminal-first workspace.
+3. Review summaries, diffs, and test hints as outcomes a human can inspect and accept.
+4. Operate with readiness, attention, and worktree visibility so recovery and handoff stay explicit.
+
+Surfaces such as the Readiness Launcher, Review Queue, and Attention Center support the terminal workflow instead of trying to replace it.
 
 ## Quick Start
 
-```bash
-just check
-```
+Haneulchi is currently macOS-only and under active development.
 
 ```bash
 scripts/bootstrap/ensure-runtime-dirs.sh
+swift test --package-path apps/macos
+cargo test
+bash scripts/smoke.sh --help
 ```
 
-## Smoke Commands
+If you use [`justfile`](justfile), `just check` wraps the Swift and Rust test commands above.
 
-Task-specific smoke runners are unified behind one entrypoint:
+## Project Layout
 
-```bash
-bash scripts/smoke.sh <target>
-```
+- `apps/macos`: SwiftUI/AppKit desktop shell and terminal-facing product surfaces
+- `crates`: Rust workspace for runtime, workflow, storage, FFI, CLI, and control-plane components
+- `scripts`: bootstrap, smoke, and QA helpers for local development and release-gate checks
+- `fixtures`: sample projects, workflow fixtures, and terminal transcript inputs
+- `tests`: integration and contract coverage around workspace behavior
 
-Available targets:
+## Repository Guides
 
-- `shell`: global shell chrome, route shortcuts, unread jump, command palette
-- `readiness`: Welcome / Readiness Launcher and `RG-01` dry-run scaffolding
-- `launcher`: `MVP2-007` demo workspace + no-project launcher checks
-- `terminal-surface`: `MVP2-008` Rust FFI + terminal surface verification
-- `terminal-deck`: `MVP2-009` / `MVP2-010` / `MVP2-012` live PTY, split deck, terminal UX, `RG-03` dry-run scaffolding
+- [`apps/macos/README.md`](apps/macos/README.md): macOS app shell entry points and test location
+- [`crates/README.md`](crates/README.md): Rust workspace component map
+- [`scripts/qa/README.md`](scripts/qa/README.md): release-gate and compatibility helper overview
 
-Examples:
+## Open Source
 
-```bash
-bash scripts/smoke.sh shell
-bash scripts/smoke.sh readiness
-bash scripts/smoke.sh launcher
-bash scripts/smoke.sh terminal-surface
-bash scripts/smoke.sh terminal-deck
-```
+Haneulchi is being built in the open. Issues and pull requests are welcome.
 
-Use `scripts/smoke.sh` as the only supported smoke entrypoint.
+If you want to contribute, start with the checks above and keep changes aligned with the project's terminal-first, reviewable-outcomes, and human-in-the-loop model.
 
-`apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
+## Current Status
 
-- `apps/macos/Vendor/lib`
-- `apps/macos/Vendor/HCCoreFFI/include`
+Haneulchi is a macOS-only project in active development. The current scope is intentionally focused on terminal-centered work, review surfaces, and operational visibility while the app shell, terminal, and control-plane layers continue to evolve.
+
+Browser-heavy surfaces and broader orchestration ambitions are intentionally out of scope for the current public README.
 
 ## Notes
 
-- `reference/` remains read-only.
-- Runtime paths under `~/Library/Application Support/Haneulchi` are created outside the repo.
-- Secrets should stay in Keychain, not in committed `.env` files.
+- Runtime data lives outside the repository under `~/Library/Application Support/Haneulchi`.
+- Secrets belong in Keychain, not committed files.
