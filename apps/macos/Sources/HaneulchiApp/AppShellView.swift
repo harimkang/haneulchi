@@ -11,16 +11,32 @@ struct AppShellView: View {
             }
             .navigationTitle("Haneulchi")
         } detail: {
-            VStack(alignment: .leading, spacing: 16) {
-                Text(selectedRoute?.title ?? "No Selection")
-                    .font(.largeTitle)
-                    .bold()
-                Text("Initial shell scaffold aligned to Sprint 1 foundation.")
-                    .foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(24)
+            detailView
         }
+    }
+
+    @ViewBuilder
+    private var detailView: some View {
+        switch selectedRoute {
+        case .projectFocus:
+            ProjectFocusView(model: .demo)
+        case .controlTower, .taskBoard, .review, .attention:
+            placeholderDetail
+        case nil:
+            placeholderDetail
+        }
+    }
+
+    private var placeholderDetail: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text(selectedRoute?.title ?? "No Selection")
+                .font(.largeTitle)
+                .bold()
+            Text("Initial shell scaffold aligned to Sprint 1 foundation.")
+                .foregroundStyle(.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .padding(24)
     }
 }
 

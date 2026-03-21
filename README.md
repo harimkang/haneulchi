@@ -21,6 +21,20 @@ just check
 scripts/bootstrap/ensure-runtime-dirs.sh
 ```
 
+## MVP2-008 Smoke
+
+Use the repeatable MVP2-008 smoke path to refresh the Rust FFI artifacts and run the terminal-core verification set:
+
+```bash
+bash scripts/build-macos-core.sh
+bash scripts/run-mvp2-008-smoke.sh
+```
+
+`apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
+
+- `apps/macos/Vendor/lib`
+- `apps/macos/Vendor/HCCoreFFI/include`
+
 ## Notes
 
 - `reference/` remains read-only.

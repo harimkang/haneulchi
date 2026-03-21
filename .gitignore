@@ -23,6 +23,9 @@ docs/*
 !docs/product/
 !docs/adr/
 !docs/qa/
+!docs/superpowers/
+!docs/superpowers/specs/
+!docs/superpowers/specs/*.md
 .superpowers/
 
 # AGENTS
