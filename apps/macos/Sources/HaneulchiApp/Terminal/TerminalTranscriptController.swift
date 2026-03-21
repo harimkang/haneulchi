@@ -48,4 +48,12 @@ struct TerminalTranscriptController {
             )
         }
     }
+
+    func bootstrapLive() -> TerminalSurfaceState {
+        do {
+            return .live(try runtimeInfoProvider())
+        } catch {
+            return .failed(message: "Terminal bridge bootstrap failed.")
+        }
+    }
 }

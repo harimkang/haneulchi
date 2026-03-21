@@ -1,27 +1,78 @@
 import SwiftUI
 
 struct TerminalSurfaceConfiguration: Equatable, Identifiable, Sendable {
+    enum Source: Equatable, Sendable {
+        case fixture(String?)
+        case live(TerminalRestoreBundle)
+    }
+
     let id: String
     let title: String
-    let fixtureName: String?
+    let source: Source
 
     static let projectFocusDemo = Self(
         id: "project-focus-demo",
         title: "Hosted Terminal",
-        fixtureName: "hello-world.ansi"
+        source: .fixture("hello-world.ansi")
     )
+
+    static let projectFocusLiveDemo = Self(
+        id: "project-focus-live-demo",
+        title: "Hosted Terminal",
+        source: .live(.demo)
+    )
+
+    static func liveSurface(id: String, bundle: TerminalRestoreBundle) -> Self {
+        Self(id: id, title: "Hosted Terminal", source: .live(bundle))
+    }
+
+    var fixtureName: String? {
+        guard case let .fixture(name) = source else {
+            return nil
+        }
+
+        return name
+    }
+
+    var liveBundle: TerminalRestoreBundle? {
+        guard case let .live(bundle) = source else {
+            return nil
+        }
+
+        return bundle
+    }
+
+    var isLive: Bool {
+        liveBundle != nil
+    }
+
+    func duplicated(withID id: String) -> Self {
+        Self(id: id, title: title, source: source)
+    }
 }
 
 struct TerminalSurfaceView: View {
     let configuration: TerminalSurfaceConfiguration
     private let state: TerminalSurfaceState
+    @StateObject private var liveController: TerminalSessionController
+    private let liveBundle: TerminalRestoreBundle?
+    private let restoreStore: TerminalSessionRestoreStore
 
     init(
         configuration: TerminalSurfaceConfiguration,
-        controller: TerminalTranscriptController = TerminalTranscriptController()
+        controller: TerminalTranscriptController = TerminalTranscriptController(),
+        liveController: @autoclosure @escaping () -> TerminalSessionController = TerminalSessionController(),
+        restoreStore: TerminalSessionRestoreStore = .liveDefault
     ) {
         self.configuration = configuration
-        self.state = controller.bootstrap(fixtureName: configuration.fixtureName)
+        self.liveBundle = configuration.liveBundle
+        self.restoreStore = restoreStore
+        self.state = if configuration.isLive {
+            controller.bootstrapLive()
+        } else {
+            controller.bootstrap(fixtureName: configuration.fixtureName)
+        }
+        _liveController = StateObject(wrappedValue: liveController())
     }
 
     var body: some View {
@@ -36,6 +87,18 @@ struct TerminalSurfaceView: View {
                 Group {
                     if let transcript = state.transcript {
                         TerminalRendererHost(transcript: transcript)
+                    } else if liveBundle != nil, state.kind == .ready {
+                        TerminalRendererHost.live(controller: liveController)
+                            .task {
+                                guard let liveBundle, liveController.status == .idle else {
+                                    return
+                                }
+
+                                try? await liveController.restore(liveBundle)
+                            }
+                            .onReceive(liveController.$restorePoint) { bundle in
+                                try? restoreStore.save([bundle])
+                            }
                     } else {
                         statusView
                     }

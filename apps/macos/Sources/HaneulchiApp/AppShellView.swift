@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppShellView: View {
     @State private var selectedRoute: Route? = .projectFocus
+    @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
 
     var body: some View {
         NavigationSplitView {
@@ -19,7 +20,7 @@ struct AppShellView: View {
     private var detailView: some View {
         switch selectedRoute {
         case .projectFocus:
-            ProjectFocusView(model: .demo)
+            ProjectFocusView(model: projectFocusModel)
         case .controlTower, .taskBoard, .review, .attention:
             placeholderDetail
         case nil:
@@ -37,6 +38,12 @@ struct AppShellView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .padding(24)
+    }
+
+    private static func bootstrapProjectFocusModel(
+        restoreStore: TerminalSessionRestoreStore = .liveDefault
+    ) -> ProjectFocusView.Model {
+        (try? ProjectFocusView.Model.bootstrap(restoreStore: restoreStore)) ?? .demo
     }
 }
 

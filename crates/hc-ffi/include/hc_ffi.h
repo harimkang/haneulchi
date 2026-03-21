@@ -11,8 +11,20 @@ typedef struct HcString {
     char *ptr;
 } HcString;
 
+typedef struct HcBytes {
+    unsigned char *ptr;
+    size_t len;
+} HcBytes;
+
 HcString hc_runtime_info_json(void);
+HcString hc_terminal_session_spawn_json(const char *config_json);
+HcBytes hc_terminal_session_drain(const char *session_id);
+int hc_terminal_session_write(const char *session_id, const unsigned char *ptr, size_t len);
+int hc_terminal_session_resize(const char *session_id, unsigned short cols, unsigned short rows);
+int hc_terminal_session_terminate(const char *session_id);
+HcString hc_terminal_session_snapshot_json(const char *session_id);
 void hc_string_free(HcString value);
+void hc_bytes_free(HcBytes value);
 
 #ifdef __cplusplus
 }

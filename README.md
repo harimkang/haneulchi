@@ -30,6 +30,14 @@ bash scripts/build-macos-core.sh
 bash scripts/run-mvp2-008-smoke.sh
 ```
 
+## MVP2-009 / MVP2-010 / MVP2-012 Smoke
+
+Use the repeatable post-PTY smoke path to verify live session lifecycle, split deck basics, and terminal UX coverage:
+
+```bash
+bash scripts/run-mvp2-009-010-012-smoke.sh
+```
+
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
 - `apps/macos/Vendor/lib`

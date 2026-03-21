@@ -5,6 +5,20 @@ struct ProjectFocusView: View {
         let deck: TerminalDeckView.Model
 
         static let demo = Self(deck: .demo)
+        static let runtimeDemo = Self(deck: .runtimeDemo)
+
+        static func restored(_ bundle: TerminalRestoreBundle) -> Self {
+            Self(deck: .restored(bundle))
+        }
+
+        static func bootstrap(restoreStore: TerminalSessionRestoreStore) throws -> Self {
+            let bundles = try restoreStore.load()
+            guard let bundle = bundles.first else {
+                return .demo
+            }
+
+            return .restored(bundle)
+        }
     }
 
     let model: Model
