@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-swift test --package-path apps/macos
-swift build --package-path apps/macos
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-cat evidence/notes/WF-00-WF-10-shell-navigation-checklist.md
+bash "${repo_root}/scripts/smoke.sh" shell "$@"

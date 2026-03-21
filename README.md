@@ -21,44 +21,33 @@ just check
 scripts/bootstrap/ensure-runtime-dirs.sh
 ```
 
-## MVP2-008 Smoke
+## Smoke Commands
 
-Use the repeatable MVP2-008 smoke path to refresh the Rust FFI artifacts and run the terminal-core verification set:
-
-```bash
-bash scripts/build-macos-core.sh
-bash scripts/run-mvp2-008-smoke.sh
-```
-
-## MVP2-009 / MVP2-010 / MVP2-012 Smoke
-
-Use the repeatable post-PTY smoke path to verify live session lifecycle, split deck basics, and terminal UX coverage:
+Task-specific smoke runners are unified behind one entrypoint:
 
 ```bash
-bash scripts/run-mvp2-009-010-012-smoke.sh
+bash scripts/smoke.sh <target>
 ```
 
-To prepare `RG-03` compatibility evidence and the in-app operator runbook:
+Available targets:
+
+- `shell`: global shell chrome, route shortcuts, unread jump, command palette
+- `readiness`: Welcome / Readiness Launcher and `RG-01` dry-run scaffolding
+- `launcher`: `MVP2-007` demo workspace + no-project launcher checks
+- `terminal-surface`: `MVP2-008` Rust FFI + terminal surface verification
+- `terminal-deck`: `MVP2-009` / `MVP2-010` / `MVP2-012` live PTY, split deck, terminal UX, `RG-03` dry-run scaffolding
+
+Examples:
 
 ```bash
-bash scripts/qa/terminal/run-rg03-pack.sh --dry-run --tools "vim,tmux,lazygit"
+bash scripts/smoke.sh shell
+bash scripts/smoke.sh readiness
+bash scripts/smoke.sh launcher
+bash scripts/smoke.sh terminal-surface
+bash scripts/smoke.sh terminal-deck
 ```
 
-## MVP2-004 / MVP2-005 / MVP2-006 Smoke
-
-Use the readiness/onboarding smoke path to verify the Welcome / Readiness Launcher and scaffold `RG-01` evidence:
-
-```bash
-bash scripts/run-mvp2-004-005-006-smoke.sh
-```
-
-## MVP2-001 / MVP2-002 / MVP2-003 Smoke
-
-Use the app-shell smoke path to verify the global shell chrome, route shortcuts, unread jump, and command palette search providers:
-
-```bash
-bash scripts/run-mvp2-001-002-003-smoke.sh
-```
+Legacy `scripts/run-mvp2-*.sh` wrappers remain available as compatibility shims, but `scripts/smoke.sh` is the preferred entrypoint.
 
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
