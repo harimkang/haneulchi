@@ -33,6 +33,19 @@ docs/superpowers/*
 .superpowers/
 .worktrees/
 
+# Evidence policy
+# Keep release-gate summaries and root metadata in git.
+# Ignore bulky or frequently changing raw captures under evidence subdirectories.
+evidence/logs/**
+!evidence/logs/.gitkeep
+evidence/screens/**
+!evidence/screens/.gitkeep
+evidence/metrics/**
+!evidence/metrics/.gitkeep
+evidence/scenarios/**
+!evidence/scenarios/**/
+!evidence/scenarios/**/.gitkeep
+
 # AGENTS
 AGENTS.md
 CLAUDE.md
