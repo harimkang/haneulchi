@@ -1,6 +1,44 @@
 import Testing
 @testable import HaneulchiApp
 
+@Test("first-run empty state offers a demo entry point and onboarding copy")
+func welcomeReadinessViewModelShowsFirstRunStartState() {
+    let model = WelcomeReadinessViewModel(
+        entryReason: .firstRun,
+        recentProjectsCount: 0,
+        selectedProject: nil,
+        report: nil,
+        supportsDemoWorkspace: true
+    )
+
+    #expect(model.headerTitle == "Start a workspace")
+    #expect(model.helperText == "Open the demo workspace or add a folder. Generic shell remains available when presets are incomplete.")
+    #expect(model.showsDemoWorkspaceAction == true)
+    #expect(model.canRetry == false)
+}
+
+@Test("degraded recovery keeps recovery copy and hides the demo shortcut")
+func welcomeReadinessViewModelShowsRecoveryState() {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+
+    let model = WelcomeReadinessViewModel(
+        entryReason: .degradedRecovery,
+        recentProjectsCount: 1,
+        selectedProject: project,
+        report: nil,
+        supportsDemoWorkspace: true
+    )
+
+    #expect(model.headerTitle == "Recover this workspace")
+    #expect(model.showsDemoWorkspaceAction == false)
+    #expect(model.canRetry == true)
+}
+
 @Test("launcher enables continue only when a project is selected and shell probe is not blocked")
 func welcomeReadinessViewModelComputesPrimaryActionState() {
     let report = ReadinessReport(
@@ -11,8 +49,11 @@ func welcomeReadinessViewModelComputesPrimaryActionState() {
     )
 
     let model = WelcomeReadinessViewModel(
+        entryReason: .firstRun,
+        recentProjectsCount: 1,
         selectedProject: .init(projectID: "proj_demo", name: "demo", rootPath: "/tmp/demo", lastOpenedAt: .now),
-        report: report
+        report: report,
+        supportsDemoWorkspace: true
     )
 
     #expect(model.canContinue == true)
@@ -21,6 +62,12 @@ func welcomeReadinessViewModelComputesPrimaryActionState() {
 
 @Test("open settings targets the documented settings route")
 func welcomeReadinessViewModelOpensSettingsRoute() {
-    let model = WelcomeReadinessViewModel(selectedProject: nil, report: nil)
+    let model = WelcomeReadinessViewModel(
+        entryReason: .firstRun,
+        recentProjectsCount: 0,
+        selectedProject: nil,
+        report: nil,
+        supportsDemoWorkspace: true
+    )
     #expect(model.settingsTargetRoute == .settings)
 }

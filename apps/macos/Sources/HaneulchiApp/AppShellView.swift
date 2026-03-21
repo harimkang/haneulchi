@@ -5,14 +5,17 @@ struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
     private let projectFolderPicker: ProjectFolderPicker
+    private let demoWorkspaceScaffold: DemoWorkspaceScaffold
 
     init(
         model: @autoclosure @escaping () -> AppShellModel = AppShellModel.liveDefault(),
-        projectFolderPicker: ProjectFolderPicker = .live
+        projectFolderPicker: ProjectFolderPicker = .live,
+        demoWorkspaceScaffold: DemoWorkspaceScaffold = .liveDefault
     ) {
         let resolvedModel = model()
         _shellModel = StateObject(wrappedValue: resolvedModel)
         self.projectFolderPicker = projectFolderPicker
+        self.demoWorkspaceScaffold = demoWorkspaceScaffold
     }
 
     var body: some View {
@@ -82,10 +85,13 @@ struct AppShellView: View {
 
     private var welcomePlaceholder: some View {
         WelcomeReadinessView(
+            entryReason: launcherEntryReason,
             recentProjects: shellModel.recentProjects,
             selectedProject: shellModel.selectedProject,
             report: shellModel.readinessReport,
+            supportsDemoWorkspace: true,
             addFolder: addFolder,
+            openDemoWorkspace: openDemoWorkspace,
             reopenProject: reopenProject,
             continueWithGenericShell: continueWithGenericShell,
             openSettings: openSettings,
@@ -129,14 +135,16 @@ struct AppShellView: View {
         }
     }
 
-    private func reopenProject(_ project: LauncherProject) {
-        try? shellModel.selectProject(project)
-        Task {
-            let report = try? await ReadinessProbeRunner.live.run(for: project)
-            await MainActor.run {
-                shellModel.updateReadinessReport(report)
-            }
+    private func openDemoWorkspace() {
+        guard let project = try? demoWorkspaceScaffold.materialize() else {
+            return
         }
+
+        selectProjectAndRefreshReadiness(project)
+    }
+
+    private func reopenProject(_ project: LauncherProject) {
+        selectProjectAndRefreshReadiness(project)
     }
 
     private func addFolder() {
@@ -150,6 +158,10 @@ struct AppShellView: View {
             rootPath: url.path,
             lastOpenedAt: .now
         )
+        selectProjectAndRefreshReadiness(project)
+    }
+
+    private func selectProjectAndRefreshReadiness(_ project: LauncherProject) {
         try? shellModel.selectProject(project)
         Task {
             let report = try? await ReadinessProbeRunner.live.run(for: project)
@@ -162,6 +174,15 @@ struct AppShellView: View {
     private func performAction(_ action: AppShellAction) {
         Task {
             await shellModel.perform(action)
+        }
+    }
+
+    private var launcherEntryReason: AppShellModel.LauncherEntryReason {
+        switch shellModel.entrySurface {
+        case let .welcome(reason):
+            reason
+        case .shell:
+            .firstRun
         }
     }
 }

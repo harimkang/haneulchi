@@ -1,17 +1,26 @@
 import SwiftUI
 
 struct WelcomeReadinessView: View {
+    let entryReason: AppShellModel.LauncherEntryReason
     let recentProjects: [LauncherProject]
     let selectedProject: LauncherProject?
     let report: ReadinessReport?
+    let supportsDemoWorkspace: Bool
     let addFolder: () -> Void
+    let openDemoWorkspace: () -> Void
     let reopenProject: (LauncherProject) -> Void
     let continueWithGenericShell: () -> Void
     let openSettings: () -> Void
     let retry: () -> Void
 
     private var viewModel: WelcomeReadinessViewModel {
-        WelcomeReadinessViewModel(selectedProject: selectedProject, report: report)
+        WelcomeReadinessViewModel(
+            entryReason: entryReason,
+            recentProjectsCount: recentProjects.count,
+            selectedProject: selectedProject,
+            report: report,
+            supportsDemoWorkspace: supportsDemoWorkspace
+        )
     }
 
     var body: some View {
@@ -28,17 +37,28 @@ struct WelcomeReadinessView: View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
             Text("Welcome")
                 .font(.largeTitle.weight(.bold))
-            Text("Add a project or reopen a recent workspace. Generic shell remains available when preset setup is incomplete.")
+            Text("Add a project or reopen a recent workspace. Start with a generic shell and add setup later.")
                 .foregroundStyle(HaneulchiChrome.Colors.mutedText)
 
             Button("Add Folder", action: addFolder)
                 .buttonStyle(.borderedProminent)
 
+            if viewModel.showsDemoWorkspaceAction {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Quick Start")
+                        .font(.headline)
+                    Text("Open the demo workspace to verify the launcher flow before selecting your own repository.")
+                        .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    Button("Open Demo Workspace", action: openDemoWorkspace)
+                        .buttonStyle(.bordered)
+                }
+            }
+
             VStack(alignment: .leading, spacing: 8) {
                 Text("Recent Projects")
                     .font(.headline)
                 if recentProjects.isEmpty {
-                    Text("No recent projects yet.")
+                    Text("No recent projects yet. Add a folder or open the demo workspace to start.")
                         .foregroundStyle(HaneulchiChrome.Colors.mutedText)
                 } else {
                     ForEach(recentProjects) { project in
@@ -67,13 +87,18 @@ struct WelcomeReadinessView: View {
 
     private var readinessPane: some View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
-            Text(selectedProject?.name ?? "Select a project")
+            Text(viewModel.headerTitle)
                 .font(.title2.weight(.semibold))
-            Text(selectedProject?.rootPath ?? "Choose a project folder to inspect shell, git, preset, keychain, and workflow readiness.")
+            Text(viewModel.helperText)
                 .foregroundStyle(HaneulchiChrome.Colors.mutedText)
 
-            ForEach(viewModel.readinessChecks, id: \.name) { check in
-                readinessRow(check)
+            if viewModel.readinessChecks.isEmpty {
+                Text("Select a workspace to inspect shell, git, preset, keychain, and workflow readiness.")
+                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+            } else {
+                ForEach(viewModel.readinessChecks, id: \.name) { check in
+                    readinessRow(check)
+                }
             }
 
             HStack(spacing: 12) {
@@ -84,6 +109,7 @@ struct WelcomeReadinessView: View {
                     .buttonStyle(.bordered)
                 Button("Retry", action: retry)
                     .buttonStyle(.borderless)
+                    .disabled(!viewModel.canRetry)
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
