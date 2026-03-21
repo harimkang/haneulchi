@@ -5,3 +5,8 @@ edition = "2024"
 
 [lib]
 path = "src/lib.rs"
+
+[dependencies]
+hc-domain = { path = "../hc-domain" }
+hc-workflow = { path = "../hc-workflow" }
+thiserror = "1.0"

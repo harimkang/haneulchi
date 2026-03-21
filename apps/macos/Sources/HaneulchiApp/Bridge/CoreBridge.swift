@@ -18,6 +18,59 @@ struct CoreBridge: Sendable {
     let resizeSession: @Sendable (String, TerminalGridSize) throws -> Void
     let terminateSession: @Sendable (String) throws -> Void
     let snapshotSession: @Sendable (String) throws -> TerminalSessionSnapshot
+    let stateSnapshot: @Sendable () throws -> AppShellSnapshot
+    let sessionsList: @Sendable () throws -> [AppShellSnapshot.SessionSummary]
+    let focusSession: @Sendable (String) throws -> Void
+    let takeoverSession: @Sendable (String) throws -> Void
+    let releaseTakeoverSession: @Sendable (String) throws -> Void
+    let workflowValidate: @Sendable (String) throws -> Data
+    let workflowReload: @Sendable (String) throws -> Data
+
+    init(
+        runtimeInfo: @escaping @Sendable () throws -> TerminalBackendDescriptor,
+        spawnSession: @escaping @Sendable (TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot,
+        drainSession: @escaping @Sendable (String) throws -> Data,
+        writeSession: @escaping @Sendable (String, Data) throws -> Void,
+        resizeSession: @escaping @Sendable (String, TerminalGridSize) throws -> Void,
+        terminateSession: @escaping @Sendable (String) throws -> Void,
+        snapshotSession: @escaping @Sendable (String) throws -> TerminalSessionSnapshot,
+        stateSnapshot: @escaping @Sendable () throws -> AppShellSnapshot = {
+            throw CoreBridgeError.operationFailed("state_snapshot_unavailable")
+        },
+        sessionsList: @escaping @Sendable () throws -> [AppShellSnapshot.SessionSummary] = {
+            throw CoreBridgeError.operationFailed("sessions_list_unavailable")
+        },
+        focusSession: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("session_focus_unavailable")
+        },
+        takeoverSession: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("session_takeover_unavailable")
+        },
+        releaseTakeoverSession: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("session_release_takeover_unavailable")
+        },
+        workflowValidate: @escaping @Sendable (String) throws -> Data = { _ in
+            throw CoreBridgeError.operationFailed("workflow_validate_unavailable")
+        },
+        workflowReload: @escaping @Sendable (String) throws -> Data = { _ in
+            throw CoreBridgeError.operationFailed("workflow_reload_unavailable")
+        }
+    ) {
+        self.runtimeInfo = runtimeInfo
+        self.spawnSession = spawnSession
+        self.drainSession = drainSession
+        self.writeSession = writeSession
+        self.resizeSession = resizeSession
+        self.terminateSession = terminateSession
+        self.snapshotSession = snapshotSession
+        self.stateSnapshot = stateSnapshot
+        self.sessionsList = sessionsList
+        self.focusSession = focusSession
+        self.takeoverSession = takeoverSession
+        self.releaseTakeoverSession = releaseTakeoverSession
+        self.workflowValidate = workflowValidate
+        self.workflowReload = workflowReload
+    }
 
     static let live = Self(
         runtimeInfo: {
@@ -102,6 +155,47 @@ struct CoreBridge: Sendable {
                 try stringPayloadData(hc_terminal_session_snapshot_json(pointer))
             }
             return try decodeSessionSnapshot(from: payload)
+        },
+        stateSnapshot: {
+            let payload = try stringPayloadData(hc_state_snapshot_json())
+            return try decodeAppShellSnapshot(from: payload)
+        },
+        sessionsList: {
+            let payload = try stringPayloadData(hc_sessions_list_json())
+            return try decodeSessionSummaries(from: payload)
+        },
+        focusSession: { sessionID in
+            let session = try CStringBox(sessionID)
+            let result = session.withPointer { hc_session_focus($0) }
+            guard result == 0 else {
+                throw CoreBridgeError.operationFailed("session_focus_failed")
+            }
+        },
+        takeoverSession: { sessionID in
+            let session = try CStringBox(sessionID)
+            let result = session.withPointer { hc_session_takeover($0) }
+            guard result == 0 else {
+                throw CoreBridgeError.operationFailed("session_takeover_failed")
+            }
+        },
+        releaseTakeoverSession: { sessionID in
+            let session = try CStringBox(sessionID)
+            let result = session.withPointer { hc_session_release_takeover($0) }
+            guard result == 0 else {
+                throw CoreBridgeError.operationFailed("session_release_takeover_failed")
+            }
+        },
+        workflowValidate: { projectRoot in
+            let root = try CStringBox(projectRoot)
+            return try root.withPointer { pointer in
+                try stringPayloadData(hc_workflow_validate_json(pointer))
+            }
+        },
+        workflowReload: { projectRoot in
+            let root = try CStringBox(projectRoot)
+            return try root.withPointer { pointer in
+                try stringPayloadData(hc_workflow_reload_json(pointer))
+            }
         }
     )
 
@@ -133,7 +227,18 @@ struct CoreBridge: Sendable {
             },
             snapshotSession: { sessionID in
                 try state.snapshot(sessionID: sessionID)
-            }
+            },
+            stateSnapshot: {
+                AppShellSnapshot.empty(activeRoute: .projectFocus)
+            },
+            sessionsList: {
+                []
+            },
+            focusSession: { _ in },
+            takeoverSession: { _ in },
+            releaseTakeoverSession: { _ in },
+            workflowValidate: { _ in Data("{}".utf8) },
+            workflowReload: { _ in Data("{}".utf8) }
         )
     }
 }
@@ -168,6 +273,22 @@ private func decodeSessionSnapshot(from data: Data) throws -> TerminalSessionSna
     }
 
     return snapshot
+}
+
+private func decodeAppShellSnapshot(from data: Data) throws -> AppShellSnapshot {
+    guard let snapshot = try? JSONDecoder().decode(AppShellSnapshot.self, from: data) else {
+        throw CoreBridgeError.invalidRuntimeInfo
+    }
+
+    return snapshot
+}
+
+private func decodeSessionSummaries(from data: Data) throws -> [AppShellSnapshot.SessionSummary] {
+    guard let sessions = try? JSONDecoder().decode([AppShellSnapshot.SessionSummary].self, from: data) else {
+        throw CoreBridgeError.invalidRuntimeInfo
+    }
+
+    return sessions
 }
 
 private struct SpawnSessionResponse: Decodable {

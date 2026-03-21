@@ -6,6 +6,8 @@ use std::os::raw::c_char;
 use hc_runtime::terminal::backend::TerminalBackendDescriptor;
 
 mod session_bridge;
+mod state_bridge;
+mod workflow_bridge;
 
 #[repr(C)]
 pub struct HcString {
@@ -64,4 +66,13 @@ pub use session_bridge::{
     hc_terminal_session_spawn_json, hc_terminal_session_terminate, hc_terminal_session_write,
     terminal_session_drain, terminal_session_resize, terminal_session_snapshot_json,
     terminal_session_spawn_json, terminal_session_terminate, terminal_session_write,
+};
+pub use state_bridge::{
+    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_state_snapshot_json,
+    hc_sessions_list_json, session_focus, session_release_takeover, session_takeover,
+    state_snapshot_json, sessions_list_json,
+};
+pub use workflow_bridge::{
+    hc_workflow_reload_json, hc_workflow_validate_json, workflow_reload_json,
+    workflow_validate_json,
 };
