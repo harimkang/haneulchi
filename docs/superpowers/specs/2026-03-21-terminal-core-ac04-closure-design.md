@@ -93,7 +93,7 @@ The pane chrome should:
 - run a scenario template for each selected tool covering launch, key input, alternate screen, resize, paste, and quit-return;
 - emit result summaries, checklists, and evidence skeleton files under an `evidence/` tree.
 
-The harness may automate environment capture, result JSON generation, and note templates, but screen capture and final operator checklists remain explicit human evidence because the release-gate spec requires real-tested proof.
+The harness may automate environment capture, result JSON generation, and note templates, but screen capture and final operator checklists remain explicit human evidence because the release-gate spec requires real-tested proof. The committed repository should therefore carry a stable evidence skeleton that matches the release-gate root contract, while each run refreshes the generated result files inside that structure.
 
 ## Proposed File Boundaries
 
@@ -127,11 +127,17 @@ The harness may automate environment capture, result JSON generation, and note t
 - Create: `scripts/qa/terminal/check-tool-availability.sh`
   - Detect installed TUI candidates and emit normalized tool metadata.
 - Create: `scripts/qa/terminal/write-evidence-manifest.sh`
-  - Prepare `evidence/` directory structure and shared environment files.
+  - Prepare the release-gate `evidence/` directory structure and shared environment files.
 - Modify: `scripts/run-mvp2-009-010-012-smoke.sh`
   - Delegate to the compatibility harness and stop acting as the only manual checklist.
 - Create: `evidence/README.md`
   - Describe expected generated and manually attached artifacts for `RG-02` and `RG-03`.
+- Create: `evidence/manifest.json`
+- Create: `evidence/gate-results.json`
+- Create: `evidence/environment.json`
+- Create: `evidence/scenarios/S-02/.gitkeep`
+- Create: `evidence/scenarios/RG-03/.gitkeep`
+- Create: `evidence/metrics/.gitkeep`
 - Create: `evidence/notes/RG-02-terminal-checklist.md`
 - Create: `evidence/notes/RG-03-template-checklist.md`
 - Create: `evidence/logs/.gitkeep`
