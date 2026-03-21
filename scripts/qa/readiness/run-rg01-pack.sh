@@ -70,10 +70,19 @@ cat >"${output_dir}/notes/rg01-summary.md" <<EOF
 - Update \`scenarios/S-01/checklist.json\` after the operator run.
 EOF
 
-cat >"${output_dir}/gate-results.json" <<JSON
-{
-  "RG-01": "${mode}"
-}
-JSON
+python3 - <<'PY' "${output_dir}/gate-results.json" "${mode}"
+import json
+import sys
+
+path, mode = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+data["RG-01"] = mode
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+PY
 
 printf 'RG-01 %s prepared at %s\n' "${mode}" "${output_dir}"

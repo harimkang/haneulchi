@@ -92,3 +92,37 @@ func paletteFiltersAcrossSections() async throws {
     #expect(viewModel.filteredSections.first(where: { $0.kind == .files })?.items.first?.title == "README.md")
     #expect(viewModel.selection?.action == .queueFileSelection("/tmp/demo/README.md"))
 }
+
+@Test("command palette includes latest unread when the shared snapshot has attention")
+func commandPaletteIncludesLatestUnreadCommand() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "restore-1", degradedFlags: [.degraded]),
+        projects: [],
+        sessions: [],
+        attention: [
+            .init(
+                attentionID: "attention-1",
+                headline: "Preset binaries missing",
+                severity: .degraded,
+                targetRoute: .attentionCenter,
+                targetSessionID: nil
+            )
+        ],
+        retryQueue: [],
+        warnings: [
+            .init(
+                warningID: "warning-presetBinaries",
+                severity: .degraded,
+                headline: "Preset binaries missing",
+                nextAction: "Open Settings"
+            )
+        ]
+    )
+
+    let catalog = CommandPaletteCatalog.build(snapshot: snapshot, files: [], tasks: [], inventory: [])
+    let commandItems = catalog.sections.first(where: { $0.kind == .commands })?.items ?? []
+
+    #expect(commandItems.contains(where: { $0.action == .jumpToLatestUnread }))
+}

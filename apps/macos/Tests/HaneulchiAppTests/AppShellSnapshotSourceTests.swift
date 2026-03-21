@@ -39,7 +39,9 @@ func localSnapshotUsesCurrentShellInputs() async throws {
     #expect(snapshot.sessions.count == 1)
     #expect(snapshot.sessions.first?.mode == .generic)
     #expect(snapshot.sessions.first?.runtimeState == .exited)
-    #expect(snapshot.attention.isEmpty)
+    #expect(snapshot.attention.count == 1)
+    #expect(snapshot.attention.first?.headline == "Preset binaries missing")
+    #expect(snapshot.attention.first?.targetRoute == .attentionCenter)
     #expect(snapshot.retryQueue.isEmpty)
     #expect(snapshot.warnings.map(\.severity) == [.degraded])
 }

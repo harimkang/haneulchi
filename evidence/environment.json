@@ -1,7 +1,7 @@
 {
-  "macos_version": "template",
-  "device_model": "template",
-  "cpu": "template",
-  "ram_bytes": 0,
-  "shell": "template"
+  "macos_version": "26.3.1",
+  "device_model": "Mac17,3",
+  "cpu": "Apple M5",
+  "ram_bytes": 34359738368,
+  "shell": "/bin/zsh"
 }

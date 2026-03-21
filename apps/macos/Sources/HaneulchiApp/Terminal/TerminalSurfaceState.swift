@@ -56,4 +56,12 @@ enum TerminalSurfaceState: Equatable, Sendable {
             return message
         }
     }
+
+    func resolvedFailure(_ message: String?) -> Self {
+        guard let message else {
+            return self
+        }
+
+        return .failed(message: message)
+    }
 }

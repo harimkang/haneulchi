@@ -1,11 +1,33 @@
 # WF-00 / WF-10 Shell Navigation Checklist
 
-- Launch the app with a saved project and confirm the last active route restores.
-- Confirm `Top App Bar`, `Left Rail`, and `Bottom Status Strip` are visible in shell mode.
-- Press `Cmd+1..5` and confirm each route switches without losing project context.
-- Press `Cmd+Shift+U` and confirm the latest unread or attention item jump uses the shared shell action path.
-- Press `Cmd+Shift+P`, search for a route command, and execute it.
-- Search for a file and confirm the shell shows a visible notice after selection.
-- Seed one task-summary row and confirm the `tasks` section returns it and routes to `Task Board`.
-- Ensure at least one restore root exists and confirm the `inventory` section returns a real row rather than an unavailable placeholder.
-- Press `Cmd+,` and confirm Settings opens.
+Automated regression run on `2026-03-22`:
+- `bash scripts/smoke.sh shell` passed.
+
+Validation status:
+- Saved-project route restore:
+Automated: `AppShellBootstrapTests.bootstrapRestoresPersistedRoute`
+Manual: pending hotkey/visual verification in app
+- Shell chrome visibility (`Top App Bar`, `Left Rail`, `Bottom Status Strip`):
+Automated: `AppShellChromeStateTests`
+Manual: pending visual verification in app
+- `Cmd+1..5` primary route switching:
+Automated: `RouteTests`, shared shell action coverage
+Manual: pending keyboard exercise in app
+- `Cmd+Shift+U` latest unread jump:
+Automated: `AppShellSnapshotSourceTests`, `AppShellActionTests.jumpToLatestUnreadUsesProjectedAttention`, `CommandPaletteViewModelTests.commandPaletteIncludesLatestUnreadCommand`
+Manual: pending keyboard exercise in app
+- `Cmd+Shift+P` command palette route command:
+Automated: `CommandPaletteViewModelTests`, shell smoke passed
+Manual: pending palette interaction in app
+- File search visible notice:
+Automated: `AppShellActionTests.fileSelectionActionUsesSharedDispatcher`
+Manual: pending palette interaction in app
+- Task search routes to `Task Board`:
+Automated: `AppShellActionTests.createTaskDraftActionCreatesPersistedTask`
+Manual: pending palette interaction in app
+- Inventory rows come from real restore roots:
+Automated: `InventorySearchProjectionStoreTests`, shell smoke passed
+Manual: pending palette interaction in app
+- `Cmd+,` opens Settings:
+Automated: `WelcomeReadinessViewModelTests.openSettingsTargetsTheDocumentedSettingsRoute`
+Manual: pending keyboard exercise in app

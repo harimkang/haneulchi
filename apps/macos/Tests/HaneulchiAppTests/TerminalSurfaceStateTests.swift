@@ -62,3 +62,13 @@ func generatedFixtureCatalogResolvesDemoTranscript() throws {
 
     #expect(transcript.contains("Haneulchi says hello"))
 }
+
+@Test("live surface restore failure maps to an operator-visible failed state")
+func liveSurfaceRestoreFailureIsVisible() {
+    let state = TerminalSurfaceState
+        .live(.init(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false))
+        .resolvedFailure("Hosted terminal could not start.")
+
+    #expect(state.kind == .failed)
+    #expect(state.message == "Hosted terminal could not start.")
+}

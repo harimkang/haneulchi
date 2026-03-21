@@ -91,6 +91,37 @@ func welcomeReadinessViewModelComputesPrimaryActionState() {
     #expect(model.primaryActionTitle == "Continue with Generic Shell")
 }
 
+@Test("saved project with informational gaps still presents the normal project summary copy")
+func welcomeReadinessViewModelKeepsProjectSummaryForInformationalGaps() {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let report = ReadinessReport(
+        project: project,
+        checks: [
+            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "/bin/zsh", nextAction: nil),
+            .init(name: .shellIntegration, status: .degraded, headline: "Shell integration not installed", detail: "Command markers are not configured yet.", nextAction: "Open Settings"),
+            .init(name: .workflow, status: .degraded, headline: "Workflow contract not found", detail: "Future launches can still use a generic shell.", nextAction: "Continue with Generic Shell"),
+        ]
+    )
+
+    let model = WelcomeReadinessViewModel(
+        entryReason: .firstRun,
+        recentProjectsCount: 1,
+        selectedProject: project,
+        report: report,
+        supportsDemoWorkspace: true,
+        launcherNotice: nil
+    )
+
+    #expect(model.headerTitle == "demo")
+    #expect(model.helperText == "/tmp/demo")
+    #expect(model.showsDemoWorkspaceAction == false)
+}
+
 @Test("open settings targets the documented settings route")
 func welcomeReadinessViewModelOpensSettingsRoute() {
     let model = WelcomeReadinessViewModel(

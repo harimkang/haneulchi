@@ -129,6 +129,7 @@ final class TerminalSessionController: ObservableObject {
     @Published private(set) var latestText = ""
     @Published private(set) var geometry = TerminalGridSize.defaultShell
     @Published private(set) var status: Status = .idle
+    @Published private(set) var failureMessage: String?
     @Published private(set) var restorePoint = TerminalRestoreBundle.demo
     @Published private(set) var sessionSnapshot: TerminalSessionSnapshot?
 
@@ -138,22 +139,42 @@ final class TerminalSessionController: ObservableObject {
 
     func start(_ request: TerminalSessionLaunchRequest) async throws {
         status = .starting
-        let snapshot = try bridge.spawnSession(request)
-        sessionID = snapshot.sessionID
-        sessionSnapshot = snapshot
-        geometry = snapshot.geometry
-        restorePoint = TerminalRestoreBundle(launch: request, geometry: snapshot.geometry)
-        status = snapshot.running ? .running : .terminated(exitCode: snapshot.exitCode)
-        try await refresh()
-        startDrainLoop()
+        failureMessage = nil
+
+        do {
+            let snapshot = try bridge.spawnSession(request)
+            sessionID = snapshot.sessionID
+            sessionSnapshot = snapshot
+            geometry = snapshot.geometry
+            status = snapshot.running ? .running : .terminated(exitCode: snapshot.exitCode)
+            try await refresh()
+            restorePoint = TerminalRestoreBundle(launch: request, geometry: geometry)
+            startDrainLoop()
+        } catch {
+            terminateCurrentSessionIfNeeded()
+            recordFailure("Hosted terminal could not start.")
+            throw error
+        }
     }
 
     func restore(_ bundle: TerminalRestoreBundle) async throws {
-        try await start(bundle.launch)
-        if bundle.geometry != geometry {
-            try resize(bundle.geometry)
+        let previousRestorePoint = restorePoint
+
+        do {
+            try await start(bundle.launch)
+            if bundle.geometry != geometry {
+                try resize(bundle.geometry, updatesRestorePoint: false)
+            }
+            restorePoint = bundle
+        } catch {
+            restorePoint = previousRestorePoint
+
+            if failureMessage == nil || sessionID != nil {
+                terminateCurrentSessionIfNeeded()
+                recordFailure("Hosted terminal could not start.")
+            }
+            throw error
         }
-        restorePoint = bundle
     }
 
     func refresh() async throws {
@@ -181,13 +202,19 @@ final class TerminalSessionController: ObservableObject {
     }
 
     func resize(_ geometry: TerminalGridSize) throws {
+        try resize(geometry, updatesRestorePoint: true)
+    }
+
+    private func resize(_ geometry: TerminalGridSize, updatesRestorePoint: Bool) throws {
         guard let sessionID else {
             return
         }
 
         try bridge.resizeSession(sessionID, geometry)
         self.geometry = geometry
-        restorePoint = TerminalRestoreBundle(launch: restorePoint.launch, geometry: geometry)
+        if updatesRestorePoint {
+            restorePoint = TerminalRestoreBundle(launch: restorePoint.launch, geometry: geometry)
+        }
     }
 
     func terminate() throws {
@@ -216,5 +243,21 @@ final class TerminalSessionController: ObservableObject {
                 try? await Task.sleep(for: .milliseconds(33))
             }
         }
+    }
+
+    private func terminateCurrentSessionIfNeeded() {
+        guard let sessionID else {
+            return
+        }
+
+        try? bridge.terminateSession(sessionID)
+    }
+
+    private func recordFailure(_ message: String) {
+        drainTask?.cancel()
+        sessionID = nil
+        sessionSnapshot = nil
+        status = .failed
+        failureMessage = message
     }
 }

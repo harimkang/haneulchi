@@ -9,7 +9,7 @@ struct ReadinessReport: Equatable, Sendable {
     }
 
     var requiresRecoverySurface: Bool {
-        checks.contains { $0.status != .ready }
+        checks.contains { $0.startupImpact == .recoveryRequired }
     }
 
     func check(named name: ReadinessCheckName) -> ReadinessCheck? {

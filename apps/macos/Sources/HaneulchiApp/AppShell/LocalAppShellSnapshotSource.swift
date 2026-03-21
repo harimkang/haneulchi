@@ -22,11 +22,13 @@ struct LocalAppShellSnapshotSource: Sendable {
         let sessions = makeSessions(from: restoreBundles)
         let runningSessions = sessions.filter { $0.runtimeState == .running }
         let warnings = makeWarnings(from: readinessReport)
+        let attention = makeAttention(from: warnings)
         let projects = makeProjects(
             selectedProject: selectedProject,
             recentProjects: recentProjects,
             sessions: runningSessions,
             warnings: warnings,
+            attention: attention,
             readinessReport: readinessReport
         )
         let workflowHealth = projects.first(where: { $0.status == .active })?.workflowState
@@ -54,7 +56,7 @@ struct LocalAppShellSnapshotSource: Sendable {
             ),
             projects: projects,
             sessions: sessions,
-            attention: [],
+            attention: attention,
             retryQueue: [],
             warnings: warnings
         )
@@ -112,12 +114,14 @@ struct LocalAppShellSnapshotSource: Sendable {
         recentProjects: [LauncherProject],
         sessions: [AppShellSnapshot.SessionSummary],
         warnings: [AppShellSnapshot.WarningSummary],
+        attention: [AppShellSnapshot.AttentionSummary],
         readinessReport: ReadinessReport?
     ) -> [AppShellSnapshot.ProjectSummary] {
         let orderedProjects = orderedProjects(selectedProject: selectedProject, recentProjects: recentProjects)
         return orderedProjects.map { project in
             let projectSessionCount = sessions.filter { $0.currentDirectory == project.rootPath }.count
             let hasFailure = warnings.contains { $0.severity == .failed }
+            let projectAttentionCount = project.projectID == selectedProject?.projectID ? attention.count : 0
 
             return .init(
                 projectID: project.projectID,
@@ -128,7 +132,21 @@ struct LocalAppShellSnapshotSource: Sendable {
                     : .idle,
                 workflowState: workflowHealth(for: project, readinessReport: readinessReport),
                 sessionCount: projectSessionCount,
-                attentionCount: 0
+                attentionCount: projectAttentionCount
+            )
+        }
+    }
+
+    private func makeAttention(
+        from warnings: [AppShellSnapshot.WarningSummary]
+    ) -> [AppShellSnapshot.AttentionSummary] {
+        warnings.enumerated().map { index, warning in
+            .init(
+                attentionID: "attention-\(index + 1)",
+                headline: warning.headline,
+                severity: warning.severity,
+                targetRoute: .attentionCenter,
+                targetSessionID: nil
             )
         }
     }

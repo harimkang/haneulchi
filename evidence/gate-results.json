@@ -1,4 +1,12 @@
 {
+  "RG-01": "dry-run",
   "RG-02": "not_run",
-  "RG-03": "not_run"
+  "RG-03": "not_run",
+  "RG-04": "not_run",
+  "RG-05": "not_run",
+  "RG-06": "not_run",
+  "RG-07": "not_run",
+  "RG-08": "not_run",
+  "RG-09": "not_run",
+  "RG-10": "not_run"
 }

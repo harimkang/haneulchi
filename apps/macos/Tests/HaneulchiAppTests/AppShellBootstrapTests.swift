@@ -14,7 +14,7 @@ func appShellBootstrapsLauncherWhenNoProjectExists() throws {
     #expect(model.entrySurface == .welcome(.firstRun))
 }
 
-@Test("saved last project with degraded startup readiness re-enters the launcher in recovery mode")
+@Test("saved last project with a blocked shell re-enters the launcher in recovery mode")
 @MainActor
 func appShellBootstrapsLauncherForDegradedRecovery() async throws {
     let store = ProjectLauncherStore.inMemory
@@ -30,8 +30,8 @@ func appShellBootstrapsLauncherForDegradedRecovery() async throws {
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "zsh available", nextAction: nil),
-            .init(name: .presetBinaries, status: .degraded, headline: "Preset binaries missing", detail: "Generic shell remains available.", nextAction: "Open Settings"),
+            .init(name: .shell, status: .blocked, headline: "Shell unavailable", detail: "Configured shell could not be determined.", nextAction: "Open Settings"),
+            .init(name: .workflow, status: .ready, headline: "Workflow contract detected", detail: "WORKFLOW.md is present.", nextAction: nil),
         ]
     )
 
@@ -45,7 +45,39 @@ func appShellBootstrapsLauncherForDegradedRecovery() async throws {
     #expect(model.entrySurface == .welcome(.degradedRecovery))
 }
 
-@Test("live default evaluates startup readiness for a previously selected project")
+@Test("saved last project with informational readiness gaps stays in shell")
+@MainActor
+func appShellBootstrapsShellForInformationalReadinessGaps() async throws {
+    let store = ProjectLauncherStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    try store.recordOpen(project)
+    try store.saveLastSelectedProject(project)
+
+    let report = ReadinessReport(
+        project: project,
+        checks: [
+            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "zsh available", nextAction: nil),
+            .init(name: .shellIntegration, status: .degraded, headline: "Shell integration not installed", detail: "Command markers are not configured yet.", nextAction: "Open Settings"),
+            .init(name: .workflow, status: .degraded, headline: "Workflow contract not found", detail: "Future launches can still use a generic shell.", nextAction: "Continue with Generic Shell"),
+        ]
+    )
+
+    let model = try await AppShellModel.bootstrap(
+        projectStore: store,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        initialReport: report
+    )
+
+    #expect(model.entrySurface == .shell)
+}
+
+@Test("live default keeps shell entry for a previously selected project when gaps are informational")
 @MainActor
 func liveDefaultEvaluatesStartupReadiness() async throws {
     let store = ProjectLauncherStore.inMemory
@@ -84,8 +116,8 @@ func liveDefaultEvaluatesStartupReadiness() async throws {
 
     await model.startupReadinessTask?.value
 
-    #expect(model.entrySurface == .welcome(.degradedRecovery))
-    #expect(model.readinessReport?.requiresRecoverySurface == true)
+    #expect(model.entrySurface == .shell)
+    #expect(model.readinessReport?.requiresRecoverySurface == false)
 }
 
 @Test("bootstrapped shell restores the last active route when a project exists")

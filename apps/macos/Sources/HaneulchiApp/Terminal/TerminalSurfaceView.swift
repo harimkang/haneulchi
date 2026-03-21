@@ -85,18 +85,20 @@ struct TerminalSurfaceView: View {
     }
 
     var body: some View {
+        let resolvedState = state.resolvedFailure(liveController.failureMessage)
+
         VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .bottomLeading) {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color(nsColor: .windowBackgroundColor))
 
                 Group {
-                    if let transcript = state.transcript {
+                    if let transcript = resolvedState.transcript {
                         TerminalRendererHost(
                             transcript: transcript,
                             onHostHandleReady: registerHostHandle
                         )
-                    } else if liveBundle != nil, state.kind == .ready {
+                    } else if liveBundle != nil, resolvedState.kind == .ready {
                         TerminalRendererHost.live(
                             controller: liveController,
                             onHostHandleReady: registerHostHandle
@@ -109,14 +111,14 @@ struct TerminalSurfaceView: View {
                                 do {
                                     try await liveController.restore(liveBundle)
                                 } catch {
-                                    // Preserve the existing fallback surface when live restore fails.
+                                    // The controller publishes an operator-visible failure state.
                                 }
                             }
                             .onReceive(liveController.$restorePoint) { bundle in
                                 try? restoreStore.save([bundle])
                             }
                     } else {
-                        statusView
+                        statusView(for: resolvedState)
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 14))
@@ -124,7 +126,7 @@ struct TerminalSurfaceView: View {
             .frame(minHeight: 320)
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(borderColor, lineWidth: 1)
+                    .strokeBorder(borderColor(for: resolvedState), lineWidth: 1)
             )
         }
         .onChange(of: isFocused) { _, focused in
@@ -136,9 +138,9 @@ struct TerminalSurfaceView: View {
         }
     }
 
-    private var statusView: some View {
+    private func statusView(for state: TerminalSurfaceState) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(statusTitle)
+            Text(statusTitle(for: state))
                 .font(.title3.weight(.semibold))
             Text(state.message ?? "")
                 .foregroundStyle(.secondary)
@@ -147,7 +149,7 @@ struct TerminalSurfaceView: View {
         .padding(20)
     }
 
-    private var statusTitle: String {
+    private func statusTitle(for state: TerminalSurfaceState) -> String {
         switch state.kind {
         case .ready:
             return configuration.title
@@ -160,7 +162,7 @@ struct TerminalSurfaceView: View {
         }
     }
 
-    private var borderColor: Color {
+    private func borderColor(for state: TerminalSurfaceState) -> Color {
         switch state.kind {
         case .ready:
             return .secondary.opacity(0.25)

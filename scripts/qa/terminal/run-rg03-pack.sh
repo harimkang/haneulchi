@@ -115,11 +115,20 @@ Required evidence per tool:
 - one caveat note under `evidence/notes/`
 EOF
 
-cat >"${output_dir}/gate-results.json" <<JSON
-{
-  "RG-02": "not_run",
-  "RG-03": "${mode}"
-}
-JSON
+python3 - <<'PY' "${output_dir}/gate-results.json" "${mode}"
+import json
+import sys
+
+path, mode = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+data.setdefault("RG-02", "not_run")
+data["RG-03"] = mode
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+PY
 
 printf 'RG-03 %s prepared for tools: %s\n' "${mode}" "${selected_tools[*]}"

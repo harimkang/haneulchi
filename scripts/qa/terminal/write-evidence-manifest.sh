@@ -36,12 +36,40 @@ cat >"${output_dir}/manifest.json" <<JSON
 }
 JSON
 
-cat >"${output_dir}/gate-results.json" <<'JSON'
+if [[ ! -f "${output_dir}/gate-results.json" ]]; then
+  cat >"${output_dir}/gate-results.json" <<'JSON'
 {
+  "RG-01": "not_run",
   "RG-02": "not_run",
-  "RG-03": "not_run"
+  "RG-03": "not_run",
+  "RG-04": "not_run",
+  "RG-05": "not_run",
+  "RG-06": "not_run",
+  "RG-07": "not_run",
+  "RG-08": "not_run",
+  "RG-09": "not_run",
+  "RG-10": "not_run"
 }
 JSON
+else
+  python3 - <<'PY' "${output_dir}/gate-results.json"
+import json
+import sys
+
+path = sys.argv[1]
+defaults = {f"RG-{index:02d}": "not_run" for index in range(1, 11)}
+
+with open(path, "r", encoding="utf-8") as fh:
+    data = json.load(fh)
+
+for key, value in defaults.items():
+    data.setdefault(key, value)
+
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(data, fh, indent=2)
+    fh.write("\n")
+PY
+fi
 
 cat >"${output_dir}/environment.json" <<JSON
 {

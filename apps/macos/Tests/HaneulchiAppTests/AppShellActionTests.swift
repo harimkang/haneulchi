@@ -121,3 +121,37 @@ func createTaskDraftFailureDoesNotReportSuccess() async throws {
     #expect(model.selectedRoute == .controlTower)
     #expect(model.transientNotice?.contains("could not be created") == true)
 }
+
+@MainActor
+@Test("latest unread uses projected attention from the shared shell snapshot")
+func jumpToLatestUnreadUsesProjectedAttention() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let report = ReadinessReport(
+        project: project,
+        checks: [
+            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "/bin/zsh", nextAction: nil),
+            .init(name: .presetBinaries, status: .degraded, headline: "Preset binaries missing", detail: "Generic shell remains available.", nextAction: "Open Settings"),
+        ]
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: report,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.jumpToLatestUnread)
+
+    #expect(model.selectedRoute == .attentionCenter)
+    #expect(model.transientNotice?.contains("Preset binaries missing") == true)
+}

@@ -221,6 +221,9 @@ final class AppShellModel: ObservableObject {
             setSelectedRoute(.projectFocus)
             transientNotice = "Focus requested for session \(sessionID)"
         case .jumpToLatestUnread:
+            if shellSnapshot == nil {
+                await refreshShellSnapshot()
+            }
             if let latestAttention = shellSnapshot?.attention.first {
                 setSelectedRoute(latestAttention.targetRoute)
                 transientNotice = "Jumped to latest unread: \(latestAttention.headline)"
