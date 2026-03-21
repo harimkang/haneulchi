@@ -18,8 +18,11 @@ The README content should be grounded in the following repository materials, eve
 - `docs/PRD/Haneulchi_PRD_v8_closure_synced.md`
 - `docs/architecture/Haneulchi_Architecture_Document_v2.md`
 - `docs/theme/BRAND_THEME.md`
+- `landing/src/i18n.ts`
 - `.gitignore`
 - current repository structure and tracked files
+
+The landing page may be used as a messaging reference, but not as a public README link target.
 
 ## 3. Goals
 - Explain what Haneulchi is in clear English.
@@ -45,6 +48,13 @@ Expanded framing:
 - Haneulchi keeps the terminal at the center instead of replacing it.
 - It adds operator visibility, workflow control, and reviewable outcomes around that terminal workflow.
 - It is built for people who already live in CLI-heavy environments and want stronger session operations without losing manual control.
+
+Useful landing-derived phrasing that can inform the top of the README:
+
+- `Keep the terminal at the center. Operate the rest with higher visibility.`
+- `Your terminal is not the problem.`
+
+These lines should be adapted carefully so the README still reads like an open-source project page rather than a marketing splash page.
 
 ## 6. Messaging Pillars
 The README should consistently reinforce these ideas:
@@ -117,6 +127,12 @@ Contents:
 
 This section should stay short and readable.
 
+If a stronger framing device helps, this section may borrow the landing page's three-shift structure:
+
+- from tabs to sessions
+- from output to evidence
+- from automation to controllable flow
+
 ### 9.3 What Makes It Different
 Use a compact list of product principles instead of a long feature dump.
 
@@ -137,6 +153,16 @@ Use a simple four-step flow:
 4. Operate
 
 This section should translate the PRD's `task -> session -> worktree -> evidence -> handoff` model into README-friendly language.
+
+Representative product nouns from the landing page may be used sparingly as concrete proof points:
+
+- `Review Queue`
+- `Attention Center`
+- `Readiness Launcher`
+- `Worktree & Cache Inventory`
+- `Quick Preview`
+
+These should appear only if they help make the workflow more concrete. They must not turn the README into a full feature catalog.
 
 ### 9.5 Quick Start
 This section must be practical and restrained.
@@ -196,6 +222,13 @@ Required ideas:
 - active development
 - terminal, app-shell, and control-plane work is still evolving
 
+This section should also reflect the landing page's disciplined-MVP framing.
+
+If space allows, add a short sentence or two that clarifies:
+
+- the current product is intentionally focused on terminal-centered work, review surfaces, and operational visibility
+- browser-heavy surfaces and broader orchestration ambitions are not the promise of the current README
+
 ### 9.10 Notes
 Optional short closing notes may include:
 
@@ -212,6 +245,7 @@ Ignored paths that must not be referenced in `README.md` include:
 - `docs/architecture/`
 - `docs/execution/`
 - `docs/tasks/`
+- `landing/`
 - `reference/`
 - any other `docs/*` path that remains ignored by default
 
@@ -227,6 +261,7 @@ The new README should explicitly correct the current root README's main issues:
 - it starts with implementation detail before product meaning
 - it includes stale smoke script references that do not exist in `scripts/`
 - it references ignored content such as `reference/`
+- it does not yet benefit from the sharper top-level positioning and disciplined-scope language already explored in the landing page
 
 ## 12. Implementation Guidance
 When rewriting `README.md`:
@@ -237,6 +272,8 @@ When rewriting `README.md`:
 - ensure every command and path mentioned is real and tracked
 - keep contributor guidance lightweight
 - make the top half useful for visitors and the middle useful for contributors
+- borrow strong phrasing from the landing page only when it improves clarity and does not make the README read like a waitlist page
+- do not include waitlist, early-access, or landing-specific CTA language in the README
 
 ## 13. Acceptance Criteria
 The README design is successful when the implemented `README.md` satisfies all of the following:
