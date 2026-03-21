@@ -47,7 +47,7 @@ bash scripts/smoke.sh terminal-surface
 bash scripts/smoke.sh terminal-deck
 ```
 
-Legacy `scripts/run-mvp2-*.sh` wrappers remain available as compatibility shims, but `scripts/smoke.sh` is the preferred entrypoint.
+Use `scripts/smoke.sh` as the only supported smoke entrypoint.
 
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
