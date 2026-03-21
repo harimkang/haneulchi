@@ -30,15 +30,6 @@ docs/superpowers/*
 !docs/superpowers/plans/*.md
 !docs/superpowers/specs/
 !docs/superpowers/specs/*.md
-!docs/tasks/
-docs/tasks/*
-!docs/tasks/haneulchi_task_docs_v5/
-docs/tasks/haneulchi_task_docs_v5/*
-!docs/tasks/haneulchi_task_docs_v5/EP-02_Terminal_Core/
-docs/tasks/haneulchi_task_docs_v5/EP-02_Terminal_Core/*
-!docs/tasks/haneulchi_task_docs_v5/EP-02_Terminal_Core/MVP2-009.md
-!docs/tasks/haneulchi_task_docs_v5/EP-02_Terminal_Core/MVP2-010.md
-!docs/tasks/haneulchi_task_docs_v5/EP-02_Terminal_Core/MVP2-012.md
 .superpowers/
 
 # AGENTS
