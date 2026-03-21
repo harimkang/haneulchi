@@ -1,0 +1,12 @@
+[workspace]
+members = [
+  "crates/hc-domain",
+  "crates/hc-runtime",
+  "crates/hc-workflow",
+  "crates/hc-control-plane",
+  "crates/hc-storage",
+  "crates/hc-api",
+  "crates/hc-ffi",
+  "crates/hc-cli",
+]
+resolver = "2"

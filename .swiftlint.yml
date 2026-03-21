@@ -1,0 +1,10 @@
+disabled_rules:
+  - trailing_whitespace
+
+opt_in_rules:
+  - empty_count
+  - explicit_init
+
+included:
+  - apps/macos/Sources
+  - apps/macos/Tests
