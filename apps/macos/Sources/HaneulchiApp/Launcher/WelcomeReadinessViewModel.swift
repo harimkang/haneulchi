@@ -6,6 +6,7 @@ struct WelcomeReadinessViewModel: Equatable {
     let selectedProject: LauncherProject?
     let report: ReadinessReport?
     let supportsDemoWorkspace: Bool
+    let launcherNotice: String?
 
     var headerTitle: String {
         switch (entryReason, selectedProject) {
@@ -32,7 +33,6 @@ struct WelcomeReadinessViewModel: Equatable {
     var showsDemoWorkspaceAction: Bool {
         entryReason == .firstRun &&
             selectedProject == nil &&
-            recentProjectsCount == 0 &&
             supportsDemoWorkspace
     }
 
@@ -61,13 +61,15 @@ struct WelcomeReadinessViewModel: Equatable {
         recentProjectsCount: Int,
         selectedProject: LauncherProject?,
         report: ReadinessReport?,
-        supportsDemoWorkspace: Bool
+        supportsDemoWorkspace: Bool,
+        launcherNotice: String?
     ) {
         self.entryReason = entryReason
         self.recentProjectsCount = recentProjectsCount
         self.selectedProject = selectedProject
         self.report = report
         self.supportsDemoWorkspace = supportsDemoWorkspace
+        self.launcherNotice = launcherNotice
     }
 
     init(selectedProject: LauncherProject?, report: ReadinessReport?) {
@@ -76,7 +78,8 @@ struct WelcomeReadinessViewModel: Equatable {
             recentProjectsCount: 0,
             selectedProject: selectedProject,
             report: report,
-            supportsDemoWorkspace: false
+            supportsDemoWorkspace: false,
+            launcherNotice: nil
         )
     }
 }

@@ -4,6 +4,7 @@ import SwiftUI
 struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
+    @State private var launcherNotice: String?
     private let projectFolderPicker: ProjectFolderPicker
     private let demoWorkspaceScaffold: DemoWorkspaceScaffold
 
@@ -90,6 +91,7 @@ struct AppShellView: View {
             selectedProject: shellModel.selectedProject,
             report: shellModel.readinessReport,
             supportsDemoWorkspace: true,
+            launcherNotice: launcherNotice,
             addFolder: addFolder,
             openDemoWorkspace: openDemoWorkspace,
             reopenProject: reopenProject,
@@ -110,6 +112,7 @@ struct AppShellView: View {
     }
 
     private func continueWithGenericShell() {
+        launcherNotice = nil
         projectFocusModel = AppShellView.bootstrapProjectFocusModel(
             selectedProjectRoot: shellModel.selectedProject?.rootPath
         )
@@ -118,6 +121,7 @@ struct AppShellView: View {
     }
 
     private func openSettings() {
+        launcherNotice = nil
         shellModel.setSelectedRoute(.settings)
         shellModel.presentShell()
     }
@@ -137,6 +141,7 @@ struct AppShellView: View {
 
     private func openDemoWorkspace() {
         guard let project = try? demoWorkspaceScaffold.materialize() else {
+            launcherNotice = "Demo workspace could not be prepared. Add a folder or try again."
             return
         }
 
@@ -162,6 +167,7 @@ struct AppShellView: View {
     }
 
     private func selectProjectAndRefreshReadiness(_ project: LauncherProject) {
+        launcherNotice = nil
         try? shellModel.selectProject(project)
         Task {
             let report = try? await ReadinessProbeRunner.live.run(for: project)

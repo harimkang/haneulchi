@@ -6,6 +6,7 @@ struct WelcomeReadinessView: View {
     let selectedProject: LauncherProject?
     let report: ReadinessReport?
     let supportsDemoWorkspace: Bool
+    let launcherNotice: String?
     let addFolder: () -> Void
     let openDemoWorkspace: () -> Void
     let reopenProject: (LauncherProject) -> Void
@@ -19,7 +20,8 @@ struct WelcomeReadinessView: View {
             recentProjectsCount: recentProjects.count,
             selectedProject: selectedProject,
             report: report,
-            supportsDemoWorkspace: supportsDemoWorkspace
+            supportsDemoWorkspace: supportsDemoWorkspace,
+            launcherNotice: launcherNotice
         )
     }
 
@@ -52,6 +54,12 @@ struct WelcomeReadinessView: View {
                     Button("Open Demo Workspace", action: openDemoWorkspace)
                         .buttonStyle(.bordered)
                 }
+            }
+
+            if let launcherNotice = viewModel.launcherNotice {
+                Text(launcherNotice)
+                    .font(.caption)
+                    .foregroundStyle(HaneulchiChrome.Colors.blocked)
             }
 
             VStack(alignment: .leading, spacing: 8) {
