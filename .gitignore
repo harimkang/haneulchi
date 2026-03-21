@@ -13,6 +13,7 @@ DerivedData/
 *.xcworkspace/xcuserdata/
 *.xcodeproj/xcuserdata/
 *.xcodeproj/project.xcworkspace/xcuserdata/
+apps/macos/Vendor/lib/*.a
 
 # Rust
 target/
