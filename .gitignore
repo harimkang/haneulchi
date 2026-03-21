@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+
+# Editor / local IDE state
+*.swp
+*.swo
+
+# Swift / Xcode
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+
+# Rust
+target/
+
+landing/
+reference/
+docs/*
+!docs/product/
+!docs/adr/
+!docs/qa/
+.superpowers/
+
+# AGENTS
+AGENTS.md
+CLAUDE.md
