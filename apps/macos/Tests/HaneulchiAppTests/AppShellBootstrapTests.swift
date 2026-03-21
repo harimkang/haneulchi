@@ -7,7 +7,8 @@ func appShellBootstrapsLauncherWhenNoProjectExists() throws {
     let store = ProjectLauncherStore.inMemory
     let model = try AppShellModel.bootstrap(
         projectStore: store,
-        restoreStore: .inMemory
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory
     )
 
     #expect(model.entrySurface == .welcome(.firstRun))
@@ -37,6 +38,7 @@ func appShellBootstrapsLauncherForDegradedRecovery() async throws {
     let model = try await AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
+        preferencesStore: .inMemory,
         initialReport: report
     )
 
@@ -76,6 +78,7 @@ func liveDefaultEvaluatesStartupReadiness() async throws {
     let model = AppShellModel.liveDefault(
         projectStore: store,
         restoreStore: .inMemory,
+        preferencesStore: .inMemory,
         readinessRunner: runner
     )
 
@@ -83,4 +86,28 @@ func liveDefaultEvaluatesStartupReadiness() async throws {
 
     #expect(model.entrySurface == .welcome(.degradedRecovery))
     #expect(model.readinessReport?.requiresRecoverySurface == true)
+}
+
+@Test("bootstrapped shell restores the last active route when a project exists")
+@MainActor
+func bootstrapRestoresPersistedRoute() throws {
+    let store = ProjectLauncherStore.inMemory
+    let preferences = AppShellPreferencesStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    try store.recordOpen(project)
+    try store.saveLastSelectedProject(project)
+    try preferences.save(.init(lastActiveRoute: .controlTower))
+
+    let model = try AppShellModel.bootstrap(
+        projectStore: store,
+        restoreStore: .inMemory,
+        preferencesStore: preferences
+    )
+
+    #expect(model.selectedRoute == .controlTower)
 }

@@ -33,6 +33,5 @@ struct ProjectFocusView: View {
     var body: some View {
         TerminalDeckView(model: model.deck)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .padding(24)
     }
 }

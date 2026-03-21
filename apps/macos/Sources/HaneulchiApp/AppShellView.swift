@@ -3,7 +3,6 @@ import SwiftUI
 
 struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
-    @State private var selectedRoute: Route? = .projectFocus
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
     private let projectFolderPicker: ProjectFolderPicker
 
@@ -11,7 +10,8 @@ struct AppShellView: View {
         model: @autoclosure @escaping () -> AppShellModel = AppShellModel.liveDefault(),
         projectFolderPicker: ProjectFolderPicker = .live
     ) {
-        _shellModel = StateObject(wrappedValue: model())
+        let resolvedModel = model()
+        _shellModel = StateObject(wrappedValue: resolvedModel)
         self.projectFolderPicker = projectFolderPicker
     }
 
@@ -35,31 +35,48 @@ struct AppShellView: View {
                 )
             }
         }
-    }
-
-    private var shellLayout: some View {
-        NavigationSplitView {
-            List(Route.allCases, selection: $selectedRoute) { route in
-                Label(route.title, systemImage: route.symbolName)
-                    .tag(route)
+        .overlay(alignment: .top) {
+            if
+                shellModel.entrySurface == .shell,
+                shellModel.isCommandPalettePresented,
+                let viewModel = shellModel.commandPaletteViewModel
+            {
+                CommandPaletteOverlay(viewModel: viewModel) { action in
+                    Task {
+                        await shellModel.perform(action)
+                        await shellModel.perform(.dismissCommandPalette)
+                    }
+                } onClose: {
+                    Task {
+                        await shellModel.perform(.dismissCommandPalette)
+                    }
+                }
             }
-            .navigationTitle("Haneulchi")
-        } detail: {
-            detailView
         }
     }
 
-    @ViewBuilder
-    private var detailView: some View {
-        switch selectedRoute {
-        case .projectFocus:
-            ProjectFocusView(model: projectFocusModel)
-        case .settings:
-            SettingsView(report: shellModel.readinessReport)
-        case .controlTower, .taskBoard, .review, .attention:
-            placeholderDetail
-        case nil:
-            placeholderDetail
+    private var shellLayout: some View {
+        let snapshot = shellModel.shellSnapshot ?? AppShellSnapshot.empty(
+            activeRoute: shellModel.selectedRoute,
+            selectedProject: shellModel.selectedProject
+        )
+        let chrome = AppShellChromeState(
+            snapshot: snapshot,
+            selectedProjectName: shellModel.selectedProject?.name,
+            transientNotice: shellModel.transientNotice
+        )
+
+        return AppShellChromeView(
+            chrome: chrome,
+            destination: shellModel.selectedRoute,
+            onAction: performAction
+        ) {
+            RouteDestinationView(
+                route: shellModel.selectedRoute,
+                snapshot: snapshot,
+                projectFocusModel: projectFocusModel,
+                readinessReport: shellModel.readinessReport
+            )
         }
     }
 
@@ -76,18 +93,6 @@ struct AppShellView: View {
         )
     }
 
-    private var placeholderDetail: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text(selectedRoute?.title ?? "No Selection")
-                .font(.largeTitle)
-                .bold()
-            Text("Initial shell scaffold aligned to Sprint 1 foundation.")
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(24)
-    }
-
     private static func bootstrapProjectFocusModel(
         selectedProjectRoot: String? = nil,
         restoreStore: TerminalSessionRestoreStore = .liveDefault
@@ -102,12 +107,12 @@ struct AppShellView: View {
         projectFocusModel = AppShellView.bootstrapProjectFocusModel(
             selectedProjectRoot: shellModel.selectedProject?.rootPath
         )
-        selectedRoute = .projectFocus
+        shellModel.setSelectedRoute(.projectFocus)
         shellModel.presentShell()
     }
 
     private func openSettings() {
-        selectedRoute = .settings
+        shellModel.setSelectedRoute(.settings)
         shellModel.presentShell()
     }
 
@@ -151,6 +156,12 @@ struct AppShellView: View {
             await MainActor.run {
                 shellModel.updateReadinessReport(report)
             }
+        }
+    }
+
+    private func performAction(_ action: AppShellAction) {
+        Task {
+            await shellModel.perform(action)
         }
     }
 }

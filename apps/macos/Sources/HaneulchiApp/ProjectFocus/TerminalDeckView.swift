@@ -38,16 +38,10 @@ struct TerminalDeckView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Project Focus")
-                .font(.largeTitle)
-                .bold()
-
-            Text("Central deck keeps focus on terminal work while preserving room for Session Stack and Inspector.")
-                .foregroundStyle(.secondary)
-
+        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
             render(node: layout.root)
         }
+        .padding(HaneulchiChrome.Spacing.panelPadding)
         .onAppear {
             deckCoordinator.updateFocusedPane(layout.focusedPaneID)
 
@@ -115,11 +109,11 @@ struct TerminalDeckView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(isFocused ? Color(nsColor: .controlBackgroundColor) : Color(nsColor: .windowBackgroundColor))
+                .fill(isFocused ? HaneulchiChrome.Colors.surfaceRaised : HaneulchiChrome.Colors.surfaceBase)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(isFocused ? Color.accentColor.opacity(0.55) : Color.clear, lineWidth: 1)
+                .strokeBorder(isFocused ? HaneulchiChrome.Colors.accent.opacity(0.45) : Color.clear, lineWidth: 1)
         )
         .frame(
             minWidth: max(320, reservedSessionStackWidth),

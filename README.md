@@ -52,6 +52,14 @@ Use the readiness/onboarding smoke path to verify the Welcome / Readiness Launch
 bash scripts/run-mvp2-004-005-006-smoke.sh
 ```
 
+## MVP2-001 / MVP2-002 / MVP2-003 Smoke
+
+Use the app-shell smoke path to verify the global shell chrome, route shortcuts, unread jump, and command palette search providers:
+
+```bash
+bash scripts/run-mvp2-001-002-003-smoke.sh
+```
+
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
 - `apps/macos/Vendor/lib`
