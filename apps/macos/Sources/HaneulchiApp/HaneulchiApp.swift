@@ -4,7 +4,7 @@ import SwiftUI
 struct HaneulchiApp: App {
     var body: some Scene {
         WindowGroup {
-            AppShellView()
+            AppShellView(model: AppShellModel.liveDefault())
         }
     }
 }

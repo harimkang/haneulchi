@@ -50,6 +50,10 @@ struct TerminalDeckLayout: Equatable, Sendable {
         )
     }
 
+    static func singleLiveShell(at rootPath: String?) -> Self {
+        singleLive(.genericShell(at: rootPath))
+    }
+
     var paneIDs: [String] {
         root.paneIDs
     }

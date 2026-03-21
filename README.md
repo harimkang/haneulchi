@@ -44,6 +44,14 @@ To prepare `RG-03` compatibility evidence and the in-app operator runbook:
 bash scripts/qa/terminal/run-rg03-pack.sh --dry-run --tools "vim,tmux,lazygit"
 ```
 
+## MVP2-004 / MVP2-005 / MVP2-006 Smoke
+
+Use the readiness/onboarding smoke path to verify the Welcome / Readiness Launcher and scaffold `RG-01` evidence:
+
+```bash
+bash scripts/run-mvp2-004-005-006-smoke.sh
+```
+
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
 - `apps/macos/Vendor/lib`

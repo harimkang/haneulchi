@@ -11,13 +11,20 @@ struct ProjectFocusView: View {
             Self(deck: .restored(bundle))
         }
 
-        static func bootstrap(restoreStore: TerminalSessionRestoreStore) throws -> Self {
-            let bundles = try restoreStore.load()
-            guard let bundle = bundles.first else {
-                return .demo
+        static func bootstrap(
+            selectedProjectRoot: String? = nil,
+            restoreStore: TerminalSessionRestoreStore
+        ) throws -> Self {
+            if let selectedProjectRoot {
+                return .restored(.genericShell(at: selectedProjectRoot))
             }
 
-            return .restored(bundle)
+            let bundles = try restoreStore.load()
+            if let bundle = bundles.first {
+                return .restored(bundle)
+            }
+
+            return .demo
         }
     }
 

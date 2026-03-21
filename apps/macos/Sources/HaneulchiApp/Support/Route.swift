@@ -4,6 +4,7 @@ enum Route: String, CaseIterable, Hashable, Identifiable {
     case taskBoard
     case review
     case attention
+    case settings
 
     var id: String { rawValue }
 
@@ -19,6 +20,8 @@ enum Route: String, CaseIterable, Hashable, Identifiable {
             "Review"
         case .attention:
             "Attention"
+        case .settings:
+            "Settings"
         }
     }
 
@@ -34,6 +37,8 @@ enum Route: String, CaseIterable, Hashable, Identifiable {
             "checkmark.circle"
         case .attention:
             "bell"
+        case .settings:
+            "gearshape"
         }
     }
 }

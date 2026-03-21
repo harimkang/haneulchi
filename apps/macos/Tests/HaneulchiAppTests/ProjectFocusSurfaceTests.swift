@@ -31,6 +31,29 @@ func bootstrapProjectFocusModelUsesRestoreBundleIfPresent() throws {
     #expect(restored.deck.layout.focusedSurface?.isLive == true)
 }
 
+@Test("selected project without a restore bundle boots a live shell rooted at the project path")
+func projectFocusBootstrapFallsBackToSelectedProjectRoot() throws {
+    let model = try ProjectFocusView.Model.bootstrap(
+        selectedProjectRoot: "/tmp/auth-service",
+        restoreStore: .inMemory
+    )
+
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/auth-service")
+}
+
+@Test("selected project root overrides a stale restore bundle from another repo")
+func selectedProjectRootOverridesRestoreBundle() throws {
+    let store = TerminalSessionRestoreStore.inMemory
+    try store.save([.genericShell(at: "/tmp/stale-repo")])
+
+    let model = try ProjectFocusView.Model.bootstrap(
+        selectedProjectRoot: "/tmp/auth-service",
+        restoreStore: store
+    )
+
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/auth-service")
+}
+
 @Test("live project focus layouts can retarget focus deterministically")
 func liveProjectFocusLayoutCanRetargetFocus() {
     var layout = TerminalDeckLayout.singleLiveDemo

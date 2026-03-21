@@ -25,6 +25,15 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
         currentDirectory: nil,
         geometry: .defaultShell
     )
+
+    static func genericShell(at rootPath: String?) -> Self {
+        Self(
+            program: "/bin/zsh",
+            args: [],
+            currentDirectory: rootPath,
+            geometry: .defaultShell
+        )
+    }
 }
 
 struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
@@ -93,6 +102,10 @@ struct TerminalRestoreBundle: Codable, Equatable, Sendable {
     let geometry: TerminalGridSize
 
     static let demo = Self(launch: .defaultShell, geometry: .defaultShell)
+
+    static func genericShell(at rootPath: String?) -> Self {
+        Self(launch: .genericShell(at: rootPath), geometry: .defaultShell)
+    }
 }
 
 extension TerminalGridSize {
