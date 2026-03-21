@@ -38,6 +38,12 @@ Use the repeatable post-PTY smoke path to verify live session lifecycle, split d
 bash scripts/run-mvp2-009-010-012-smoke.sh
 ```
 
+To prepare `RG-03` compatibility evidence and the in-app operator runbook:
+
+```bash
+bash scripts/qa/terminal/run-rg03-pack.sh --dry-run --tools "vim,tmux,lazygit"
+```
+
 `apps/macos` builds use the package-local SwiftPM plugin to build `hc_ffi` and generate the transcript catalog from repo-root `fixtures/terminal/`. For local inspection and debugging, the synced vendor artifacts live under:
 
 - `apps/macos/Vendor/lib`

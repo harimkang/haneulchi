@@ -74,6 +74,14 @@ struct TerminalDeckLayout: Equatable, Sendable {
         root.pane(for: focusedPaneID)?.surface
     }
 
+    mutating func focusPane(_ paneID: String) {
+        guard paneIDs.contains(paneID) else {
+            return
+        }
+
+        focusedPaneID = paneID
+    }
+
     mutating func splitFocusedPane(axis: TerminalDeckAxis) {
         let originalPaneID = focusedPaneID
         let newPaneID = "pane-\(nextPaneNumber)"
@@ -107,6 +115,18 @@ struct TerminalDeckLayout: Equatable, Sendable {
 
         let nextIndex = ids.index(after: currentIndex)
         focusedPaneID = ids[nextIndex == ids.endIndex ? ids.startIndex : nextIndex]
+    }
+
+    mutating func moveFocusBackward() {
+        let ids = paneIDs
+        guard let currentIndex = ids.firstIndex(of: focusedPaneID), !ids.isEmpty else {
+            return
+        }
+
+        let previousIndex = currentIndex == ids.startIndex
+            ? ids.index(before: ids.endIndex)
+            : ids.index(before: currentIndex)
+        focusedPaneID = ids[previousIndex]
     }
 
     mutating func setSplitRatio(_ ratio: Double, for splitID: String) {

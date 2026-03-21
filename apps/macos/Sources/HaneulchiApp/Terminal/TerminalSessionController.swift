@@ -41,6 +41,51 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         case running
         case exitCode = "exit_code"
     }
+
+    private struct LaunchPayload: Decodable {
+        let program: String
+        let args: [String]
+        let currentDirectory: String?
+        let geometry: TerminalGridSize?
+
+        enum CodingKeys: String, CodingKey {
+            case program
+            case args
+            case currentDirectory = "current_directory"
+            case geometry
+        }
+    }
+
+    init(
+        sessionID: String,
+        launch: TerminalSessionLaunchRequest,
+        geometry: TerminalGridSize,
+        running: Bool,
+        exitCode: Int?
+    ) {
+        self.sessionID = sessionID
+        self.launch = launch
+        self.geometry = geometry
+        self.running = running
+        self.exitCode = exitCode
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let geometry = try container.decode(TerminalGridSize.self, forKey: .geometry)
+        let launchPayload = try container.decode(LaunchPayload.self, forKey: .launch)
+
+        self.sessionID = try container.decode(String.self, forKey: .sessionID)
+        self.geometry = geometry
+        self.running = try container.decode(Bool.self, forKey: .running)
+        self.exitCode = try container.decodeIfPresent(Int.self, forKey: .exitCode)
+        self.launch = TerminalSessionLaunchRequest(
+            program: launchPayload.program,
+            args: launchPayload.args,
+            currentDirectory: launchPayload.currentDirectory,
+            geometry: launchPayload.geometry ?? geometry
+        )
+    }
 }
 
 struct TerminalRestoreBundle: Codable, Equatable, Sendable {

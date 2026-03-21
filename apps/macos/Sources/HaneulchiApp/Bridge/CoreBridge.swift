@@ -6,6 +6,7 @@ enum CoreBridgeError: Error, Equatable {
     case invalidBytesPayload
     case invalidRuntimeInfo
     case invalidSessionSnapshot
+    case invalidSpawnResponse
     case operationFailed(String)
 }
 
@@ -32,11 +33,19 @@ struct CoreBridge: Sendable {
             let payload = try JSONEncoder().encode(request)
             let json = String(decoding: payload, as: UTF8.self)
             let config = try CStringBox(json)
-            let responseData = try config.withPointer { pointer in
-                try stringPayloadData(hc_terminal_session_spawn_json(pointer))
+            do {
+                let responseData = try config.withPointer { pointer in
+                    try stringPayloadData(hc_terminal_session_spawn_json(pointer))
+                }
+                let sessionID = try decodeSpawnSessionID(from: responseData)
+                let session = try CStringBox(sessionID)
+                let snapshotData = try session.withPointer { pointer in
+                    try stringPayloadData(hc_terminal_session_snapshot_json(pointer))
+                }
+                return try decodeSessionSnapshot(from: snapshotData)
+            } catch {
+                throw error
             }
-
-            return try decodeSessionSnapshot(from: responseData)
         },
         drainSession: { sessionID in
             let session = try CStringBox(sessionID)
@@ -159,6 +168,22 @@ private func decodeSessionSnapshot(from data: Data) throws -> TerminalSessionSna
     }
 
     return snapshot
+}
+
+private struct SpawnSessionResponse: Decodable {
+    let sessionID: String
+
+    enum CodingKeys: String, CodingKey {
+        case sessionID = "session_id"
+    }
+}
+
+func decodeSpawnSessionID(from data: Data) throws -> String {
+    guard let response = try? JSONDecoder().decode(SpawnSessionResponse.self, from: data) else {
+        throw CoreBridgeError.invalidSpawnResponse
+    }
+
+    return response.sessionID
 }
 
 private struct CoreBridgeErrorPayload: Decodable {

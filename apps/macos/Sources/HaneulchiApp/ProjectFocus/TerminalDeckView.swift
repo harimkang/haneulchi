@@ -24,10 +24,18 @@ struct TerminalDeckView: View {
     }
 
     let model: Model
+    @State private var layout: TerminalDeckLayout
+    @StateObject private var deckCoordinator = TerminalDeckCoordinator()
+    @State private var keyMonitor: Any?
 
     // `WF-02` reserves seams for Session Stack and Inspector outside the central deck.
     private let reservedSessionStackWidth: CGFloat = 220
     private let reservedInspectorWidth: CGFloat = 320
+
+    init(model: Model) {
+        self.model = model
+        _layout = State(initialValue: model.layout)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -38,7 +46,24 @@ struct TerminalDeckView: View {
             Text("Central deck keeps focus on terminal work while preserving room for Session Stack and Inspector.")
                 .foregroundStyle(.secondary)
 
-            render(node: model.layout.root)
+            render(node: layout.root)
+        }
+        .onAppear {
+            deckCoordinator.updateFocusedPane(layout.focusedPaneID)
+
+            guard keyMonitor == nil else {
+                return
+            }
+
+            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
+                return deckCoordinator.handleKeyDown(event) ? nil : event
+            }
+        }
+        .onDisappear {
+            if let keyMonitor {
+                NSEvent.removeMonitor(keyMonitor)
+                self.keyMonitor = nil
+            }
         }
     }
 
@@ -63,24 +88,28 @@ struct TerminalDeckView: View {
     }
 
     private func paneView(_ pane: TerminalPaneModel) -> some View {
-        let isFocused = pane.id == model.layout.focusedPaneID
+        let isFocused = pane.id == layout.focusedPaneID
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 Text(pane.surface.title)
                     .font(.headline)
                 Spacer()
-                if model.showsSplitControls {
-                    Text("Split")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.primary.opacity(0.08))
-                        .clipShape(Capsule())
-                }
+                actionStrip(for: pane, isFocused: isFocused)
+            }
+            .contentShape(Rectangle())
+            .onTapGesture {
+                layout.focusPane(pane.id)
+                deckCoordinator.updateFocusedPane(pane.id)
+                deckCoordinator.focusPane(pane.id)
             }
 
-            TerminalSurfaceView(configuration: pane.surface)
+            TerminalSurfaceView(
+                configuration: pane.surface,
+                paneID: pane.id,
+                deckCoordinator: deckCoordinator,
+                isFocused: isFocused
+            )
         }
         .padding(16)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -102,5 +131,40 @@ struct TerminalDeckView: View {
         .padding(.leading, 0)
         .padding(.bottom, 0)
         .accessibilityLabel("terminal-pane-\(pane.id)-inspector-\(Int(reservedInspectorWidth))")
+    }
+
+    @ViewBuilder
+    private func actionStrip(for pane: TerminalPaneModel, isFocused: Bool) -> some View {
+        if isFocused, pane.surface.isLive {
+            HStack(spacing: 8) {
+                Button("Focus") {
+                    deckCoordinator.focusPane(pane.id)
+                }
+                Button("Find") {
+                    deckCoordinator.showFind(in: pane.id)
+                }
+                Button("Paste") {
+                    deckCoordinator.pasteClipboard(in: pane.id)
+                }
+                Button("Split H") {
+                    splitFocusedPane(axis: .horizontal)
+                }
+                Button("Split V") {
+                    splitFocusedPane(axis: .vertical)
+                }
+            }
+            .font(.caption.weight(.semibold))
+            .buttonStyle(.borderless)
+            .foregroundStyle(.secondary)
+        }
+    }
+
+    private func splitFocusedPane(axis: TerminalDeckAxis) {
+        layout.splitFocusedPane(axis: axis)
+        let focusedPaneID = layout.focusedPaneID
+        deckCoordinator.updateFocusedPane(focusedPaneID)
+        DispatchQueue.main.async {
+            deckCoordinator.focusPane(focusedPaneID)
+        }
     }
 }

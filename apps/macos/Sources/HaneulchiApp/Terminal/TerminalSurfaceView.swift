@@ -57,16 +57,25 @@ struct TerminalSurfaceView: View {
     @StateObject private var liveController: TerminalSessionController
     private let liveBundle: TerminalRestoreBundle?
     private let restoreStore: TerminalSessionRestoreStore
+    private let paneID: String?
+    private let deckCoordinator: TerminalDeckCoordinator?
+    private let isFocused: Bool
 
     init(
         configuration: TerminalSurfaceConfiguration,
         controller: TerminalTranscriptController = TerminalTranscriptController(),
         liveController: @autoclosure @escaping () -> TerminalSessionController = TerminalSessionController(),
-        restoreStore: TerminalSessionRestoreStore = .liveDefault
+        restoreStore: TerminalSessionRestoreStore = .liveDefault,
+        paneID: String? = nil,
+        deckCoordinator: TerminalDeckCoordinator? = nil,
+        isFocused: Bool = false
     ) {
         self.configuration = configuration
         self.liveBundle = configuration.liveBundle
         self.restoreStore = restoreStore
+        self.paneID = paneID
+        self.deckCoordinator = deckCoordinator
+        self.isFocused = isFocused
         self.state = if configuration.isLive {
             controller.bootstrapLive()
         } else {
@@ -77,24 +86,31 @@ struct TerminalSurfaceView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text(configuration.title)
-                .font(.headline)
-
             ZStack(alignment: .bottomLeading) {
                 RoundedRectangle(cornerRadius: 14)
                     .fill(Color(nsColor: .windowBackgroundColor))
 
                 Group {
                     if let transcript = state.transcript {
-                        TerminalRendererHost(transcript: transcript)
+                        TerminalRendererHost(
+                            transcript: transcript,
+                            onHostHandleReady: registerHostHandle
+                        )
                     } else if liveBundle != nil, state.kind == .ready {
-                        TerminalRendererHost.live(controller: liveController)
+                        TerminalRendererHost.live(
+                            controller: liveController,
+                            onHostHandleReady: registerHostHandle
+                        )
                             .task {
                                 guard let liveBundle, liveController.status == .idle else {
                                     return
                                 }
 
-                                try? await liveController.restore(liveBundle)
+                                do {
+                                    try await liveController.restore(liveBundle)
+                                } catch {
+                                    // Preserve the existing fallback surface when live restore fails.
+                                }
                             }
                             .onReceive(liveController.$restorePoint) { bundle in
                                 try? restoreStore.save([bundle])
@@ -110,6 +126,13 @@ struct TerminalSurfaceView: View {
                 RoundedRectangle(cornerRadius: 14)
                     .strokeBorder(borderColor, lineWidth: 1)
             )
+        }
+        .onChange(of: isFocused) { _, focused in
+            guard focused, let paneID else {
+                return
+            }
+
+            deckCoordinator?.focusPane(paneID)
         }
     }
 
@@ -148,5 +171,14 @@ struct TerminalSurfaceView: View {
         case .failed:
             return .red.opacity(0.65)
         }
+    }
+
+    @MainActor
+    private func registerHostHandle(_ handle: TerminalHostHandle) {
+        guard let paneID else {
+            return
+        }
+
+        deckCoordinator?.register(handle, for: paneID)
     }
 }

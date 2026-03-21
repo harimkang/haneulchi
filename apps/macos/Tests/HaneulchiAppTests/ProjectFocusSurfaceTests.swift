@@ -30,3 +30,15 @@ func bootstrapProjectFocusModelUsesRestoreBundleIfPresent() throws {
 
     #expect(restored.deck.layout.focusedSurface?.isLive == true)
 }
+
+@Test("live project focus layouts can retarget focus deterministically")
+func liveProjectFocusLayoutCanRetargetFocus() {
+    var layout = TerminalDeckLayout.singleLiveDemo
+    layout.splitFocusedPane(axis: .vertical)
+    let originalPane = layout.paneIDs[0]
+
+    layout.focusPane(originalPane)
+
+    #expect(layout.focusedPaneID == originalPane)
+    #expect(layout.focusedSurface?.isLive == true)
+}

@@ -24,6 +24,17 @@ func deckMovesFocusInPresentationOrder() {
     #expect(layout.focusedPaneID != initiallyFocused)
 }
 
+@Test("deck layout can move focus backward in presentation order")
+func deckMovesFocusBackwardInPresentationOrder() {
+    var layout = TerminalDeckLayout.singleDemo
+    layout.splitFocusedPane(axis: .horizontal)
+    let newestPane = layout.focusedPaneID
+
+    layout.moveFocusBackward()
+
+    #expect(layout.focusedPaneID != newestPane)
+}
+
 @Test("deck layout updates the root split ratio")
 func deckUpdatesRootSplitRatio() {
     var layout = TerminalDeckLayout.singleDemo

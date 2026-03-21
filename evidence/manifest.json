@@ -1,0 +1,11 @@
+{
+  "product": "Haneulchi",
+  "release_target": "MVP",
+  "build_id": "template",
+  "commit": "template",
+  "api_version": "1",
+  "workflow_contract_version": "1",
+  "snapshot_schema_version": "1",
+  "operator": "template",
+  "executed_at": "1970-01-01T00:00:00Z"
+}
