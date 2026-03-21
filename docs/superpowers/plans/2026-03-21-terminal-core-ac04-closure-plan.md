@@ -4,7 +4,7 @@
 
 **Goal:** Close the remaining `MVP2-010` and `MVP2-012` polish, then complete `MVP2-013` so the repo can claim `AC-03` and `AC-04` with repeatable `RG-02` and `RG-03` evidence.
 
-**Architecture:** Keep Rust as the PTY lifecycle owner and keep SwiftTerm as the native renderer/input surface. Add a thin Swift-side deck coordinator for active-pane focus and imperative terminal actions, then add a release-gate compatibility harness that produces the evidence structure required by `RG-03` without introducing new runtime truth sources.
+**Architecture:** Keep Rust as the PTY lifecycle owner and keep SwiftTerm as the native renderer/input surface. Keep split-deck pane focus authoritative inside the existing `TerminalDeckLayout` / Project Focus model, add only a thin Swift-side imperative action router around that model, then add a release-gate compatibility harness that prepares and records `RG-03` validation performed inside Haneulchi's hosted terminal surface without introducing new runtime truth sources.
 
 **Tech Stack:** Swift 6.2, SwiftUI, AppKit, Swift Testing, SwiftTerm 1.12.0, shell scripts, Cargo for regression checks, release-evidence files under `evidence/`.
 
@@ -28,6 +28,7 @@
 
 - Do not add Session Stack, session header metadata, shell integration, or takeover state in this slice.
 - Do not move PTY lifecycle ownership out of Rust.
+- Do not introduce an independent pane-focus truth source in the coordinator; `TerminalDeckLayout` remains the authoritative `WF-02` focus model in this slice.
 - Keep the deck visually terminal-first and preserve the reserved Session Stack and Inspector seams from `WF-02`.
 - `AC-04` only closes when at least 3 real TUI tools satisfy `RG-03` and the required evidence exists.
 - The compatibility harness may automate structure and summaries, but it must not fake real TUI execution.
@@ -39,7 +40,7 @@
 - Create: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalHostHandle.swift`
   - Small AppKit-facing abstraction over imperative terminal actions.
 - Create: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalDeckCoordinator.swift`
-  - Owns active pane registration, active-pane action routing, and focus re-application.
+  - Registers terminal handles, routes imperative actions for the caller-supplied focused pane, and re-applies AppKit focus.
 - Modify: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalDeckLayout.swift`
   - Add deterministic focus helpers used by the coordinator and deck view.
 - Modify: `apps/macos/Sources/HaneulchiApp/ProjectFocus/TerminalDeckView.swift`
@@ -52,7 +53,7 @@
 ### Swift tests
 
 - Create: `apps/macos/Tests/HaneulchiAppTests/TerminalDeckCoordinatorTests.swift`
-  - TDD for active-pane action routing and fallback behavior.
+  - TDD for focused-pane action routing and fallback behavior.
 - Modify: `apps/macos/Tests/HaneulchiAppTests/TerminalDeckLayoutTests.swift`
   - Add tests for backward focus movement and explicit focused-pane reassignment.
 - Modify: `apps/macos/Tests/HaneulchiAppTests/ProjectFocusSurfaceTests.swift`
@@ -67,7 +68,7 @@
 - Create: `scripts/qa/terminal/write-evidence-manifest.sh`
   - Create or refresh the release-gate evidence root files and directories.
 - Create: `scripts/qa/terminal/run-rg03-pack.sh`
-  - Run the compatibility pack and write `RG-03` summaries.
+  - Prepare the compatibility pack, write `RG-03` summaries, and emit operator runbooks for in-app validation.
 - Create: `tests/integration/rg03_pack_smoke.sh`
   - Script-level smoke check for harness structure and emitted files.
 - Modify: `scripts/run-mvp2-009-010-012-smoke.sh`
@@ -93,7 +94,7 @@
 
 ## Chunk 1: Deck Focus and Hosted-Terminal UX Closure
 
-### Task 1: Add active-pane action routing primitives
+### Task 1: Add focused-pane action routing primitives
 
 **Files:**
 - Create: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalHostHandle.swift`
@@ -108,18 +109,17 @@ import Testing
 @testable import HaneulchiApp
 
 @MainActor
-@Test("deck coordinator routes find and paste to the active pane")
-func deckCoordinatorRoutesActionsToActivePane() {
+@Test("deck coordinator routes find and paste to the focused pane")
+func deckCoordinatorRoutesActionsToFocusedPane() {
     let first = RecordingHostHandle()
     let second = RecordingHostHandle()
     let coordinator = TerminalDeckCoordinator()
 
     coordinator.register(first, for: "pane-1")
     coordinator.register(second, for: "pane-2")
-    coordinator.setActivePane("pane-2")
 
-    coordinator.showFind()
-    coordinator.pasteClipboard()
+    coordinator.showFind(in: "pane-2")
+    coordinator.pasteClipboard(in: "pane-2")
 
     #expect(first.findCalls == 0)
     #expect(second.findCalls == 1)
@@ -162,16 +162,22 @@ protocol TerminalHostHandle: AnyObject {
 
 @MainActor
 final class TerminalDeckCoordinator: ObservableObject {
-    @Published private(set) var activePaneID: String?
     private var handles: [String: TerminalHostHandle] = [:]
 
     func register(_ handle: TerminalHostHandle, for paneID: String) {
         handles[paneID] = handle
     }
 
-    func setActivePane(_ paneID: String) {
-        activePaneID = paneID
-        focusActivePane()
+    func focusPane(_ paneID: String) {
+        handles[paneID]?.focusTerminal()
+    }
+
+    func showFind(in paneID: String) {
+        handles[paneID]?.showFind()
+    }
+
+    func pasteClipboard(in paneID: String) {
+        handles[paneID]?.pasteClipboard()
     }
 }
 ```
@@ -260,7 +266,7 @@ private func paneView(_ pane: TerminalPaneModel) -> some View {
     .contentShape(Rectangle())
     .onTapGesture {
         layout.focusedPaneID = pane.id
-        deckCoordinator.setActivePane(pane.id)
+        deckCoordinator.focusPane(pane.id)
     }
 }
 ```
@@ -369,8 +375,8 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
 ```swift
 if isFocused {
     HStack(spacing: 8) {
-        Button("Find") { deckCoordinator.showFind() }
-        Button("Paste") { deckCoordinator.pasteClipboard() }
+        Button("Find") { deckCoordinator.showFind(in: layout.focusedPaneID) }
+        Button("Paste") { deckCoordinator.pasteClipboard(in: layout.focusedPaneID) }
         Button("Split H") { split(.horizontal) }
         Button("Split V") { split(.vertical) }
     }
@@ -519,6 +525,8 @@ cat >"$output_dir/scenarios/RG-03/results.json" <<JSON
 JSON
 ```
 
+The runner should also emit an operator runbook that explicitly says each selected tool must be executed inside Haneulchi `Project Focus / Terminal Deck`, not in an arbitrary external shell.
+
 - [ ] **Step 4: Delegate the root smoke script to the new harness**
 
 Run: `bash scripts/run-mvp2-009-010-012-smoke.sh`
@@ -568,7 +576,7 @@ Expected: the script selects at least 3 installed tools or exits with a clear â€
 
 - [ ] **Step 3: Capture the required per-tool evidence**
 
-For each selected tool:
+For each selected tool inside a live Haneulchi `Project Focus / Terminal Deck` pane:
 
 ```text
 1. launch
@@ -583,6 +591,11 @@ Write:
 - `evidence/notes/rg03-<tool>-checklist.md`
 - `evidence/notes/rg03-<tool>-caveat.md`
 - `evidence/screens/rg03-<tool>.mp4`
+
+Record in each checklist:
+- app route was `Project Focus`
+- validation was performed in the hosted Haneulchi terminal pane
+- resize, paste, alternate-screen, and quit-return were observed through the app surface
 
 - [ ] **Step 4: Refresh the gate files**
 
@@ -616,4 +629,5 @@ git commit -m "docs: record terminal core AC-04 evidence"
 - `MVP2-010` no longer has an ambiguous active pane after split or restore.
 - `MVP2-012` has explicit hosted-terminal first-responder behavior and operator-visible find/paste/copy flows.
 - `MVP2-013` has a repeatable compatibility runner and the evidence required to claim `RG-03`.
+- `MVP2-013` evidence proves compatibility through Haneulchi's hosted terminal surface, not a shell-only external fallback path.
 - The repository has a concrete release-evidence structure for `RG-02` and `RG-03`, aligned with the execution docs.

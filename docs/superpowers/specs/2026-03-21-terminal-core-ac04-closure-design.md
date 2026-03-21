@@ -52,23 +52,23 @@ The repository already proves that a live terminal can run, split, resize, and s
 Use a `closure-first` terminal slice:
 - finish the remaining deck focus and hosted-terminal UX gaps first;
 - keep the Rust PTY runtime as the source of truth for session lifecycle;
-- add a thin Swift coordinator for pane focus and imperative terminal actions;
+- keep split-deck pane focus authoritative inside the existing `TerminalDeckLayout` / Project Focus model and add only a thin Swift imperative action router around it;
 - add a repeatable compatibility harness that generates `RG-03` evidence files without inventing new control-plane state.
 
 This keeps the current architecture intact: Rust owns PTY sessions, SwiftTerm remains the renderer/input surface, and SwiftUI/AppKit owns focus/UI polish. The compatibility pack stays above the runtime layer as release verification, not as runtime behavior.
 
 ## Architecture Decisions
 
-### 1. Separate split/focus state from imperative terminal actions
-`TerminalDeckLayout` should remain a pure split/focus model. It should know pane IDs, split ratios, and focus ordering, but it should not know about AppKit first responder or SwiftTerm actions.
+### 1. Keep one authoritative pane-focus model and isolate imperative actions beside it
+`TerminalDeckLayout` should remain the single authoritative model for split-tree structure and pane focus inside `WF-02`. It should know pane IDs, split ratios, and focus ordering, but it should not know about AppKit first responder or SwiftTerm actions.
 
-Introduce a small Swift-side deck coordinator that:
-- tracks the active pane ID;
+Introduce a small Swift-side deck action router that:
 - registers and unregisters live `TerminalView` handles by pane ID;
-- routes imperative actions such as `focus`, `find`, `copy`, `paste`, and `select all` to the active pane;
-- re-applies focus after split, restore, and resize operations.
+- accepts the caller-supplied focused pane ID from `TerminalDeckLayout` instead of owning an independent `activePaneID`;
+- routes imperative actions such as `focus`, `find`, `copy`, `paste`, and `select all` to the currently focused pane;
+- re-applies AppKit focus after split, restore, and resize operations.
 
-This preserves testability. Layout logic stays deterministic and value-based, while UI side effects are isolated behind a narrow coordinator boundary.
+This preserves testability and avoids an alternate truth source. Layout/focus state stays deterministic and value-based inside the existing Project Focus model, while UI side effects are isolated behind a narrow imperative boundary. No new pane-focus state is exported through FFI, API, or CLI in this slice.
 
 ### 2. Keep terminal focus terminal-owned
 The theme document explicitly requires terminal focus to remain the default and says supporting surfaces must not steal focus without a reason. The hosted terminal view should therefore explicitly call SwiftTerm's first-responder hook whenever the active pane changes or a split operation creates a new focused pane.
@@ -86,14 +86,14 @@ The pane chrome should:
 - expose split, focus, and find entry points without expanding beyond the reserved seams;
 - avoid floating overlays unless a transient action truly requires one.
 
-### 4. Make `RG-03` a compatibility harness, not a unit-test fiction
+### 4. Make `RG-03` an app-hosted compatibility harness, not a unit-test fiction
 `AC-04` requires real tool execution, not only mocks. The harness should:
 - detect which candidate tools are installed;
 - require at least 3 validated tools before claiming pass;
-- run a scenario template for each selected tool covering launch, key input, alternate screen, resize, paste, and quit-return;
+- prepare a scenario template for each selected tool covering launch, key input, alternate screen, resize, paste, and quit-return inside Haneulchi's hosted `Project Focus / Terminal Deck` surface;
 - emit result summaries, checklists, and evidence skeleton files under an `evidence/` tree.
 
-The harness may automate environment capture, result JSON generation, and note templates, but screen capture and final operator checklists remain explicit human evidence because the release-gate spec requires real-tested proof. The committed repository should therefore carry a stable evidence skeleton that matches the release-gate root contract, while each run refreshes the generated result files inside that structure.
+The harness may automate environment capture, result JSON generation, launch-command preparation, and note templates, but screen capture and final operator checklists remain explicit human evidence because the release-gate spec requires real-tested proof. The committed repository should therefore carry a stable evidence skeleton that matches the release-gate root contract, while each run refreshes the generated result files inside that structure. A shell-only run outside the Haneulchi hosted terminal is not sufficient evidence for `AC-04`.
 
 ## Proposed File Boundaries
 
@@ -101,7 +101,7 @@ The harness may automate environment capture, result JSON generation, and note t
 - Modify: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalDeckLayout.swift`
   - Add deterministic focus-direction helpers and focused-pane selection helpers needed by keyboard-first deck navigation.
 - Create: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalDeckCoordinator.swift`
-  - Own active pane registration, imperative action routing, and focus re-application.
+  - Register terminal handles and route imperative actions for the caller-supplied focused pane.
 - Modify: `apps/macos/Sources/HaneulchiApp/ProjectFocus/TerminalDeckView.swift`
   - Bind layout focus state to the coordinator, expose focused-pane chrome, and keep reserved seams intact.
 - Modify: `apps/macos/Sources/HaneulchiApp/Terminal/TerminalRendererHost.swift`
@@ -119,11 +119,11 @@ The harness may automate environment capture, result JSON generation, and note t
 - Modify: `apps/macos/Tests/HaneulchiAppTests/TerminalRendererHostTests.swift`
   - Cover first-responder handoff and imperative action routing.
 - Create: `apps/macos/Tests/HaneulchiAppTests/TerminalDeckCoordinatorTests.swift`
-  - Cover pane registration, active-pane routing, and fallback behavior.
+  - Cover pane registration, focused-pane routing, and fallback behavior.
 
 ### Verification / release evidence
 - Create: `scripts/qa/terminal/run-rg03-pack.sh`
-  - Execute the compatibility pack, choose candidate tools, and write result summaries.
+  - Prepare the compatibility pack, choose candidate tools, write result summaries, and generate operator runbooks for in-app validation.
 - Create: `scripts/qa/terminal/check-tool-availability.sh`
   - Detect installed TUI candidates and emit normalized tool metadata.
 - Create: `scripts/qa/terminal/write-evidence-manifest.sh`
@@ -160,7 +160,7 @@ The harness may automate environment capture, result JSON generation, and note t
 
 ### Manual / evidence-backed
 - `RG-02` checklist refresh for split, resize, copy/paste, scrollback, IME, and URL open.
-- `RG-03` validation for at least 3 installed tools, each with:
+- `RG-03` validation for at least 3 installed tools, each executed inside Haneulchi `Project Focus / Terminal Deck`, with:
   - one screen capture;
   - one completed operator checklist;
   - one caveat note, even if it only says “none observed”.
