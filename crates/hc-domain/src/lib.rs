@@ -1,6 +1,17 @@
+pub mod review;
+pub mod task;
+pub mod timeline;
+
 use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
+
+pub use review::{ReviewItem, ReviewStatus};
+pub use task::{
+    Task, TaskAutomationMode, TaskBoardColumnProjection, TaskClaimLifecycleState, TaskColumn,
+    TaskDrawerProjection, project_claim_state,
+};
+pub use timeline::{TimelineEvent, TimelineEventKind};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
