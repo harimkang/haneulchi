@@ -1,14 +1,20 @@
 use std::ffi::{CStr, CString};
+use std::sync::Mutex;
 
 use hc_ffi::{
     hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_state_snapshot_json,
     hc_string_free, hc_sessions_list_json, session_focus, session_release_takeover,
     session_takeover, state_snapshot_json, sessions_list_json, terminal_session_spawn_json,
+    reset_test_state,
 };
 use serde_json::Value;
 
+static TEST_LOCK: Mutex<()> = Mutex::new(());
+
 #[test]
 fn state_snapshot_json_contains_authoritative_top_level_groups() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
     let json = state_snapshot_json().expect("snapshot json");
     let value: Value = serde_json::from_str(&json).expect("valid json");
 
@@ -27,6 +33,8 @@ fn state_snapshot_json_contains_authoritative_top_level_groups() {
 
 #[test]
 fn session_commands_mutate_exported_snapshot() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
     let spawned = terminal_session_spawn_json(
         r#"{
             "program": "/bin/sh",
@@ -54,6 +62,8 @@ fn session_commands_mutate_exported_snapshot() {
 
 #[test]
 fn c_abi_exports_state_and_session_command_surface() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
     let snapshot = hc_state_snapshot_json();
     let snapshot_json = unsafe { CStr::from_ptr(snapshot.ptr) }
         .to_str()
@@ -96,6 +106,8 @@ fn c_abi_exports_state_and_session_command_surface() {
 
 #[test]
 fn state_snapshot_reflects_spawned_runtime_sessions_instead_of_sample_stub() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
     let spawned = terminal_session_spawn_json(
         r#"{
             "program": "/bin/sh",

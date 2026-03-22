@@ -37,6 +37,12 @@ pub(crate) fn lock_runtime() -> Result<std::sync::MutexGuard<'static, TerminalRu
         .map_err(|_| "terminal runtime lock poisoned".to_string())
 }
 
+pub fn reset_runtime_for_tests() {
+    if let Ok(mut runtime) = lock_runtime() {
+        *runtime = TerminalRuntime::default();
+    }
+}
+
 fn read_c_string(value: *const c_char) -> Result<String, String> {
     if value.is_null() {
         return Err("null pointer".to_string());

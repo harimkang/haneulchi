@@ -76,3 +76,8 @@ pub use workflow_bridge::{
     hc_workflow_reload_json, hc_workflow_validate_json, workflow_reload_json,
     workflow_validate_json,
 };
+
+pub fn reset_test_state() {
+    session_bridge::reset_runtime_for_tests();
+    state_bridge::reset_control_plane_for_tests();
+}

@@ -18,6 +18,12 @@ fn lock_control_plane() -> Result<std::sync::MutexGuard<'static, ControlPlaneSta
         .map_err(|_| "control plane lock poisoned".to_string())
 }
 
+pub fn reset_control_plane_for_tests() {
+    if let Ok(mut control_plane) = lock_control_plane() {
+        *control_plane = ControlPlaneState::default();
+    }
+}
+
 fn read_c_string(value: *const c_char) -> Result<String, String> {
     if value.is_null() {
         return Err("null pointer".to_string());
