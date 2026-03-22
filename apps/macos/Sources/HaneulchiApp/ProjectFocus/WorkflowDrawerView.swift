@@ -33,6 +33,26 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             hookRuns = try container.decodeIfPresent([String: String].self, forKey: .hookRuns) ?? [:]
             templateBody = try container.decodeIfPresent(String.self, forKey: .templateBody)
         }
+
+        init(
+            name: String?,
+            strategy: String?,
+            baseRoot: String?,
+            reviewChecklist: [String],
+            allowedAgents: [String],
+            hooks: [String],
+            hookRuns: [String: String],
+            templateBody: String?
+        ) {
+            self.name = name
+            self.strategy = strategy
+            self.baseRoot = baseRoot
+            self.reviewChecklist = reviewChecklist
+            self.allowedAgents = allowedAgents
+            self.hooks = hooks
+            self.hookRuns = hookRuns
+            self.templateBody = templateBody
+        }
     }
 
     let state: WorkflowHealth
@@ -49,6 +69,22 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
         case lastReloadAt = "last_reload_at"
         case lastError = "last_error"
         case workflow
+    }
+
+    init(
+        state: WorkflowHealth,
+        path: String,
+        lastGoodHash: String?,
+        lastReloadAt: String?,
+        lastError: String?,
+        workflow: Summary?
+    ) {
+        self.state = state
+        self.path = path
+        self.lastGoodHash = lastGoodHash
+        self.lastReloadAt = lastReloadAt
+        self.lastError = lastError
+        self.workflow = workflow
     }
 }
 

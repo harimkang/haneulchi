@@ -113,8 +113,7 @@ struct AppShellView: View {
                 route: shellModel.selectedRoute,
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
-                readinessReport: shellModel.readinessReport,
-                workflowStatus: shellModel.workflowStatus,
+                settingsStatusViewModel: shellModel.settingsStatusViewModel ?? .empty,
                 queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
                 onAction: performAction
             )
@@ -159,8 +158,12 @@ struct AppShellView: View {
 
     private func openSettings() {
         launcherNotice = nil
-        shellModel.setSelectedRoute(.settings)
-        shellModel.presentShell()
+        Task {
+            await shellModel.perform(.openSettings)
+            await MainActor.run {
+                shellModel.presentShell()
+            }
+        }
     }
 
     private func retryReadiness() {

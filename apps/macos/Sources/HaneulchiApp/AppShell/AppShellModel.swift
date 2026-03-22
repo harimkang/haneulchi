@@ -21,6 +21,7 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var pendingProjectFocusFilePath: String?
     @Published private(set) var isWorkflowDrawerPresented = false
     @Published private(set) var workflowStatus: WorkflowStatusPayload?
+    @Published private(set) var settingsStatusViewModel: SettingsStatusViewModel?
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -59,6 +60,7 @@ final class AppShellModel: ObservableObject {
         pendingProjectFocusFilePath: String? = nil,
         isWorkflowDrawerPresented: Bool = false,
         workflowStatus: WorkflowStatusPayload? = nil,
+        settingsStatusViewModel: SettingsStatusViewModel? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -74,6 +76,7 @@ final class AppShellModel: ObservableObject {
         self.pendingProjectFocusFilePath = pendingProjectFocusFilePath
         self.isWorkflowDrawerPresented = isWorkflowDrawerPresented
         self.workflowStatus = workflowStatus
+        self.settingsStatusViewModel = settingsStatusViewModel
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -155,6 +158,7 @@ final class AppShellModel: ObservableObject {
                 pendingProjectFocusFilePath: model.pendingProjectFocusFilePath,
                 isWorkflowDrawerPresented: model.isWorkflowDrawerPresented,
                 workflowStatus: model.workflowStatus,
+                settingsStatusViewModel: model.settingsStatusViewModel,
                 isNewSessionSheetPresented: model.isNewSessionSheetPresented,
                 newSessionSheetViewModel: model.newSessionSheetViewModel,
                 isCommandPalettePresented: model.isCommandPalettePresented,
@@ -217,6 +221,9 @@ final class AppShellModel: ObservableObject {
 
     func updateReadinessReport(_ report: ReadinessReport?) {
         readinessReport = report
+        if selectedRoute == .settings {
+            settingsStatusViewModel = makeSettingsStatusViewModel()
+        }
         Task {
             await refreshShellSnapshot()
         }
@@ -250,6 +257,7 @@ final class AppShellModel: ObservableObject {
             if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
                 workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
             }
+            settingsStatusViewModel = makeSettingsStatusViewModel()
             setSelectedRoute(.settings)
         case .presentWorkflowDrawer:
             if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
@@ -264,6 +272,9 @@ final class AppShellModel: ObservableObject {
             }
             if let payload = try? coreBridge.workflowReload(selectedProject.rootPath) {
                 workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            }
+            if selectedRoute == .settings {
+                settingsStatusViewModel = makeSettingsStatusViewModel()
             }
         case .presentNewSessionSheet:
             let resolvedWorkflowSummary = selectedProject.flatMap { project in
@@ -428,6 +439,15 @@ final class AppShellModel: ObservableObject {
         }
 
         return try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+    }
+
+    private func makeSettingsStatusViewModel() -> SettingsStatusViewModel {
+        SettingsStatusViewModel(
+            report: readinessReport,
+            workflowStatus: workflowStatus,
+            presetRegistry: presetRegistry,
+            runtimeInfo: try? coreBridge?.runtimeInfo()
+        )
     }
 
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {

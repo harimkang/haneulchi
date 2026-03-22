@@ -487,6 +487,8 @@ func openSettingsLoadsWorkflowSummary() async throws {
     #expect(model.selectedRoute == .settings)
     #expect(model.workflowStatus?.workflow?.name == "Demo Workflow")
     #expect(model.workflowStatus?.workflow?.allowedAgents == ["codex", "claude"])
+    #expect(model.settingsStatusViewModel?.workflowRow?.title == "Demo Workflow")
+    #expect(model.settingsStatusViewModel?.automationRows.first(where: { $0.id == .localAPI })?.statusLabel == "available")
 }
 
 @MainActor

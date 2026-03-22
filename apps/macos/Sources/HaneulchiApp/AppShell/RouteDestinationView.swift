@@ -51,8 +51,7 @@ struct RouteDestinationView: View {
     let route: Route
     let snapshot: AppShellSnapshot
     let projectFocusModel: ProjectFocusView.Model
-    let readinessReport: ReadinessReport?
-    let workflowStatus: WorkflowStatusPayload?
+    let settingsStatusViewModel: SettingsStatusViewModel
     let queuedProjectFocusFilePath: String?
     let onAction: (AppShellAction) -> Void
 
@@ -66,7 +65,7 @@ struct RouteDestinationView: View {
                 onAction: onAction
             )
         case .settings:
-            SettingsView(report: readinessReport, workflowStatus: workflowStatus)
+            SettingsView(viewModel: settingsStatusViewModel)
         case .controlTower:
             ControlTowerPlaceholderView(descriptor: .placeholder(for: .controlTower, snapshot: snapshot))
         case .taskBoard:
