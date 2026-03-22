@@ -210,13 +210,22 @@ impl ControlPlaneState {
                 snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
             },
             ops: OpsSummary {
+                cadence_ms: 15_000,
+                last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                last_reconcile_at: None,
                 running_slots: sessions
                     .iter()
                     .filter(|session| session.runtime_state == SessionRuntimeState::Running)
                     .count() as u32,
                 max_slots: sessions.len().max(1) as u32,
                 retry_queue_count: 0,
+                queued_claim_count: sessions
+                    .iter()
+                    .filter(|session| session.claim_state == ClaimState::Claimed)
+                    .count() as u32,
                 workflow_health: workflow.state,
+                tracker_health: tracker.health.clone(),
+                paused: false,
             },
             workflow,
             tracker,
@@ -333,10 +342,16 @@ impl Default for ControlPlaneState {
                     snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
                 },
                 ops: OpsSummary {
+                    cadence_ms: 15_000,
+                    last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                    last_reconcile_at: None,
                     running_slots: 0,
                     max_slots: 1,
                     retry_queue_count: 0,
+                    queued_claim_count: 0,
                     workflow_health: WorkflowHealth::None,
+                    tracker_health: "ok".to_string(),
+                    paused: false,
                 },
                 workflow: empty_workflow_status(),
                 tracker: TrackerStatus {

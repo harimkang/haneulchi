@@ -20,7 +20,7 @@ pub use reviews::{
     ReviewQueueService, reset_review_queue_for_tests, shared_review_decision,
     shared_review_ready_projection,
 };
-pub use snapshot::{SnapshotSeed, project_snapshot};
+pub use snapshot::{SnapshotBuildError, SnapshotSeed, build_authoritative_snapshot, project_snapshot};
 pub use tasks::{
     TaskBoardColumnSummary, TaskBoardError, TaskBoardMutationResult, TaskBoardProjection,
     TaskBoardService, reset_task_board_for_tests, shared_attach_session,

@@ -124,16 +124,66 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
     }
 
     struct OpsSummary: Decodable, Equatable, Sendable {
+        let cadenceMs: Int
+        let lastTickAt: String?
+        let lastReconcileAt: String?
         let runningSlots: Int
         let maxSlots: Int
         let retryQueueCount: Int
+        let queuedClaimCount: Int
         let workflowHealth: WorkflowHealth
+        let trackerHealth: String
+        let paused: Bool
 
         enum CodingKeys: String, CodingKey {
+            case cadenceMs = "cadence_ms"
+            case lastTickAt = "last_tick_at"
+            case lastReconcileAt = "last_reconcile_at"
             case runningSlots = "running_slots"
             case maxSlots = "max_slots"
             case retryQueueCount = "retry_queue_count"
+            case queuedClaimCount = "queued_claim_count"
             case workflowHealth = "workflow_health"
+            case trackerHealth = "tracker_health"
+            case paused
+        }
+
+        init(
+            cadenceMs: Int = 15_000,
+            lastTickAt: String? = nil,
+            lastReconcileAt: String? = nil,
+            runningSlots: Int,
+            maxSlots: Int,
+            retryQueueCount: Int,
+            queuedClaimCount: Int = 0,
+            workflowHealth: WorkflowHealth,
+            trackerHealth: String = "ok",
+            paused: Bool = false
+        ) {
+            self.cadenceMs = cadenceMs
+            self.lastTickAt = lastTickAt
+            self.lastReconcileAt = lastReconcileAt
+            self.runningSlots = runningSlots
+            self.maxSlots = maxSlots
+            self.retryQueueCount = retryQueueCount
+            self.queuedClaimCount = queuedClaimCount
+            self.workflowHealth = workflowHealth
+            self.trackerHealth = trackerHealth
+            self.paused = paused
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            cadenceMs = try container.decodeIfPresent(Int.self, forKey: .cadenceMs) ?? 15_000
+            lastTickAt = try container.decodeIfPresent(String.self, forKey: .lastTickAt)
+            lastReconcileAt = try container.decodeIfPresent(String.self, forKey: .lastReconcileAt)
+            runningSlots = try container.decode(Int.self, forKey: .runningSlots)
+            maxSlots = try container.decode(Int.self, forKey: .maxSlots)
+            retryQueueCount = try container.decode(Int.self, forKey: .retryQueueCount)
+            queuedClaimCount = try container.decodeIfPresent(Int.self, forKey: .queuedClaimCount) ?? 0
+            workflowHealth = try container.decode(WorkflowHealth.self, forKey: .workflowHealth)
+            trackerHealth = try container.decodeIfPresent(String.self, forKey: .trackerHealth) ?? "ok"
+            paused = try container.decodeIfPresent(Bool.self, forKey: .paused) ?? false
         }
     }
 

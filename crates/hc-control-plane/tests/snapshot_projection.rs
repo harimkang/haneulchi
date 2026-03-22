@@ -1,4 +1,4 @@
-use hc_control_plane::{project_snapshot, reset_task_board_for_tests, ControlPlaneError, ControlPlaneState, SnapshotSeed};
+use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
 use hc_domain::{
     ClaimState, ProjectSummary, SessionFocusState, SessionRuntimeState, SessionSummary,
     TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
@@ -130,4 +130,37 @@ fn shared_commands_update_projection_state_consistently() {
             .manual_control,
         "none"
     );
+}
+
+#[test]
+fn snapshot_projection_carries_meta_and_ops_parity_fields() {
+    let snapshot = project_snapshot(SnapshotSeed {
+        workflow: workflow_status(WorkflowHealth::Ok),
+        tracker: tracker_status(),
+        projects: vec![],
+        sessions: vec![],
+    });
+
+    assert_eq!(snapshot.meta.snapshot_rev, 1);
+    assert_eq!(snapshot.meta.runtime_rev, 1);
+    assert_eq!(snapshot.meta.projection_rev, 1);
+    assert_eq!(snapshot.ops.cadence_ms, 15_000);
+    assert_eq!(snapshot.ops.queued_claim_count, 0);
+    assert_eq!(snapshot.ops.tracker_health, "ok");
+}
+
+#[test]
+fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_projection() {
+    let result = build_authoritative_snapshot(SnapshotSeed {
+        workflow: workflow_status(WorkflowHealth::Ok),
+        tracker: TrackerStatus {
+            state: "local_only".to_string(),
+            last_sync_at: None,
+            health: "snapshot_unavailable".to_string(),
+        },
+        projects: vec![],
+        sessions: vec![],
+    });
+
+    assert_eq!(result, Err(SnapshotBuildError::SnapshotUnavailable));
 }

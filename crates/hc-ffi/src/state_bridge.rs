@@ -49,6 +49,9 @@ fn string_to_hcstring(value: Result<String, String>) -> HcString {
 }
 
 pub fn state_snapshot_json() -> Result<String, String> {
+    if std::env::var("HC_FORCE_SNAPSHOT_FAILURE").ok().as_deref() == Some("1") {
+        return Err("snapshot_unavailable".to_string());
+    }
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;

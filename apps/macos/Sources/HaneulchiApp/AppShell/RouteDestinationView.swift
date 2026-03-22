@@ -67,7 +67,10 @@ struct RouteDestinationView: View {
         case .settings:
             SettingsView(viewModel: settingsStatusViewModel)
         case .controlTower:
-            ControlTowerPlaceholderView(descriptor: .placeholder(for: .controlTower, snapshot: snapshot))
+            ControlTowerPlaceholderView(
+                descriptor: .placeholder(for: .controlTower, snapshot: snapshot),
+                snapshot: snapshot
+            )
         case .taskBoard:
             TaskBoardPlaceholderView(descriptor: .placeholder(for: .taskBoard, snapshot: snapshot))
         case .reviewQueue:

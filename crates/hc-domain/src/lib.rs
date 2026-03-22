@@ -334,10 +334,16 @@ pub struct AppSnapshotMeta {
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct OpsSummary {
+    pub cadence_ms: u64,
+    pub last_tick_at: Option<String>,
+    pub last_reconcile_at: Option<String>,
     pub running_slots: u32,
     pub max_slots: u32,
     pub retry_queue_count: u32,
+    pub queued_claim_count: u32,
     pub workflow_health: WorkflowHealth,
+    pub tracker_health: String,
+    pub paused: bool,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -371,10 +377,16 @@ impl AppSnapshot {
                 snapshot_at: None,
             },
             ops: OpsSummary {
+                cadence_ms: 15_000,
+                last_tick_at: None,
+                last_reconcile_at: None,
                 running_slots: 0,
                 max_slots: 1,
                 retry_queue_count: 0,
+                queued_claim_count: 0,
                 workflow_health: workflow.state,
+                tracker_health: tracker.health.clone(),
+                paused: false,
             },
             workflow,
             tracker,
