@@ -28,6 +28,7 @@ func fileSelectionActionUsesSharedDispatcher() async throws {
 
     #expect(model.selectedRoute == .projectFocus)
     #expect(model.transientNotice?.contains("README.md") == true)
+    #expect(model.pendingProjectFocusFilePath == "/tmp/demo/README.md")
     #expect(model.shellSnapshot?.app.activeRoute == .projectFocus)
 }
 

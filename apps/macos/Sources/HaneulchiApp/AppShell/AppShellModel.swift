@@ -18,6 +18,7 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var recentProjects: [LauncherProject]
     @Published private(set) var readinessReport: ReadinessReport?
     @Published private(set) var shellSnapshot: AppShellSnapshot?
+    @Published private(set) var pendingProjectFocusFilePath: String?
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -53,6 +54,7 @@ final class AppShellModel: ObservableObject {
         presetRegistry: PresetRegistry? = nil,
         coreBridge: CoreBridge? = nil,
         shellSnapshot: AppShellSnapshot? = nil,
+        pendingProjectFocusFilePath: String? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -65,6 +67,7 @@ final class AppShellModel: ObservableObject {
         self.recentProjects = recentProjects
         self.readinessReport = readinessReport
         self.shellSnapshot = shellSnapshot
+        self.pendingProjectFocusFilePath = pendingProjectFocusFilePath
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -247,6 +250,7 @@ final class AppShellModel: ObservableObject {
             commandPaletteViewModel = nil
         case let .queueFileSelection(path):
             setSelectedRoute(.projectFocus)
+            pendingProjectFocusFilePath = path
             transientNotice = "File queued for Project Focus: \(path)"
         case let .createTaskDraft(title):
             do {
