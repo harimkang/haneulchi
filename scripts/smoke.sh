@@ -43,6 +43,7 @@ Targets:
   launcher          MVP2-007
   terminal-surface  MVP2-008
   terminal-deck     MVP2-009 / MVP2-010 / MVP2-012
+  workflow          MVP2-055 / MVP2-056 / MVP2-064
 
 Aliases:
   mvp2-001-002-003
@@ -50,6 +51,7 @@ Aliases:
   mvp2-007
   mvp2-008
   mvp2-009-010-012
+  mvp2-055-056-064
 EOF
 }
 
@@ -106,6 +108,10 @@ Manual smoke checklist:
 
 CHECKLIST
     fi
+    ;;
+  workflow|mvp2-055-056-064)
+    run_step "Run workflow bridge tests" cargo test -p hc-ffi --test workflow_bridge -- --nocapture
+    run_step "Prepare RG-04 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg04-pack.sh" --dry-run
     ;;
   ""|-h|--help|help)
     show_usage
