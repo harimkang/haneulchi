@@ -52,11 +52,16 @@ struct RouteDestinationView: View {
     let snapshot: AppShellSnapshot
     let projectFocusModel: ProjectFocusView.Model
     let readinessReport: ReadinessReport?
+    let onAction: (AppShellAction) -> Void
 
     var body: some View {
         switch route {
         case .projectFocus:
-            ProjectFocusView(model: projectFocusModel)
+            ProjectFocusView(
+                model: projectFocusModel,
+                snapshot: snapshot,
+                onAction: onAction
+            )
         case .settings:
             SettingsView(report: readinessReport)
         case .controlTower:

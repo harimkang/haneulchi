@@ -97,7 +97,8 @@ struct AppShellView: View {
                 route: shellModel.selectedRoute,
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
-                readinessReport: shellModel.readinessReport
+                readinessReport: shellModel.readinessReport,
+                onAction: performAction
             )
         }
     }

@@ -29,9 +29,30 @@ struct ProjectFocusView: View {
     }
 
     let model: Model
+    let snapshot: AppShellSnapshot?
+    let onAction: (AppShellAction) -> Void
+
+    init(
+        model: Model,
+        snapshot: AppShellSnapshot? = nil,
+        onAction: @escaping (AppShellAction) -> Void = { _ in }
+    ) {
+        self.model = model
+        self.snapshot = snapshot
+        self.onAction = onAction
+    }
 
     var body: some View {
-        TerminalDeckView(model: model.deck)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        HStack(spacing: 0) {
+            if let snapshot, !snapshot.sessions.isEmpty {
+                SessionStackView(
+                    rows: SessionStackView.rows(from: snapshot),
+                    onAction: onAction
+                )
+            }
+
+            TerminalDeckView(model: model.deck)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        }
     }
 }

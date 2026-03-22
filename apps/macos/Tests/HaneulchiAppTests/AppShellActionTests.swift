@@ -220,3 +220,131 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
     #expect(savedBundles.last?.launch.program == "codex")
     #expect(savedBundles.last?.launch.currentDirectory == "/tmp/demo")
 }
+
+private final class SnapshotBridgeState: @unchecked Sendable {
+    private let lock = NSLock()
+    private var snapshot: AppShellSnapshot
+
+    init(snapshot: AppShellSnapshot) {
+        self.snapshot = snapshot
+    }
+
+    func focus(_ sessionID: String) {
+        lock.lock()
+        defer { lock.unlock() }
+        snapshot = AppShellSnapshot(
+            meta: snapshot.meta,
+            ops: snapshot.ops,
+            app: .init(activeRoute: .projectFocus, focusedSessionID: sessionID, degradedFlags: snapshot.app.degradedFlags),
+            projects: snapshot.projects,
+            sessions: snapshot.sessions.map { session in
+                .init(
+                    sessionID: session.sessionID,
+                    title: session.title,
+                    currentDirectory: session.currentDirectory,
+                    mode: session.mode,
+                    runtimeState: session.runtimeState,
+                    manualControlState: session.manualControlState,
+                    dispatchState: session.dispatchState,
+                    unreadCount: session.unreadCount,
+                    projectID: session.projectID,
+                    taskID: session.taskID,
+                    workspaceRoot: session.workspaceRoot,
+                    baseRoot: session.baseRoot,
+                    branch: session.branch,
+                    latestSummary: session.latestSummary,
+                    claimState: session.claimState,
+                    adapterKind: session.adapterKind,
+                    lastActivityAt: session.lastActivityAt,
+                    focusState: session.sessionID == sessionID ? .focused : .background,
+                    canFocus: session.canFocus,
+                    canTakeover: session.canTakeover,
+                    canReleaseTakeover: session.canReleaseTakeover
+                )
+            },
+            attention: snapshot.attention,
+            retryQueue: snapshot.retryQueue,
+            warnings: snapshot.warnings,
+            workflow: snapshot.workflow,
+            tracker: snapshot.tracker
+        )
+    }
+
+    func current() -> AppShellSnapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return snapshot
+    }
+}
+
+@MainActor
+@Test("jump to session uses bridge focus and refreshed snapshot state")
+func jumpToSessionUsesBridgeFocus() async throws {
+    let snapshotState = SnapshotBridgeState(
+        snapshot: AppShellSnapshot(
+            meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+            ops: .init(runningSlots: 2, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
+            app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_01", degradedFlags: []),
+            projects: [],
+            sessions: [
+                .init(
+                    sessionID: "ses_01",
+                    title: "One",
+                    currentDirectory: "/tmp/demo",
+                    mode: .generic,
+                    runtimeState: .running,
+                    manualControlState: .none,
+                    dispatchState: .dispatchable,
+                    unreadCount: 0,
+                    focusState: .focused
+                ),
+                .init(
+                    sessionID: "ses_02",
+                    title: "Two",
+                    currentDirectory: "/tmp/demo",
+                    mode: .generic,
+                    runtimeState: .running,
+                    manualControlState: .none,
+                    dispatchState: .dispatchable,
+                    unreadCount: 0,
+                    focusState: .background
+                ),
+            ],
+            attention: [],
+            retryQueue: [],
+            warnings: []
+        )
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: { snapshotState.current() },
+        sessionsList: { snapshotState.current().sessions },
+        focusSession: { sessionID in snapshotState.focus(sessionID) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.jumpToSession("ses_02"))
+
+    #expect(model.selectedRoute == .projectFocus)
+    #expect(model.shellSnapshot?.app.focusedSessionID == "ses_02")
+    #expect(model.shellSnapshot?.sessions.first(where: { $0.sessionID == "ses_02" })?.focusState == .focused)
+}

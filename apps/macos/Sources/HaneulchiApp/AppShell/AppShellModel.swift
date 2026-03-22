@@ -34,6 +34,7 @@ final class AppShellModel: ObservableObject {
     private let taskSearchProjectionStore: TaskSearchProjectionStore
     private let inventorySearchProjectionStore: InventorySearchProjectionStore
     private let presetRegistry: PresetRegistry
+    private let coreBridge: CoreBridge?
 
     init(
         entrySurface: EntrySurface,
@@ -50,6 +51,7 @@ final class AppShellModel: ObservableObject {
         taskSearchProjectionStore: TaskSearchProjectionStore = .liveDefault,
         inventorySearchProjectionStore: InventorySearchProjectionStore? = nil,
         presetRegistry: PresetRegistry? = nil,
+        coreBridge: CoreBridge? = nil,
         shellSnapshot: AppShellSnapshot? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
@@ -77,6 +79,7 @@ final class AppShellModel: ObservableObject {
         self.taskSearchProjectionStore = taskSearchProjectionStore
         self.inventorySearchProjectionStore = inventorySearchProjectionStore ?? InventorySearchProjectionStore(restoreStore: restoreStore)
         self.presetRegistry = presetRegistry ?? (try? PresetRegistry.loadDefault()) ?? PresetRegistry(presets: [])
+        self.coreBridge = coreBridge
     }
 
     static func bootstrap(
@@ -187,6 +190,11 @@ final class AppShellModel: ObservableObject {
     }
 
     func refreshShellSnapshot() async {
+        if let coreBridge, let snapshot = try? coreBridge.stateSnapshot() {
+            shellSnapshot = snapshot
+            return
+        }
+
         shellSnapshot = try? await snapshotSource.load(
             activeRoute: selectedRoute,
             selectedProject: selectedProject,
@@ -250,7 +258,16 @@ final class AppShellModel: ObservableObject {
             }
         case let .jumpToSession(sessionID):
             setSelectedRoute(.projectFocus)
-            transientNotice = "Focus requested for session \(sessionID)"
+            if let coreBridge {
+                do {
+                    try coreBridge.focusSession(sessionID)
+                    transientNotice = "Focused session \(sessionID)"
+                } catch {
+                    transientNotice = "Focus requested for session \(sessionID)"
+                }
+            } else {
+                transientNotice = "Focus requested for session \(sessionID)"
+            }
         case .jumpToLatestUnread:
             if shellSnapshot == nil {
                 await refreshShellSnapshot()
