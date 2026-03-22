@@ -96,24 +96,92 @@ cat >"${output_dir}/notes/rg03-summary.md" <<EOF
 Use \`notes/rg03-runbook.md\` to complete operator validation and attach screen captures.
 EOF
 
-cat >"${output_dir}/notes/rg03-runbook.md" <<'EOF'
+cat >"${output_dir}/notes/rg03-runbook.md" <<EOF
 # RG-03 Operator Runbook
 
-Run each selected tool inside a live Haneulchi `Project Focus / Terminal Deck` pane.
+Selected tools: ${selected_tools[*]}
+
+Preflight:
+1. Open Haneulchi and route to \`Project Focus\`.
+2. Confirm the selected project is using a live hosted terminal pane.
+3. Prepare clipboard text \`RG03 paste check\`.
+4. Keep the output artifact directory open so screenshots can be saved under \`evidence/screens/\`.
+
+Run each selected tool inside a live Haneulchi \`Project Focus / Terminal Deck\` pane.
 
 For each tool:
 1. Launch it from the hosted terminal.
-2. Confirm input is not dropped.
-3. Confirm alternate screen enter/exit works.
+2. Use the tool long enough to confirm input is not dropped.
+3. Confirm alternate screen enter/exit works if the tool uses it.
 4. Resize the pane and confirm the tool remains usable.
 5. Paste clipboard content and confirm it appears correctly.
 6. Quit the tool and confirm the shell prompt returns inside the same pane.
 
 Required evidence per tool:
-- one screen capture under `evidence/screens/`
-- one checklist note under `evidence/notes/`
-- one caveat note under `evidence/notes/`
+- one screen capture under \`evidence/screens/\`
+- one checklist note under \`evidence/notes/\`
+- one caveat note under \`evidence/notes/\`
+
+Recommended launch commands:
+- \`yazi\`: \`yazi\`
+- \`lazygit\`: \`lazygit\`
+- \`vim\`: \`vim README.md\`
+- \`nvim\`: \`nvim README.md\`
+- \`tmux\`: \`tmux new -A -s haneulchi-rg03\`
 EOF
+
+cat >"${output_dir}/notes/RG-03-template-checklist.md" <<'EOF'
+# RG-03 Tool Checklist Template
+
+- Tool:
+- Operator:
+- Screen capture path:
+- Checklist note path:
+- Caveat note path:
+- Validation performed in hosted Haneulchi terminal: `yes/no`
+- Launch command:
+- Launch succeeds:
+- Input is not dropped:
+- Alternate screen enter/exit works:
+- Resize keeps the tool usable:
+- Paste succeeds:
+- Quit returns to the shell prompt:
+- Caveat summary:
+EOF
+
+for tool in "${selected_tools[@]}"; do
+  checklist_path="${output_dir}/notes/rg03-${tool}-checklist.md"
+  caveat_path="${output_dir}/notes/rg03-${tool}-caveat.md"
+  screen_path="screens/RG-03-${tool}.png"
+
+  cat >"${checklist_path}" <<EOF
+# RG-03 ${tool} Checklist
+
+- Tool: ${tool}
+- Operator:
+- Screen capture path: ${screen_path}
+- Checklist note path: notes/rg03-${tool}-checklist.md
+- Caveat note path: notes/rg03-${tool}-caveat.md
+- Validation performed in hosted Haneulchi terminal: \`yes/no\`
+- Launch command:
+- Launch succeeds:
+- Input is not dropped:
+- Alternate screen enter/exit works:
+- Resize keeps the tool usable:
+- Paste succeeds:
+- Quit returns to the shell prompt:
+- Caveat summary:
+EOF
+
+  cat >"${caveat_path}" <<EOF
+# RG-03 ${tool} Caveat Note
+
+- Tool: ${tool}
+- Rendering caveat:
+- Input/resize caveat:
+- Recovery or workaround:
+EOF
+done
 
 python3 - <<'PY' "${output_dir}/gate-results.json" "${mode}"
 import json

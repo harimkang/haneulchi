@@ -38,6 +38,35 @@ metrics_file="${output_dir}/metrics/terminal-latency.json"
 checklist_file="${output_dir}/scenarios/S-02/checklist.json"
 log_file="${output_dir}/logs/RG-02-terminal-pack.log"
 
+cat >"${output_dir}/scenarios/S-02/runbook.md" <<'EOF'
+# S-02 Daily Driver Runbook
+
+Use this runbook to complete the remaining hosted validation for `AC-11` and `RG-02`.
+
+Preflight:
+1. Open Haneulchi and select a real project.
+2. Confirm `Project Focus` opens with a live terminal pane.
+3. Keep a second project available so route switching and context recovery can be exercised.
+4. Start macOS screen recording and save the capture to `scenarios/S-02/terminal-proof.mp4`.
+
+Recommended walkthrough:
+1. In `Project Focus`, create or restore enough sessions to demonstrate 4 visible session rows in `Session Stack`.
+2. Switch between at least 2 projects and return to the original project.
+3. Split the focused terminal pane once vertically and once horizontally, then resize both splits.
+4. Run one long-running shell command such as `for i in $(seq 1 20); do echo "S-02-$i"; sleep 1; done`.
+5. Run one TUI tool in a hosted pane, preferably `vim README.md`, and confirm alternate-screen entry/exit survives resize.
+6. Open one file in Quick Preview, switch into Quick Edit, save a small change, and return to the terminal context.
+7. Use route switching to visit `Control Tower` and return to `Project Focus` without losing the live session.
+8. End the recording only after the shell prompt is visible again in the original hosted session.
+
+Operator evidence:
+- Video: `scenarios/S-02/terminal-proof.mp4`
+- Checklist note: `notes/RG-02-terminal-checklist.md`
+- Optional operator note: append caveats to `logs/RG-02-terminal-pack.log`
+
+Fail the run if any blocker or major issue appears on the S-02 path.
+EOF
+
 run_and_capture() {
   local label="$1"
   shift

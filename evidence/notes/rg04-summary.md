@@ -5,4 +5,4 @@
 - Validation surface: Haneulchi `Workflow Contract / Runbook Drawer`
 - Status: `incomplete`
 
-Use `notes/RG-04-workflow-checklist.md` and operator notes to complete hosted validation.
+Use `scenarios/S-05/runbook.md`, `notes/RG-04-workflow-checklist.md`, and the operator notes to complete hosted validation.

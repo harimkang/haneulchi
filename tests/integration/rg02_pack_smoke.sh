@@ -12,6 +12,7 @@ test -f "${tmpdir}/gate-results.json"
 test -f "${tmpdir}/environment.json"
 test -f "${tmpdir}/metrics/terminal-latency.json"
 test -f "${tmpdir}/scenarios/S-02/checklist.json"
+test -f "${tmpdir}/scenarios/S-02/runbook.md"
 
 python3 - <<'PY' "${tmpdir}/metrics/terminal-latency.json" "${tmpdir}/scenarios/S-02/checklist.json" "${tmpdir}/gate-results.json"
 import json

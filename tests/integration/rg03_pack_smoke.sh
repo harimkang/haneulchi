@@ -15,4 +15,8 @@ bash "${repo_root}/scripts/qa/terminal/run-rg03-pack.sh" \
   --tools "vim,tmux,lazygit" \
   --output-dir "${tmpdir}"
 test -f "${tmpdir}/notes/rg03-summary.md"
+test -f "${tmpdir}/notes/rg03-runbook.md"
+test -f "${tmpdir}/notes/RG-03-template-checklist.md"
 test -f "${tmpdir}/scenarios/RG-03/results.json"
+grep -q "Selected tools: vim tmux lazygit" "${tmpdir}/notes/rg03-runbook.md"
+grep -q "Screen capture path" "${tmpdir}/notes/RG-03-template-checklist.md"
