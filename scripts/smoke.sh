@@ -40,6 +40,7 @@ Usage: bash scripts/smoke.sh <target>
 Targets:
   shell             MVP2-001 / MVP2-002 / MVP2-003
   readiness         MVP2-004 / MVP2-005 / MVP2-006
+  readiness-pack    MVP2-049 / RG-01 automated pack
   launcher          MVP2-007
   terminal-surface  MVP2-008
   terminal-deck     MVP2-009 / MVP2-010 / MVP2-012
@@ -48,6 +49,7 @@ Targets:
 Aliases:
   mvp2-001-002-003
   mvp2-004-005-006
+  mvp2-049
   mvp2-007
   mvp2-008
   mvp2-009-010-012
@@ -74,7 +76,7 @@ case "${target}" in
     run_swift_checks
     run_step "Show shell checklist" cat "${repo_root}/evidence/notes/WF-00-WF-10-shell-navigation-checklist.md"
     ;;
-  readiness|mvp2-004-005-006)
+  readiness|readiness-pack|mvp2-004-005-006|mvp2-049)
     run_swift_checks
     run_step "Prepare RG-01 dry-run evidence" bash "${repo_root}/scripts/qa/readiness/run-rg01-pack.sh" --dry-run
     ;;

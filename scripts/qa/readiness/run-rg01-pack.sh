@@ -4,6 +4,8 @@ set -euo pipefail
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 output_dir="${repo_root}/evidence"
 mode="live"
+app_package_path="${repo_root}/apps/macos"
+log_file=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -30,6 +32,19 @@ mkdir -p \
   "${output_dir}/logs" \
   "${output_dir}/notes"
 
+log_file="${output_dir}/logs/S-01-first-run.log"
+
+run_and_capture() {
+  local label="$1"
+  shift
+
+  {
+    printf '==> %s\n' "${label}"
+    "$@"
+    printf '\n'
+  } >>"${log_file}" 2>&1
+}
+
 cat >"${output_dir}/scenarios/S-01/runbook.md" <<'EOF'
 # RG-01 Runbook
 
@@ -40,34 +55,48 @@ cat >"${output_dir}/scenarios/S-01/runbook.md" <<'EOF'
 5. Run one shell command inside Project Focus and capture the first-run log.
 EOF
 
+cat >"${log_file}" <<EOF
+# RG-01 automated readiness pack
+
+mode: ${mode}
+package_path: ${app_package_path}
+manual_first_command_capture: pending
+readiness_suites: ReadinessProbeRunnerTests, WelcomeReadinessViewModelTests
+launcher_suites: AppShellBootstrapTests, DemoWorkspaceScaffoldTests
+
+EOF
+
+run_and_capture "Readiness suite" swift test --package-path "${app_package_path}" --filter 'ReadinessProbeRunnerTests|WelcomeReadinessViewModelTests'
+run_and_capture "Launcher suite" swift test --package-path "${app_package_path}" --filter 'AppShellBootstrapTests|DemoWorkspaceScaffoldTests'
+
 cat >"${output_dir}/scenarios/S-01/checklist.json" <<JSON
 {
   "mode": "${mode}",
-  "status": "incomplete",
-  "checks": {
-    "first_launch_success": false,
-    "project_added": false,
-    "readiness_status_visible": false,
-    "generic_shell_fallback_used": false,
-    "first_command_run": false
+  "status": "${mode}",
+  "automated_checks": {
+    "readiness_suite": "passed",
+    "launcher_suite": "passed"
   },
-  "required_manual_artifacts": [
+  "manual_artifacts_pending": [
     "screens/S-01-welcome.png",
     "logs/S-01-first-run.log"
   ]
 }
 JSON
 
-touch "${output_dir}/logs/S-01-first-run.log"
-
 cat >"${output_dir}/notes/rg01-summary.md" <<EOF
 # RG-01 Summary
 
 - Mode: \`${mode}\`
 - Validation surface: Haneulchi \`WF-01 Welcome / Readiness Launcher\`
+- Automated suites:
+  - \`ReadinessProbeRunnerTests\`
+  - \`WelcomeReadinessViewModelTests\`
+  - \`AppShellBootstrapTests\`
+  - \`DemoWorkspaceScaffoldTests\`
 - Save the launcher screenshot to \`screens/S-01-welcome.png\`.
-- Capture the first terminal command transcript in \`logs/S-01-first-run.log\`.
-- Update \`scenarios/S-01/checklist.json\` after the operator run.
+- Append the first terminal command transcript to \`logs/S-01-first-run.log\`.
+- Promote \`RG-01\` to \`pass\` only after the manual artifacts are present.
 EOF
 
 python3 - <<'PY' "${output_dir}/gate-results.json" "${mode}"

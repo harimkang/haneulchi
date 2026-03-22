@@ -21,5 +21,5 @@ Manual: pending first shell prompt capture
 Automated: settings route coverage passed; launcher smoke passed
 Manual: pending interactive retry click-through
 6. First shell command transcript in `logs/S-01-first-run.log`:
-Automated: not produced by smoke scripts
+Automated: `scripts/qa/readiness/run-rg01-pack.sh` seeds the acceptance-pack log with suite output and leaves a manual capture marker
 Manual: pending operator run
