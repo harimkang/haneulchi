@@ -43,6 +43,7 @@ Targets:
   readiness-pack    MVP2-049 / RG-01 automated pack
   launcher          MVP2-007
   terminal-surface  MVP2-008
+  terminal-quality  RG-02 automated pack
   terminal-deck     MVP2-009 / MVP2-010 / MVP2-012
   workflow          MVP2-055 / MVP2-056 / MVP2-064
 
@@ -52,6 +53,7 @@ Aliases:
   mvp2-049
   mvp2-007
   mvp2-008
+  mvp2-rg02
   mvp2-009-010-012
   mvp2-055-056-064
 EOF
@@ -86,6 +88,9 @@ case "${target}" in
     ;;
   terminal-surface|mvp2-008)
     run_core_checks
+    ;;
+  terminal-quality|mvp2-rg02)
+    run_step "Prepare RG-02 dry-run evidence" bash "${repo_root}/scripts/qa/terminal/run-rg02-pack.sh" --dry-run
     ;;
   terminal-deck|mvp2-009-010-012)
     run_core_checks

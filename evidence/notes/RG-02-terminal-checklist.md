@@ -3,6 +3,7 @@
 Automated regression run on `2026-03-22`:
 - `bash scripts/smoke.sh terminal-surface` passed.
 - `bash scripts/smoke.sh terminal-deck` passed.
+- `bash scripts/smoke.sh terminal-quality` captures `metrics/terminal-latency.json` and `scenarios/S-02/checklist.json` as dry-run evidence.
 
 Validation status:
 - Split create action keeps the new pane usable:
