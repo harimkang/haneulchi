@@ -197,6 +197,11 @@ dependencies = [
 [[package]]
 name = "hc-cli"
 version = "0.1.0"
+dependencies = [
+ "hc-api",
+ "hc-ffi",
+ "serde_json",
+]
 
 [[package]]
 name = "hc-control-plane"

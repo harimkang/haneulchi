@@ -6,3 +6,8 @@ edition = "2024"
 [[bin]]
 name = "hc"
 path = "src/main.rs"
+
+[dependencies]
+hc-api = { path = "../hc-api" }
+hc-ffi = { path = "../hc-ffi" }
+serde_json = "1.0"

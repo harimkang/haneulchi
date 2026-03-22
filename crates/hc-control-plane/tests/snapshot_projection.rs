@@ -1,4 +1,4 @@
-use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
+use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, BoundedScheduler, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
 use hc_domain::{
     ClaimState, ProjectSummary, SessionFocusState, SessionRuntimeState, SessionSummary,
     TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
@@ -163,4 +163,16 @@ fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_project
     });
 
     assert_eq!(result, Err(SnapshotBuildError::SnapshotUnavailable));
+}
+
+#[test]
+fn scheduler_respects_slot_capacity_and_reports_stale_targets() {
+    let scheduler = BoundedScheduler::demo();
+    let result = scheduler.tick(0, 1);
+
+    assert_eq!(result.launched_task_ids, vec!["task_auto_01"]);
+    assert_eq!(result.queued.len(), 1);
+    assert_eq!(result.queued[0].reason_code, "slot_capacity_exhausted");
+    assert_eq!(result.failures.len(), 1);
+    assert_eq!(result.failures[0].reason_code, "stale_target_session");
 }

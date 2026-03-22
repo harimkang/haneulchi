@@ -112,6 +112,36 @@ impl TaskBoardService {
         self.store.tasks().get(task_id).map_err(Into::into)
     }
 
+    pub fn create_task(
+        &self,
+        project_id: &str,
+        title: &str,
+    ) -> Result<Task, TaskBoardError> {
+        let task_id = format!(
+            "task_{}",
+            title
+                .to_ascii_lowercase()
+                .replace(' ', "_")
+                .chars()
+                .filter(|character| character.is_ascii_alphanumeric() || *character == '_')
+                .collect::<String>()
+        );
+        self.store
+            .tasks()
+            .create(NewTaskRecord {
+                id: task_id.clone(),
+                project_id: project_id.to_string(),
+                display_key: task_id.to_ascii_uppercase(),
+                title: title.to_string(),
+                description: title.to_string(),
+                priority: "p2".to_string(),
+                automation_mode: TaskAutomationMode::Manual,
+                created_at: AUTOMATION_UPDATED_AT.to_string(),
+                updated_at: AUTOMATION_UPDATED_AT.to_string(),
+            })
+            .map_err(Into::into)
+    }
+
     pub fn set_automation_mode(
         &self,
         task_id: &str,
@@ -234,6 +264,10 @@ pub fn shared_task_move(
 
 pub fn shared_task(task_id: &str) -> Result<Option<Task>, TaskBoardError> {
     lock_shared_board_service()?.task(task_id)
+}
+
+pub fn shared_create_task(project_id: &str, title: &str) -> Result<Task, TaskBoardError> {
+    lock_shared_board_service()?.create_task(project_id, title)
 }
 
 pub fn shared_set_automation_mode(

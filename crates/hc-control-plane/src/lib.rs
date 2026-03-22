@@ -5,6 +5,7 @@ mod commands;
 mod eligibility;
 mod orchestrator;
 mod reviews;
+mod scheduler;
 mod session_projection;
 mod snapshot;
 mod tasks;
@@ -20,12 +21,13 @@ pub use reviews::{
     ReviewQueueService, reset_review_queue_for_tests, shared_review_decision,
     shared_review_ready_projection,
 };
+pub use scheduler::{BoundedScheduler, SchedulerIssue, SchedulerResult, SchedulerTask};
 pub use snapshot::{SnapshotBuildError, SnapshotSeed, build_authoritative_snapshot, project_snapshot};
 pub use tasks::{
     TaskBoardColumnSummary, TaskBoardError, TaskBoardMutationResult, TaskBoardProjection,
     TaskBoardService, reset_task_board_for_tests, shared_attach_session,
     shared_automation_details, shared_detach_session, shared_set_automation_mode, shared_task,
-    shared_task_board_projection, shared_task_drawer, shared_task_move,
+    shared_create_task, shared_task_board_projection, shared_task_drawer, shared_task_move,
 };
 pub use timeline::{TaskTimelineEntry, project_task_timeline};
 pub use worktrees::{
