@@ -65,7 +65,16 @@ struct RouteDestinationView: View {
                 onAction: onAction
             )
         case .settings:
-            SettingsView(report: readinessReport)
+            SettingsView(report: readinessReport, workflowStatus: snapshot.workflow.map {
+                WorkflowStatusPayload(
+                    state: $0.state,
+                    path: $0.path,
+                    lastGoodHash: $0.lastGoodHash,
+                    lastReloadAt: $0.lastReloadAt,
+                    lastError: $0.lastError,
+                    workflow: nil
+                )
+            })
         case .controlTower:
             ControlTowerPlaceholderView(descriptor: .placeholder(for: .controlTower, snapshot: snapshot))
         case .taskBoard:

@@ -75,6 +75,22 @@ struct AppShellView: View {
                 }
             }
         }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isWorkflowDrawerPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissWorkflowDrawer)
+                    }
+                }
+            }
+        )) {
+            WorkflowDrawerView(status: shellModel.workflowStatus) {
+                Task {
+                    await shellModel.perform(.reloadWorkflow)
+                }
+            }
+        }
     }
 
     private var shellLayout: some View {

@@ -349,3 +349,94 @@ func jumpToSessionUsesBridgeFocus() async throws {
     #expect(model.shellSnapshot?.app.focusedSessionID == "ses_02")
     #expect(model.shellSnapshot?.sessions.first(where: { $0.sessionID == "ses_02" })?.focusState == .focused)
 }
+
+@MainActor
+@Test("workflow drawer action loads validate payload and reload updates state")
+func workflowDrawerUsesBridgeValidateAndReload() async throws {
+    let payloads = WorkflowPayloadRecorder(
+        validatePayload: Data(
+            #"""
+            {
+              "state": "ok",
+              "path": "/tmp/demo/WORKFLOW.md",
+              "last_good_hash": "sha256:abc123",
+              "last_reload_at": "2026-03-22T00:00:00Z",
+              "last_error": null,
+              "workflow": {
+                "name": "Demo Workflow",
+                "strategy": "worktree",
+                "base_root": ".",
+                "review_checklist": ["tests passed"],
+                "allowed_agents": ["codex"],
+                "hooks": ["after_create"]
+              }
+            }
+            """#.utf8
+        ),
+        reloadPayload: Data(
+            #"""
+            {
+              "state": "invalid_kept_last_good",
+              "path": "/tmp/demo/WORKFLOW.md",
+              "last_good_hash": "sha256:abc123",
+              "last_reload_at": "2026-03-22T00:10:00Z",
+              "last_error": "front matter parse error",
+              "workflow": {
+                "name": "Demo Workflow",
+                "strategy": "worktree",
+                "base_root": ".",
+                "review_checklist": ["tests passed"],
+                "allowed_agents": ["codex"],
+                "hooks": ["after_create"]
+              }
+            }
+            """#.utf8
+        )
+    )
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        workflowValidate: { _ in payloads.validatePayload },
+        workflowReload: { _ in payloads.reloadPayload }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.presentWorkflowDrawer)
+    #expect(model.isWorkflowDrawerPresented == true)
+    #expect(model.workflowStatus?.state == .ok)
+
+    await model.perform(.reloadWorkflow)
+    #expect(model.workflowStatus?.state == .invalidKeptLastGood)
+    #expect(model.workflowStatus?.lastError == "front matter parse error")
+}
+
+private final class WorkflowPayloadRecorder: @unchecked Sendable {
+    let validatePayload: Data
+    let reloadPayload: Data
+
+    init(validatePayload: Data, reloadPayload: Data) {
+        self.validatePayload = validatePayload
+        self.reloadPayload = reloadPayload
+    }
+}

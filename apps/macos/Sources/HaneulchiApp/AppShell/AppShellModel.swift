@@ -19,6 +19,8 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var readinessReport: ReadinessReport?
     @Published private(set) var shellSnapshot: AppShellSnapshot?
     @Published private(set) var pendingProjectFocusFilePath: String?
+    @Published private(set) var isWorkflowDrawerPresented = false
+    @Published private(set) var workflowStatus: WorkflowStatusPayload?
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -55,6 +57,8 @@ final class AppShellModel: ObservableObject {
         coreBridge: CoreBridge? = nil,
         shellSnapshot: AppShellSnapshot? = nil,
         pendingProjectFocusFilePath: String? = nil,
+        isWorkflowDrawerPresented: Bool = false,
+        workflowStatus: WorkflowStatusPayload? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -68,6 +72,8 @@ final class AppShellModel: ObservableObject {
         self.readinessReport = readinessReport
         self.shellSnapshot = shellSnapshot
         self.pendingProjectFocusFilePath = pendingProjectFocusFilePath
+        self.isWorkflowDrawerPresented = isWorkflowDrawerPresented
+        self.workflowStatus = workflowStatus
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -212,6 +218,20 @@ final class AppShellModel: ObservableObject {
             setSelectedRoute(route)
         case .openSettings:
             setSelectedRoute(.settings)
+        case .presentWorkflowDrawer:
+            if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
+                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            }
+            isWorkflowDrawerPresented = true
+        case .dismissWorkflowDrawer:
+            isWorkflowDrawerPresented = false
+        case .reloadWorkflow:
+            guard let selectedProject, let coreBridge else {
+                return
+            }
+            if let payload = try? coreBridge.workflowReload(selectedProject.rootPath) {
+                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            }
         case .presentNewSessionSheet:
             newSessionSheetViewModel = NewSessionSheetViewModel(
                 selectedProjectRoot: selectedProject?.rootPath,
