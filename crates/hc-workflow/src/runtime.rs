@@ -15,11 +15,13 @@ pub struct WorkflowLaunchBinding {
     pub contract_hash: String,
 }
 
+#[derive(Clone)]
 pub struct WorkflowRuntime {
     request: LoadWorkflowRequest,
     state: WorkflowState,
     current: Option<LoadedWorkflow>,
     last_known_good: Option<LoadedWorkflow>,
+    last_error: Option<String>,
 }
 
 impl WorkflowRuntime {
@@ -29,6 +31,7 @@ impl WorkflowRuntime {
             state: WorkflowState::None,
             current: None,
             last_known_good: None,
+            last_error: None,
         }
     }
 
@@ -44,6 +47,10 @@ impl WorkflowRuntime {
         self.last_known_good.as_ref()
     }
 
+    pub fn last_error(&self) -> Option<&str> {
+        self.last_error.as_deref()
+    }
+
     pub fn mark_reload_pending(&mut self) {
         self.state = WorkflowState::ReloadPending;
     }
@@ -54,14 +61,17 @@ impl WorkflowRuntime {
                 self.state = WorkflowState::Ok;
                 self.current = Some(loaded.clone());
                 self.last_known_good = Some(loaded);
+                self.last_error = None;
                 Ok(())
             }
             Ok(None) => {
                 self.state = WorkflowState::None;
                 self.current = None;
+                self.last_error = None;
                 Ok(())
             }
             Err(error) => {
+                self.last_error = Some(error.to_string());
                 if let Some(last_known_good) = self.last_known_good.clone() {
                     self.current = Some(last_known_good);
                     self.state = WorkflowState::InvalidKeptLastGood;

@@ -117,7 +117,8 @@ final class AppShellModel: ObservableObject {
         projectStore: ProjectLauncherStore = .liveDefault,
         restoreStore: TerminalSessionRestoreStore = .liveDefault,
         preferencesStore: AppShellPreferencesStore = .liveDefault,
-        readinessRunner: ReadinessProbeRunner = .live
+        readinessRunner: ReadinessProbeRunner = .live,
+        coreBridge: CoreBridge? = nil
     ) -> AppShellModel {
         let model = (try? bootstrap(
             projectStore: projectStore,
@@ -134,8 +135,36 @@ final class AppShellModel: ObservableObject {
                 projectStore: projectStore,
                 restoreStore: restoreStore,
                 preferencesStore: preferencesStore,
-                readinessRunner: readinessRunner
+                readinessRunner: readinessRunner,
+                coreBridge: coreBridge
             )
+
+        if model.coreBridge == nil, let coreBridge {
+            let bridgedModel = AppShellModel(
+                entrySurface: model.entrySurface,
+                selectedRoute: model.selectedRoute,
+                selectedProject: model.selectedProject,
+                recentProjects: model.recentProjects,
+                readinessReport: model.readinessReport,
+                projectStore: projectStore,
+                restoreStore: restoreStore,
+                preferencesStore: preferencesStore,
+                readinessRunner: readinessRunner,
+                coreBridge: coreBridge,
+                shellSnapshot: model.shellSnapshot,
+                pendingProjectFocusFilePath: model.pendingProjectFocusFilePath,
+                isWorkflowDrawerPresented: model.isWorkflowDrawerPresented,
+                workflowStatus: model.workflowStatus,
+                isNewSessionSheetPresented: model.isNewSessionSheetPresented,
+                newSessionSheetViewModel: model.newSessionSheetViewModel,
+                isCommandPalettePresented: model.isCommandPalettePresented,
+                commandPaletteViewModel: model.commandPaletteViewModel,
+                transientNotice: model.transientNotice
+            )
+            bridgedModel.refreshStartupReadiness(using: readinessRunner)
+            Task { await bridgedModel.refreshShellSnapshot() }
+            return bridgedModel
+        }
 
         model.refreshStartupReadiness(using: readinessRunner)
         Task {
@@ -199,17 +228,18 @@ final class AppShellModel: ObservableObject {
     }
 
     func refreshShellSnapshot() async {
-        if let coreBridge, let snapshot = try? coreBridge.stateSnapshot() {
-            shellSnapshot = snapshot
-            return
-        }
-
-        shellSnapshot = try? await snapshotSource.load(
+        let localSnapshot = try? await snapshotSource.load(
             activeRoute: selectedRoute,
             selectedProject: selectedProject,
             readinessReport: readinessReport,
             recentProjects: recentProjects
         )
+        if let coreBridge, let bridgeSnapshot = try? coreBridge.stateSnapshot() {
+            shellSnapshot = mergedSnapshot(local: localSnapshot, bridge: bridgeSnapshot)
+            return
+        }
+
+        shellSnapshot = localSnapshot
     }
 
     func perform(_ action: AppShellAction) async {
@@ -217,6 +247,9 @@ final class AppShellModel: ObservableObject {
         case let .selectRoute(route):
             setSelectedRoute(route)
         case .openSettings:
+            if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
+                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            }
             setSelectedRoute(.settings)
         case .presentWorkflowDrawer:
             if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
@@ -233,10 +266,21 @@ final class AppShellModel: ObservableObject {
                 workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
             }
         case .presentNewSessionSheet:
+            let resolvedWorkflowSummary = selectedProject.flatMap { project in
+                fetchWorkflowStatus(for: project)?.workflow.map {
+                    WorkflowLaunchSummary(
+                        name: $0.name ?? project.name,
+                        strategy: $0.strategy ?? "worktree",
+                        baseRoot: $0.baseRoot ?? ".",
+                        reviewChecklist: $0.reviewChecklist,
+                        allowedAgents: $0.allowedAgents
+                    )
+                }
+            }
             newSessionSheetViewModel = NewSessionSheetViewModel(
                 selectedProjectRoot: selectedProject?.rootPath,
                 registry: presetRegistry,
-                workflowSummary: nil
+                workflowSummary: resolvedWorkflowSummary
             )
             isNewSessionSheetPresented = true
         case .dismissNewSessionSheet:
@@ -244,11 +288,12 @@ final class AppShellModel: ObservableObject {
             newSessionSheetViewModel = nil
         case let .launchSession(descriptor):
             do {
+                let bootstrappedDescriptor = try bootstrapIfNeeded(descriptor)
                 var bundles = try restoreStore.load()
-                bundles.append(descriptor.restoreBundle)
+                bundles.append(bootstrappedDescriptor.restoreBundle)
                 try restoreStore.save(bundles)
                 setSelectedRoute(.projectFocus)
-                transientNotice = "Session launched: \(descriptor.title)"
+                transientNotice = "Session launched: \(bootstrappedDescriptor.title)"
                 isNewSessionSheetPresented = false
                 newSessionSheetViewModel = nil
             } catch {
@@ -375,5 +420,108 @@ final class AppShellModel: ObservableObject {
 
         let report = try? await readinessRunner.run(for: selectedProject)
         updateReadinessReport(report)
+    }
+
+    private func fetchWorkflowStatus(for project: LauncherProject) -> WorkflowStatusPayload? {
+        guard let coreBridge, let payload = try? coreBridge.workflowValidate(project.rootPath) else {
+            return nil
+        }
+
+        return try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+    }
+
+    private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {
+        guard descriptor.mode == .isolated, let selectedProject else {
+            return descriptor
+        }
+
+        let workflowStatus = workflowStatus ?? fetchWorkflowStatus(for: selectedProject)
+        guard let workspaceRoot = descriptor.workspaceRoot else {
+            return descriptor
+        }
+
+        let workspaceURL = URL(fileURLWithPath: workspaceRoot, isDirectory: true)
+        try FileManager.default.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
+
+        let baseRoot = workflowStatus?.workflow?.baseRoot ?? "."
+        let sessionCwdURL: URL
+        if baseRoot == "." {
+            sessionCwdURL = workspaceURL
+        } else {
+            sessionCwdURL = workspaceURL.appendingPathComponent(baseRoot, isDirectory: true)
+            try FileManager.default.createDirectory(at: sessionCwdURL, withIntermediateDirectories: true)
+        }
+
+        try runHookIfPresent(workflowStatus?.workflow?.hookRuns["after_create"], cwd: sessionCwdURL)
+        try writeRenderedPrompt(
+            workflowStatus: workflowStatus,
+            project: selectedProject,
+            sessionCwdURL: sessionCwdURL
+        )
+        try runHookIfPresent(workflowStatus?.workflow?.hookRuns["before_run"], cwd: sessionCwdURL)
+
+        return SessionLaunchDescriptor(
+            mode: descriptor.mode,
+            title: descriptor.title,
+            presetID: descriptor.presetID,
+            restoreBundle: .genericShell(at: sessionCwdURL.path),
+            workspaceRoot: workspaceURL.path,
+            workflowSummary: descriptor.workflowSummary
+        )
+    }
+
+    private func runHookIfPresent(_ hookPath: String?, cwd: URL) throws {
+        guard let hookPath, !hookPath.isEmpty else {
+            return
+        }
+
+        let process = Process()
+        process.currentDirectoryURL = cwd
+        process.executableURL = URL(fileURLWithPath: hookPath)
+        try process.run()
+        process.waitUntilExit()
+        guard process.terminationStatus == 0 else {
+            throw CoreBridgeError.operationFailed("workflow_hook_failed")
+        }
+    }
+
+    private func writeRenderedPrompt(
+        workflowStatus: WorkflowStatusPayload?,
+        project: LauncherProject,
+        sessionCwdURL: URL
+    ) throws {
+        let template = workflowStatus?.workflow?.templateBody ?? "Project: {{project.name}}"
+        let rendered = template
+            .replacingOccurrences(of: "{{project.name}}", with: project.name)
+            .replacingOccurrences(of: "{{project.repo_root}}", with: project.rootPath)
+            .replacingOccurrences(of: "{{workflow.name}}", with: workflowStatus?.workflow?.name ?? "")
+        try rendered.write(
+            to: sessionCwdURL.appendingPathComponent("prompt.rendered.md"),
+            atomically: true,
+            encoding: .utf8
+        )
+    }
+
+    private func mergedSnapshot(local: AppShellSnapshot?, bridge: AppShellSnapshot) -> AppShellSnapshot {
+        guard let local else {
+            return bridge
+        }
+
+        return AppShellSnapshot(
+            meta: bridge.meta,
+            ops: bridge.sessions.isEmpty ? local.ops : bridge.ops,
+            app: .init(
+                activeRoute: selectedRoute,
+                focusedSessionID: bridge.app.focusedSessionID ?? local.app.focusedSessionID,
+                degradedFlags: Array(Set(local.app.degradedFlags + bridge.app.degradedFlags))
+            ),
+            projects: bridge.projects.isEmpty ? local.projects : bridge.projects,
+            sessions: bridge.sessions.isEmpty ? local.sessions : bridge.sessions,
+            attention: bridge.attention.isEmpty ? local.attention : bridge.attention,
+            retryQueue: bridge.retryQueue.isEmpty ? local.retryQueue : bridge.retryQueue,
+            warnings: local.warnings,
+            workflow: bridge.workflow ?? local.workflow,
+            tracker: bridge.tracker ?? local.tracker
+        )
     }
 }

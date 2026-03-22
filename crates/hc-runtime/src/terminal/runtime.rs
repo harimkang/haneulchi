@@ -86,6 +86,13 @@ impl TerminalRuntime {
         })
     }
 
+    pub fn list_snapshots(&self) -> Result<Vec<TerminalSessionSnapshot>, TerminalSessionError> {
+        self.sessions
+            .keys()
+            .map(|session_id| self.snapshot(session_id))
+            .collect()
+    }
+
     pub fn session(&self, session_id: &str) -> Result<&TerminalSession, TerminalSessionError> {
         self.sessions
             .get(session_id)

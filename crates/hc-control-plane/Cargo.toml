@@ -8,5 +8,6 @@ path = "src/lib.rs"
 
 [dependencies]
 hc-domain = { path = "../hc-domain" }
+hc-runtime = { path = "../hc-runtime" }
 hc-workflow = { path = "../hc-workflow" }
 thiserror = "1.0"

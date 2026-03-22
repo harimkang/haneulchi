@@ -57,7 +57,13 @@ pub fn workflow_validate_json(project_root: &str) -> Result<String, String> {
                 "base_root": loaded.effective_config.workspace.base_root,
                 "review_checklist": loaded.effective_config.review.checklist,
                 "allowed_agents": loaded.effective_config.agents.allowed,
-                "hooks": hooks
+                "hooks": hooks,
+                "hook_runs": {
+                    "after_create": loaded.resolved_paths.after_create,
+                    "before_run": loaded.resolved_paths.before_run,
+                    "after_run": loaded.resolved_paths.after_run
+                },
+                "template_body": loaded.template_body
             }
         }))
         .map_err(|error| error.to_string())
@@ -92,7 +98,7 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
         "path": loaded.map(|loaded| loaded.discovery_path.clone()),
         "last_good_hash": loaded.map(|loaded| loaded.contract_hash.clone()),
         "last_reload_at": serde_json::Value::Null,
-        "last_error": serde_json::Value::Null,
+        "last_error": runtime.last_error(),
         "workflow": loaded.map(|loaded| serde_json::json!({
             "name": loaded.effective_config.workflow.name,
             "strategy": match loaded.effective_config.workspace.strategy {
@@ -102,7 +108,13 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
                 "base_root": loaded.effective_config.workspace.base_root,
                 "review_checklist": loaded.effective_config.review.checklist,
                 "allowed_agents": loaded.effective_config.agents.allowed,
-                "hooks": hooks
+                "hooks": hooks,
+                "hook_runs": {
+                    "after_create": loaded.resolved_paths.after_create,
+                    "before_run": loaded.resolved_paths.before_run,
+                    "after_run": loaded.resolved_paths.after_run
+                },
+                "template_body": loaded.template_body
         }))
     }))
     .map_err(|error| error.to_string())

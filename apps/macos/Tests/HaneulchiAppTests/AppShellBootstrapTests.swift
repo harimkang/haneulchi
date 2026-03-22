@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 @testable import HaneulchiApp
 
@@ -142,4 +143,66 @@ func bootstrapRestoresPersistedRoute() throws {
     )
 
     #expect(model.selectedRoute == .controlTower)
+}
+
+@MainActor
+@Test("live default can activate the core bridge snapshot path")
+func liveDefaultCanUseCoreBridgeSnapshot() async throws {
+    let store = ProjectLauncherStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    try store.recordOpen(project)
+    try store.saveLastSelectedProject(project)
+
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
+                ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
+                app: .init(activeRoute: .projectFocus, focusedSessionID: "bridge-session", degradedFlags: []),
+                projects: [],
+                sessions: [
+                    .init(
+                        sessionID: "bridge-session",
+                        title: "Bridge Session",
+                        currentDirectory: "/tmp/demo",
+                        mode: .generic,
+                        runtimeState: .running,
+                        manualControlState: .none,
+                        dispatchState: .dispatchable,
+                        unreadCount: 0,
+                        focusState: .focused
+                    )
+                ],
+                attention: [],
+                retryQueue: [],
+                warnings: []
+            )
+        }
+    )
+
+    let model = AppShellModel.liveDefault(
+        projectStore: store,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+
+    #expect(model.shellSnapshot?.app.focusedSessionID == "bridge-session")
+    #expect(model.shellSnapshot?.sessions.first?.sessionID == "bridge-session")
 }

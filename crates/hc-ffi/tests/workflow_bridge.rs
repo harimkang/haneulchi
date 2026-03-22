@@ -63,3 +63,34 @@ fn workflow_validate_and_reload_commands_return_runtime_status() {
     let reload_value: Value = serde_json::from_str(&reload_json).unwrap();
     assert_eq!(reload_value["state"], "ok");
 }
+
+#[test]
+fn invalid_reload_surfaces_kept_last_good_status_and_error_details() {
+    let root = temp_dir("workflow-invalid-reload");
+    let workflow_path = root.join("WORKFLOW.md");
+    write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Valid Workflow\n---\n{{task.title}}\n",
+    );
+
+    let valid: Value = serde_json::from_str(
+        &workflow_reload_json(root.to_str().expect("utf8 path")).expect("valid reload"),
+    )
+    .expect("valid json");
+    let initial_hash = valid["last_good_hash"].as_str().unwrap().to_string();
+
+    fs::write(
+        &workflow_path,
+        "---\nworkflow:\n  name: Broken\n  max_slots: [\n---\n{{task.title}}\n",
+    )
+    .expect("invalid workflow write");
+
+    let invalid: Value = serde_json::from_str(
+        &workflow_reload_json(root.to_str().expect("utf8 path")).expect("invalid reload payload"),
+    )
+    .expect("valid json");
+
+    assert_eq!(invalid["state"], "invalid_kept_last_good");
+    assert_eq!(invalid["last_good_hash"], initial_hash);
+    assert!(invalid["last_error"].as_str().unwrap().contains("front matter parse error"));
+}

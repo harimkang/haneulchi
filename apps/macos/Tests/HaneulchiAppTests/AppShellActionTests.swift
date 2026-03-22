@@ -431,6 +431,169 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
     #expect(model.workflowStatus?.lastError == "front matter parse error")
 }
 
+@MainActor
+@Test("open settings also loads the full workflow summary for the settings surface")
+func openSettingsLoadsWorkflowSummary() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        workflowValidate: { _ in
+            Data(
+                #"""
+                {
+                  "state": "ok",
+                  "path": "/tmp/demo/WORKFLOW.md",
+                  "last_good_hash": "sha256:abc123",
+                  "last_reload_at": null,
+                  "last_error": null,
+                  "workflow": {
+                    "name": "Demo Workflow",
+                    "strategy": "worktree",
+                    "base_root": ".",
+                    "review_checklist": ["tests passed"],
+                    "allowed_agents": ["codex", "claude"],
+                    "hooks": ["after_create", "before_run"]
+                  }
+                }
+                """#.utf8
+            )
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.openSettings)
+
+    #expect(model.selectedRoute == .settings)
+    #expect(model.workflowStatus?.workflow?.name == "Demo Workflow")
+    #expect(model.workflowStatus?.workflow?.allowedAgents == ["codex", "claude"])
+}
+
+@MainActor
+@Test("isolated launch materializes workspace, executes hooks, and writes a rendered prompt artifact")
+func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
+    let projectRoot = FileManager.default.temporaryDirectory
+        .appendingPathComponent("isolated-launch-\(UUID().uuidString)", isDirectory: true)
+    try FileManager.default.createDirectory(at: projectRoot, withIntermediateDirectories: true)
+
+    let afterCreate = projectRoot.appendingPathComponent("after-create.sh")
+    try """
+    #!/bin/sh
+    echo after-create > "$PWD/after-create.txt"
+    """.write(to: afterCreate, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: afterCreate.path)
+
+    let beforeRun = projectRoot.appendingPathComponent("before-run.sh")
+    try """
+    #!/bin/sh
+    echo before-run > "$PWD/before-run.txt"
+    """.write(to: beforeRun, atomically: true, encoding: .utf8)
+    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: beforeRun.path)
+
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: projectRoot.path,
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        workflowValidate: { _ in
+            Data(
+                #"""
+                {
+                  "state": "ok",
+                  "path": "/tmp/demo/WORKFLOW.md",
+                  "last_good_hash": "sha256:abc123",
+                  "last_reload_at": null,
+                  "last_error": null,
+                  "workflow": {
+                    "name": "Demo Workflow",
+                    "strategy": "worktree",
+                    "base_root": ".",
+                    "review_checklist": ["tests passed"],
+                    "allowed_agents": ["codex"],
+                    "hooks": ["after_create", "before_run"],
+                    "hook_runs": {
+                      "after_create": "\#(afterCreate.path)",
+                      "before_run": "\#(beforeRun.path)"
+                    },
+                    "template_body": "Project: {{project.name}}"
+                  }
+                }
+                """#.utf8
+            )
+        }
+    )
+    let restoreStore = TerminalSessionRestoreStore.inMemory
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: restoreStore,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    let isolatedRoot = projectRoot
+        .appendingPathComponent(".haneulchi/isolated/task-104", isDirectory: true)
+        .path
+    let descriptor = SessionLaunchDescriptor(
+        mode: .isolated,
+        title: "task-104",
+        presetID: nil,
+        restoreBundle: .genericShell(at: isolatedRoot),
+        workspaceRoot: isolatedRoot,
+        workflowSummary: WorkflowLaunchSummary(
+            name: "Demo Workflow",
+            strategy: "worktree",
+            baseRoot: ".",
+            reviewChecklist: ["tests passed"],
+            allowedAgents: ["codex"]
+        )
+    )
+
+    await model.perform(.launchSession(descriptor))
+
+    let savedBundles = try restoreStore.load()
+    let renderedPrompt = isolatedRoot + "/prompt.rendered.md"
+    #expect(FileManager.default.fileExists(atPath: isolatedRoot))
+    #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/after-create.txt"))
+    #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/before-run.txt"))
+    #expect(FileManager.default.fileExists(atPath: renderedPrompt))
+    #expect(try String(contentsOfFile: renderedPrompt, encoding: .utf8).contains("Project: demo") == true)
+    #expect(savedBundles.last?.launch.currentDirectory == isolatedRoot)
+}
+
 private final class WorkflowPayloadRecorder: @unchecked Sendable {
     let validatePayload: Data
     let reloadPayload: Data

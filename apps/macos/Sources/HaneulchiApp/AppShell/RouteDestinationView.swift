@@ -52,6 +52,7 @@ struct RouteDestinationView: View {
     let snapshot: AppShellSnapshot
     let projectFocusModel: ProjectFocusView.Model
     let readinessReport: ReadinessReport?
+    let workflowStatus: WorkflowStatusPayload?
     let queuedProjectFocusFilePath: String?
     let onAction: (AppShellAction) -> Void
 
@@ -65,16 +66,7 @@ struct RouteDestinationView: View {
                 onAction: onAction
             )
         case .settings:
-            SettingsView(report: readinessReport, workflowStatus: snapshot.workflow.map {
-                WorkflowStatusPayload(
-                    state: $0.state,
-                    path: $0.path,
-                    lastGoodHash: $0.lastGoodHash,
-                    lastReloadAt: $0.lastReloadAt,
-                    lastError: $0.lastError,
-                    workflow: nil
-                )
-            })
+            SettingsView(report: readinessReport, workflowStatus: workflowStatus)
         case .controlTower:
             ControlTowerPlaceholderView(descriptor: .placeholder(for: .controlTower, snapshot: snapshot))
         case .taskBoard:

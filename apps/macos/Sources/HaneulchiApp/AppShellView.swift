@@ -114,6 +114,7 @@ struct AppShellView: View {
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
                 readinessReport: shellModel.readinessReport,
+                workflowStatus: shellModel.workflowStatus,
                 queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
                 onAction: performAction
             )

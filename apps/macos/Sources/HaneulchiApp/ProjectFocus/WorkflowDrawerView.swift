@@ -8,6 +8,8 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
         let reviewChecklist: [String]
         let allowedAgents: [String]
         let hooks: [String]
+        let hookRuns: [String: String]
+        let templateBody: String?
 
         enum CodingKeys: String, CodingKey {
             case name
@@ -16,6 +18,20 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             case reviewChecklist = "review_checklist"
             case allowedAgents = "allowed_agents"
             case hooks
+            case hookRuns = "hook_runs"
+            case templateBody = "template_body"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            name = try container.decodeIfPresent(String.self, forKey: .name)
+            strategy = try container.decodeIfPresent(String.self, forKey: .strategy)
+            baseRoot = try container.decodeIfPresent(String.self, forKey: .baseRoot)
+            reviewChecklist = try container.decodeIfPresent([String].self, forKey: .reviewChecklist) ?? []
+            allowedAgents = try container.decodeIfPresent([String].self, forKey: .allowedAgents) ?? []
+            hooks = try container.decodeIfPresent([String].self, forKey: .hooks) ?? []
+            hookRuns = try container.decodeIfPresent([String: String].self, forKey: .hookRuns) ?? [:]
+            templateBody = try container.decodeIfPresent(String.self, forKey: .templateBody)
         }
     }
 

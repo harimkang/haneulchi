@@ -26,12 +26,12 @@ struct SpawnGeometry {
     rows: u16,
 }
 
-fn runtime() -> &'static Mutex<TerminalRuntime> {
+pub(crate) fn runtime() -> &'static Mutex<TerminalRuntime> {
     static RUNTIME: OnceLock<Mutex<TerminalRuntime>> = OnceLock::new();
     RUNTIME.get_or_init(|| Mutex::new(TerminalRuntime::default()))
 }
 
-fn lock_runtime() -> Result<std::sync::MutexGuard<'static, TerminalRuntime>, String> {
+pub(crate) fn lock_runtime() -> Result<std::sync::MutexGuard<'static, TerminalRuntime>, String> {
     runtime()
         .lock()
         .map_err(|_| "terminal runtime lock poisoned".to_string())
