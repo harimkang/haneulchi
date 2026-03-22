@@ -22,6 +22,8 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var isWorkflowDrawerPresented = false
     @Published private(set) var workflowStatus: WorkflowStatusPayload?
     @Published private(set) var settingsStatusViewModel: SettingsStatusViewModel?
+    @Published private(set) var isTaskContextDrawerPresented = false
+    @Published private(set) var taskContextDrawerModel: TaskContextDrawerView.Model?
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -61,6 +63,8 @@ final class AppShellModel: ObservableObject {
         isWorkflowDrawerPresented: Bool = false,
         workflowStatus: WorkflowStatusPayload? = nil,
         settingsStatusViewModel: SettingsStatusViewModel? = nil,
+        isTaskContextDrawerPresented: Bool = false,
+        taskContextDrawerModel: TaskContextDrawerView.Model? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -77,6 +81,8 @@ final class AppShellModel: ObservableObject {
         self.isWorkflowDrawerPresented = isWorkflowDrawerPresented
         self.workflowStatus = workflowStatus
         self.settingsStatusViewModel = settingsStatusViewModel
+        self.isTaskContextDrawerPresented = isTaskContextDrawerPresented
+        self.taskContextDrawerModel = taskContextDrawerModel
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -159,6 +165,8 @@ final class AppShellModel: ObservableObject {
                 isWorkflowDrawerPresented: model.isWorkflowDrawerPresented,
                 workflowStatus: model.workflowStatus,
                 settingsStatusViewModel: model.settingsStatusViewModel,
+                isTaskContextDrawerPresented: model.isTaskContextDrawerPresented,
+                taskContextDrawerModel: model.taskContextDrawerModel,
                 isNewSessionSheetPresented: model.isNewSessionSheetPresented,
                 newSessionSheetViewModel: model.newSessionSheetViewModel,
                 isCommandPalettePresented: model.isCommandPalettePresented,
@@ -268,6 +276,11 @@ final class AppShellModel: ObservableObject {
             isWorkflowDrawerPresented = true
         case .dismissWorkflowDrawer:
             isWorkflowDrawerPresented = false
+        case .presentTaskContextDrawer:
+            taskContextDrawerModel = makeTaskContextDrawerModel()
+            isTaskContextDrawerPresented = true
+        case .dismissTaskContextDrawer:
+            isTaskContextDrawerPresented = false
         case .reloadWorkflow:
             guard let selectedProject, let coreBridge else {
                 return
@@ -277,6 +290,9 @@ final class AppShellModel: ObservableObject {
             }
             if selectedRoute == .settings {
                 settingsStatusViewModel = makeSettingsStatusViewModel()
+            }
+            if isTaskContextDrawerPresented {
+                taskContextDrawerModel = makeTaskContextDrawerModel()
             }
         case .presentNewSessionSheet:
             let resolvedWorkflowSummary = selectedProject.flatMap { project in
@@ -470,6 +486,46 @@ final class AppShellModel: ObservableObject {
         if selectedRoute == .settings {
             settingsStatusViewModel = makeSettingsStatusViewModel()
         }
+        if isTaskContextDrawerPresented {
+            taskContextDrawerModel = makeTaskContextDrawerModel()
+        }
+    }
+
+    private func makeTaskContextDrawerModel() -> TaskContextDrawerView.Model? {
+        let focusedSession = shellSnapshot?.sessions.first(where: {
+            $0.focusState == .focused || shellSnapshot?.app.focusedSessionID == $0.sessionID
+        }) ?? shellSnapshot?.sessions.first
+
+        guard let session = focusedSession, let taskID = session.taskID else {
+            return nil
+        }
+
+        let fetchedWorkflowStatus = selectedProject.flatMap(fetchWorkflowStatus)
+        let resolvedWorkflowStatus = workflowStatus ?? fetchedWorkflowStatus
+        let mergedWorkflowStatus = resolvedWorkflowStatus.map { resolved in
+            WorkflowStatusPayload(
+                state: resolved.state,
+                path: resolved.path,
+                lastGoodHash: resolved.lastGoodHash ?? fetchedWorkflowStatus?.lastGoodHash,
+                lastReloadAt: resolved.lastReloadAt ?? fetchedWorkflowStatus?.lastReloadAt,
+                lastError: resolved.lastError ?? fetchedWorkflowStatus?.lastError,
+                workflow: resolved.workflow ?? fetchedWorkflowStatus?.workflow
+            )
+        }
+        return TaskContextDrawerView.Model(
+            taskID: taskID,
+            sessionTitle: session.title,
+            workspaceRoot: session.workspaceRoot,
+            workflowName: mergedWorkflowStatus?.workflow?.name ?? "Workflow Contract",
+            workflowPath: mergedWorkflowStatus?.path ?? "",
+            strategy: mergedWorkflowStatus?.workflow?.strategy,
+            baseRoot: mergedWorkflowStatus?.workflow?.baseRoot,
+            reviewChecklist: mergedWorkflowStatus?.workflow?.reviewChecklist ?? [],
+            allowedAgents: mergedWorkflowStatus?.workflow?.allowedAgents ?? [],
+            lastGoodHash: mergedWorkflowStatus?.lastGoodHash,
+            lastReloadAt: mergedWorkflowStatus?.lastReloadAt,
+            lastError: mergedWorkflowStatus?.lastError
+        )
     }
 
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {

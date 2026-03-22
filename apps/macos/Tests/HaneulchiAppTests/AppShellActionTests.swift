@@ -488,6 +488,105 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
 }
 
 @MainActor
+@Test("task context drawer reuses workflow summary for the focused task")
+func taskContextDrawerUsesWorkflowSummary() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+                app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_01", degradedFlags: []),
+                projects: [],
+                sessions: [
+                    .init(
+                        sessionID: "ses_01",
+                        title: "Review",
+                        currentDirectory: "/tmp/demo",
+                        mode: .preset,
+                        runtimeState: .waitingInput,
+                        manualControlState: .takeover,
+                        dispatchState: .dispatchable,
+                        unreadCount: 1,
+                        projectID: "proj_demo",
+                        taskID: "task_104",
+                        workspaceRoot: "/tmp/demo/.haneulchi/isolated/task-104",
+                        baseRoot: ".",
+                        branch: "feature/task-104",
+                        latestSummary: "Awaiting operator answer",
+                        focusState: .focused,
+                        canTakeover: true
+                    ),
+                ],
+                attention: [],
+                retryQueue: [],
+                warnings: [],
+                workflow: .init(
+                    state: .ok,
+                    path: "/tmp/demo/WORKFLOW.md",
+                    lastGoodHash: "sha256:abc123",
+                    lastReloadAt: "2026-03-23T00:00:00Z",
+                    lastError: nil
+                ),
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+            )
+        },
+        workflowValidate: { _ in
+            Data(
+                #"""
+                {
+                  "state": "ok",
+                  "path": "/tmp/demo/WORKFLOW.md",
+                  "last_good_hash": "sha256:abc123",
+                  "last_reload_at": "2026-03-23T00:00:00Z",
+                  "last_error": null,
+                  "workflow": {
+                    "name": "Demo Workflow",
+                    "strategy": "worktree",
+                    "base_root": ".",
+                    "review_checklist": ["tests passed", "diff reviewed"],
+                    "allowed_agents": ["codex", "claude"],
+                    "hooks": ["after_create"]
+                  }
+                }
+                """#.utf8
+            )
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.presentTaskContextDrawer)
+
+    #expect(model.isTaskContextDrawerPresented == true)
+    #expect(model.taskContextDrawerModel?.taskID == "task_104")
+    #expect(model.taskContextDrawerModel?.workflowName == "Demo Workflow")
+    #expect(model.taskContextDrawerModel?.allowedAgents == ["codex", "claude"])
+}
+
+@MainActor
 @Test("open settings also loads the full workflow summary for the settings surface")
 func openSettingsLoadsWorkflowSummary() async throws {
     let project = LauncherProject(

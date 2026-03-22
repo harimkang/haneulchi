@@ -91,6 +91,18 @@ struct AppShellView: View {
                 }
             }
         }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isTaskContextDrawerPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissTaskContextDrawer)
+                    }
+                }
+            }
+        )) {
+            TaskContextDrawerView(model: shellModel.taskContextDrawerModel)
+        }
     }
 
     private var shellLayout: some View {

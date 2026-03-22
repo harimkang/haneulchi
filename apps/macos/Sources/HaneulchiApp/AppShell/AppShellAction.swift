@@ -5,6 +5,8 @@ enum AppShellAction: Equatable, Sendable {
     case openSettings
     case presentWorkflowDrawer
     case dismissWorkflowDrawer
+    case presentTaskContextDrawer
+    case dismissTaskContextDrawer
     case reloadWorkflow
     case presentNewSessionSheet
     case dismissNewSessionSheet

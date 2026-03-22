@@ -85,7 +85,8 @@ struct ProjectFocusView: View {
 
                         InspectorPanelView(
                             workspaceState: $workspaceState,
-                            snapshot: snapshot
+                            snapshot: snapshot,
+                            onAction: onAction
                         )
                     }
                 }

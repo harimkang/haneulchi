@@ -103,6 +103,14 @@ struct WorkflowDrawerView: View {
                     .foregroundStyle(.secondary)
                 Text("state: \(status.state.rawValue)")
                     .font(.caption)
+                if let lastGoodHash = status.lastGoodHash {
+                    Text("last good: \(lastGoodHash)")
+                        .font(.caption)
+                }
+                if let lastReloadAt = status.lastReloadAt {
+                    Text("last reload: \(lastReloadAt)")
+                        .font(.caption)
+                }
                 if let name = status.workflow?.name {
                     Text(name)
                         .font(.subheadline.weight(.semibold))

@@ -3,6 +3,7 @@ import SwiftUI
 struct InspectorPanelView: View {
     @Binding var workspaceState: ProjectFocusWorkspaceState
     let snapshot: AppShellSnapshot?
+    let onAction: (AppShellAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -25,7 +26,16 @@ struct InspectorPanelView: View {
                 case .commentary:
                     Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
                 case .task:
-                    Text(snapshot?.sessions.first?.taskID ?? "No linked task.")
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(snapshot?.sessions.first?.taskID ?? "No linked task.")
+                        if snapshot?.sessions.first?.taskID != nil {
+                            Button("Open Task Context") {
+                                onAction(.presentTaskContextDrawer)
+                            }
+                            .buttonStyle(.bordered)
+                            .font(.caption.weight(.semibold))
+                        }
+                    }
                 case .activity:
                     Text(snapshot?.sessions.first?.latestSummary ?? "No activity yet.")
                 case .evidence:
