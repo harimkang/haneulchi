@@ -1,16 +1,20 @@
 use std::collections::BTreeMap;
+use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
 use hc_domain::{
     Task, TaskAutomationMode, TaskBoardColumnProjection, TaskColumn, TaskDrawerProjection,
 };
-use hc_storage::{NewTaskRecord, SqliteStore};
+use hc_storage::{NewTaskRecord, NewWorktreeRecord, SqliteStore};
 use serde::{Deserialize, Serialize};
+
+use crate::worktrees::ProvisionedTaskWorkspace;
 
 const DEMO_CREATED_AT: &str = "2026-03-23T02:00:00Z";
 const DEMO_UPDATED_AT: &str = "2026-03-23T02:05:00Z";
 const MOVE_UPDATED_AT: &str = "2026-03-23T02:10:00Z";
 const ATTACH_UPDATED_AT: &str = "2026-03-23T02:15:00Z";
+const WORKTREE_UPDATED_AT: &str = "2026-03-23T02:20:00Z";
 
 #[derive(Debug, thiserror::Error)]
 pub enum TaskBoardError {
@@ -109,7 +113,11 @@ impl TaskBoardService {
         self.store.tasks().drawer(task_id).map_err(Into::into)
     }
 
-    pub fn attach_session(&self, task_id: &str, session_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+    pub fn attach_session(
+        &self,
+        task_id: &str,
+        session_id: &str,
+    ) -> Result<TaskBoardMutationResult, TaskBoardError> {
         let task = self
             .store
             .tasks()
@@ -118,8 +126,57 @@ impl TaskBoardService {
     }
 
     pub fn detach_session(&self, task_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
-        let task = self.store.tasks().detach_session(task_id, ATTACH_UPDATED_AT)?;
+        let task = self
+            .store
+            .tasks()
+            .detach_session(task_id, ATTACH_UPDATED_AT)?;
         Ok(TaskBoardMutationResult { task })
+    }
+
+    pub fn provision_task_workspace(
+        &self,
+        task_id: &str,
+        project_root: &str,
+        workspace_root: &str,
+        base_root: &str,
+    ) -> Result<ProvisionedTaskWorkspace, TaskBoardError> {
+        let task = self.store.tasks().get(task_id)?;
+        let project_id = task
+            .as_ref()
+            .map(|task| task.project_id.clone())
+            .unwrap_or_else(|| {
+                Path::new(project_root)
+                    .file_name()
+                    .and_then(|value| value.to_str())
+                    .unwrap_or("project")
+                    .to_string()
+            });
+        let sanitized_task = sanitize_task_key(task_id);
+        let worktree_id = format!("wt_{sanitized_task}");
+        let branch_name = format!("hc/{sanitized_task}");
+
+        let worktree = self
+            .store
+            .worktrees()
+            .create_or_replace(NewWorktreeRecord {
+                id: worktree_id.clone(),
+                task_id: task_id.to_string(),
+                project_id,
+                workspace_root: workspace_root.to_string(),
+                base_root: base_root.to_string(),
+                branch_name: branch_name.clone(),
+                status: "ready".to_string(),
+                created_at: WORKTREE_UPDATED_AT.to_string(),
+                updated_at: WORKTREE_UPDATED_AT.to_string(),
+            })?;
+
+        Ok(ProvisionedTaskWorkspace {
+            task_id: worktree.task_id,
+            worktree_id: worktree.id,
+            workspace_root: worktree.workspace_root,
+            base_root: worktree.base_root,
+            branch_name,
+        })
     }
 }
 
@@ -145,7 +202,10 @@ pub fn shared_task_drawer(task_id: &str) -> Result<Option<TaskDrawerProjection>,
     lock_shared_board_service()?.drawer(task_id)
 }
 
-pub fn shared_attach_session(task_id: &str, session_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+pub fn shared_attach_session(
+    task_id: &str,
+    session_id: &str,
+) -> Result<TaskBoardMutationResult, TaskBoardError> {
     lock_shared_board_service()?.attach_session(task_id, session_id)
 }
 
@@ -166,7 +226,7 @@ fn shared_board_service() -> &'static Mutex<TaskBoardService> {
     TASK_BOARD.get_or_init(|| Mutex::new(TaskBoardService::demo().expect("demo task board")))
 }
 
-fn lock_shared_board_service()
+pub(crate) fn lock_shared_board_service()
 -> Result<std::sync::MutexGuard<'static, TaskBoardService>, TaskBoardError> {
     shared_board_service()
         .lock()
@@ -221,4 +281,8 @@ fn seed_demo_board(store: &SqliteStore) -> Result<(), TaskBoardError> {
     )?;
 
     Ok(())
+}
+
+fn sanitize_task_key(task_id: &str) -> String {
+    task_id.replace(['/', ' '], "-")
 }

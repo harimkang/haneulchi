@@ -308,8 +308,19 @@ final class AppShellModel: ObservableObject {
             }
             newSessionSheetViewModel = NewSessionSheetViewModel(
                 selectedProjectRoot: selectedProject?.rootPath,
+                selectedTaskID: taskContextDrawerModel?.taskID,
                 registry: presetRegistry,
-                workflowSummary: resolvedWorkflowSummary
+                workflowSummary: resolvedWorkflowSummary,
+                provisionIsolatedWorkspace: { [coreBridge] projectRoot, taskID in
+                    guard let coreBridge else {
+                        throw NewSessionSheetError.isolatedProvisionUnavailable
+                    }
+                    return try coreBridge.provisionTaskWorkspace(
+                        projectRoot,
+                        taskID,
+                        resolvedWorkflowSummary?.baseRoot
+                    )
+                }
             )
             isNewSessionSheetPresented = true
         case .dismissNewSessionSheet:

@@ -49,6 +49,18 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
             decided_at TEXT
         );
 
+        CREATE TABLE IF NOT EXISTS worktrees (
+            id TEXT PRIMARY KEY,
+            task_id TEXT NOT NULL UNIQUE,
+            project_id TEXT NOT NULL,
+            workspace_root TEXT NOT NULL,
+            base_root TEXT NOT NULL,
+            branch_name TEXT NOT NULL,
+            status TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL
+        );
+
         CREATE TABLE IF NOT EXISTS task_events (
             id TEXT PRIMARY KEY,
             task_id TEXT NOT NULL REFERENCES tasks(id),
@@ -68,6 +80,8 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
             ON task_claims(task_id, state, claimed_at);
         CREATE INDEX IF NOT EXISTS idx_review_items_task_created
             ON review_items(task_id, created_at);
+        CREATE INDEX IF NOT EXISTS idx_worktrees_project_task
+            ON worktrees(project_id, task_id, updated_at);
         CREATE INDEX IF NOT EXISTS idx_task_events_task_created
             ON task_events(task_id, created_at);
         "#,

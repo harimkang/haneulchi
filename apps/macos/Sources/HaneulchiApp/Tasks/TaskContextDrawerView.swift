@@ -26,7 +26,7 @@ struct TaskContextDrawerView: View {
                     .foregroundStyle(.secondary)
 
                 if let workspaceRoot = model.workspaceRoot {
-                    Text("workspace: \(workspaceRoot)")
+                    Text("workspace root: \(workspaceRoot)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

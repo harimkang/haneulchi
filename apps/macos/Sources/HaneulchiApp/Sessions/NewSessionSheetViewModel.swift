@@ -1,28 +1,55 @@
 import Foundation
 
+struct ProvisionedTaskWorkspace: Codable, Equatable, Sendable {
+    let taskID: String
+    let worktreeID: String
+    let workspaceRoot: String
+    let baseRoot: String
+    let branchName: String
+
+    enum CodingKeys: String, CodingKey {
+        case taskID = "task_id"
+        case worktreeID = "worktree_id"
+        case workspaceRoot = "workspace_root"
+        case baseRoot = "base_root"
+        case branchName = "branch_name"
+    }
+}
+
 enum NewSessionSheetError: Error, Equatable {
     case missingProjectRoot
     case missingPreset
     case presetUnavailable(String)
     case missingIsolatedName
+    case isolatedProvisionUnavailable
+    case isolatedProvisionFailed(String)
 }
 
 final class NewSessionSheetViewModel: ObservableObject {
     let selectedProjectRoot: String?
+    let selectedTaskID: String?
     let registry: PresetRegistry
     let workflowSummary: WorkflowLaunchSummary?
+    private let provisionIsolatedWorkspace:
+        @Sendable (String, String) throws -> ProvisionedTaskWorkspace
 
     @Published var selectedPresetID: String?
     @Published var isolatedSessionName = ""
 
     init(
         selectedProjectRoot: String?,
+        selectedTaskID: String? = nil,
         registry: PresetRegistry,
-        workflowSummary: WorkflowLaunchSummary?
+        workflowSummary: WorkflowLaunchSummary?,
+        provisionIsolatedWorkspace: @escaping @Sendable (String, String) throws -> ProvisionedTaskWorkspace = { _, _ in
+            throw NewSessionSheetError.isolatedProvisionUnavailable
+        }
     ) {
         self.selectedProjectRoot = selectedProjectRoot
+        self.selectedTaskID = selectedTaskID
         self.registry = registry
         self.workflowSummary = workflowSummary
+        self.provisionIsolatedWorkspace = provisionIsolatedWorkspace
         self.selectedPresetID = registry.presets.first?.id
     }
 
@@ -66,21 +93,26 @@ final class NewSessionSheetViewModel: ObservableObject {
     func makeIsolatedDescriptor() throws -> SessionLaunchDescriptor {
         let root = try requireProjectRoot()
         let trimmedName = isolatedSessionName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmedName.isEmpty else {
+        let taskID = selectedTaskID ?? trimmedName
+        guard !taskID.isEmpty else {
             throw NewSessionSheetError.missingIsolatedName
         }
-
-        let isolatedRoot = URL(fileURLWithPath: root)
-            .appendingPathComponent(".haneulchi/isolated", isDirectory: true)
-            .appendingPathComponent(trimmedName, isDirectory: true)
-            .path
+        let provisionedWorkspace: ProvisionedTaskWorkspace
+        do {
+            provisionedWorkspace = try provisionIsolatedWorkspace(root, taskID)
+        } catch let error as NewSessionSheetError {
+            throw error
+        } catch {
+            throw NewSessionSheetError.isolatedProvisionFailed(String(describing: error))
+        }
+        let title = trimmedName.isEmpty ? taskID : trimmedName
 
         return SessionLaunchDescriptor(
             mode: .isolated,
-            title: trimmedName,
+            title: title,
             presetID: nil,
-            restoreBundle: .genericShell(at: isolatedRoot),
-            workspaceRoot: isolatedRoot,
+            restoreBundle: .genericShell(at: provisionedWorkspace.workspaceRoot),
+            workspaceRoot: provisionedWorkspace.workspaceRoot,
             workflowSummary: workflowSummary
         )
     }

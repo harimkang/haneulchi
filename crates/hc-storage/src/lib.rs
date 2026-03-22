@@ -4,6 +4,7 @@ pub mod reviews;
 pub mod schema;
 pub mod tasks;
 pub mod timeline;
+pub mod worktrees;
 
 use std::path::Path;
 
@@ -12,6 +13,7 @@ use rusqlite::Connection;
 pub use reviews::{NewReviewItem, ReviewRepository};
 pub use tasks::{NewTaskRecord, TaskRepository, TaskUpdatePatch};
 pub use timeline::TimelineRepository;
+pub use worktrees::{NewWorktreeRecord, WorktreeRecord, WorktreeRepository};
 
 #[derive(Debug, thiserror::Error)]
 pub enum StorageError {
@@ -21,6 +23,8 @@ pub enum StorageError {
     Json(#[from] serde_json::Error),
     #[error("task not found: {0}")]
     TaskNotFound(String),
+    #[error("worktree not found for task: {0}")]
+    WorktreeNotFound(String),
     #[error("unknown task column: {0}")]
     UnknownTaskColumn(String),
     #[error("unknown task automation mode: {0}")]
@@ -66,5 +70,9 @@ impl SqliteStore {
 
     pub fn timeline(&self) -> TimelineRepository<'_> {
         TimelineRepository::new(&self.connection)
+    }
+
+    pub fn worktrees(&self) -> WorktreeRepository<'_> {
+        WorktreeRepository::new(&self.connection)
     }
 }

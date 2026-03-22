@@ -23,6 +23,7 @@ HcString hc_session_attach_task_json(const char *session_id, const char *task_id
 HcString hc_session_detach_task_json(const char *session_id);
 HcString hc_task_board_json(const char *project_id);
 HcString hc_task_move_json(const char *task_id, const char *column);
+HcString hc_task_provision_workspace_json(const char *project_root, const char *task_id, const char *base_root);
 HcString hc_terminal_session_spawn_json(const char *config_json);
 HcBytes hc_terminal_session_drain(const char *session_id);
 int hc_terminal_session_write(const char *session_id, const unsigned char *ptr, size_t len);
