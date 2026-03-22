@@ -1,5 +1,8 @@
-use hc_control_plane::{ReviewDecision, ReviewQueueService, TaskBoardColumnSummary, TaskBoardService};
-use hc_domain::TaskColumn;
+use hc_control_plane::{
+    EligibilityContext, ReviewDecision, ReviewQueueService, TaskBoardColumnSummary,
+    TaskBoardService, evaluate_task_eligibility,
+};
+use hc_domain::{ClaimState, PolicyPack, TaskAutomationMode, TaskColumn, WorkflowHealth};
 
 #[test]
 fn board_projection_groups_tasks_by_fixed_columns() {
@@ -95,4 +98,70 @@ fn timeline_accept_request_changes_manual_continue_and_follow_up_update_projecti
     assert!(timeline.iter().any(|item| item.kind == "task_created"));
     assert!(timeline.iter().any(|item| item.kind == "review_decided"));
     assert!(timeline.iter().any(|item| item.kind == "follow_up_created"));
+}
+
+#[test]
+fn eligibility_policy_pack_and_automation_mode_projection_block_invalid_dispatch() {
+    let service = TaskBoardService::demo().expect("demo board");
+
+    let updated = service
+        .set_automation_mode("task_ready", TaskAutomationMode::AutoEligible)
+        .expect("automation mode update");
+    assert_eq!(updated.automation_mode, TaskAutomationMode::AutoEligible);
+
+    let details = service
+        .automation_details(
+            "task_ready",
+            WorkflowHealth::Ok,
+            "gemini",
+            PolicyPack {
+                require_review: true,
+                max_runtime_minutes: Some(45),
+                allowed_agents: vec!["codex".to_string()],
+                unsafe_override_policy: Some("explicit_only".to_string()),
+            },
+            ClaimState::None,
+        )
+        .expect("automation details");
+
+    assert_eq!(details.policy_pack.require_review, true);
+    assert_eq!(details.policy_pack.max_runtime_minutes, Some(45));
+    assert_eq!(details.policy_pack.allowed_agents, vec!["codex"]);
+    assert_eq!(
+        details.policy_pack.unsafe_override_policy.as_deref(),
+        Some("explicit_only")
+    );
+    assert_eq!(
+        details.blocker_reason.as_deref(),
+        Some("task_not_eligible_for_dispatch")
+    );
+}
+
+#[test]
+fn eligibility_keeps_local_board_authoritative_even_when_tracker_binding_exists() {
+    let service = TaskBoardService::demo().expect("demo board");
+    let mut task = service
+        .task("task_ready")
+        .expect("task lookup")
+        .expect("task row");
+    task.tracker_binding_state = "bound".to_string();
+    task.automation_mode = TaskAutomationMode::AutoEligible;
+
+    let details = evaluate_task_eligibility(
+        &task,
+        &EligibilityContext {
+            workflow_health: WorkflowHealth::InvalidKeptLastGood,
+            selected_agent: "codex".to_string(),
+            claim_state: ClaimState::Claimed,
+            policy_pack: PolicyPack {
+                require_review: false,
+                max_runtime_minutes: Some(30),
+                allowed_agents: vec!["codex".to_string()],
+                unsafe_override_policy: Some("explicit_only".to_string()),
+            },
+        },
+    );
+
+    assert_eq!(details.tracker_binding_state, "bound");
+    assert_eq!(details.blocker_reason.as_deref(), Some("workflow_invalid"));
 }

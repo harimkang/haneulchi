@@ -55,6 +55,8 @@ func snapshotDecodesRicherProjectionContract() throws {
           "session_id": "ses_demo",
           "project_id": "proj_demo",
           "task_id": null,
+          "automation_mode": "auto_eligible",
+          "tracker_binding_state": "bound",
           "mode": "generic",
           "runtime_state": "running",
           "manual_control": "none",
@@ -96,6 +98,8 @@ func snapshotDecodesRicherProjectionContract() throws {
     #expect(snapshot.workflow?.state == .ok)
     #expect(snapshot.tracker?.health == "ok")
     #expect(snapshot.projects.first?.taskCounts["Inbox"] == 1)
+    #expect(snapshot.sessions.first?.automationMode == .autoEligible)
+    #expect(snapshot.sessions.first?.trackerBindingState == "bound")
     #expect(snapshot.sessions.first?.claimState == ClaimState.none)
     #expect(snapshot.sessions.first?.focusState == SessionFocusState.focused)
     #expect(snapshot.retryQueue.first?.reasonCode == "hook_failed")

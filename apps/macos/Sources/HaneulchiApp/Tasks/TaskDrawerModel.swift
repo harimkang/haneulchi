@@ -1,6 +1,13 @@
 import Foundation
 
 struct TaskDrawerModel: Equatable, Sendable {
+    let automationMode: TaskBoardAutomationModePayload?
+    let claimState: ClaimState
+    let trackerBindingState: String?
+    let requireReview: Bool
+    let maxRuntimeMinutes: Int?
+    let unsafeOverridePolicy: String?
+    let blockerReason: String?
     let taskID: String
     let sessionID: String
     let sessionTitle: String
@@ -34,6 +41,17 @@ struct TaskDrawerModel: Equatable, Sendable {
         }
 
         return Self(
+            automationMode: session.automationMode,
+            claimState: session.claimState,
+            trackerBindingState: session.trackerBindingState,
+            requireReview: workflowStatus?.workflow?.requireReview ?? false,
+            maxRuntimeMinutes: workflowStatus?.workflow?.maxRuntimeMinutes,
+            unsafeOverridePolicy: workflowStatus?.workflow?.unsafeOverridePolicy,
+            blockerReason: blockerReason(
+                automationMode: session.automationMode,
+                claimState: session.claimState,
+                workflowStatus: workflowStatus
+            ),
             taskID: taskID,
             sessionID: session.sessionID,
             sessionTitle: session.title,
@@ -53,5 +71,27 @@ struct TaskDrawerModel: Equatable, Sendable {
             timeline: timeline,
             primaryActionTitle: "Detach Session"
         )
+    }
+
+    private static func blockerReason(
+        automationMode: TaskBoardAutomationModePayload?,
+        claimState: ClaimState,
+        workflowStatus: WorkflowStatusPayload?
+    ) -> String? {
+        if let automationMode, automationMode == .manual {
+            return "manual_mode"
+        }
+        if workflowStatus?.state == .invalidKeptLastGood {
+            return "workflow_invalid"
+        }
+        if let allowedAgents = workflowStatus?.workflow?.allowedAgents,
+           !allowedAgents.isEmpty,
+           !allowedAgents.contains("codex") {
+            return "task_not_eligible_for_dispatch"
+        }
+        if claimState == .claimed {
+            return "task_claim_conflict"
+        }
+        return nil
     }
 }

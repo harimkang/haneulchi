@@ -51,6 +51,9 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
         let name: String?
         let strategy: String?
         let baseRoot: String?
+        let requireReview: Bool
+        let maxRuntimeMinutes: Int?
+        let unsafeOverridePolicy: String?
         let reviewChecklist: [String]
         let allowedAgents: [String]
         let hooks: [String]
@@ -61,6 +64,9 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             case name
             case strategy
             case baseRoot = "base_root"
+            case requireReview = "require_review"
+            case maxRuntimeMinutes = "max_runtime_minutes"
+            case unsafeOverridePolicy = "unsafe_override_policy"
             case reviewChecklist = "review_checklist"
             case allowedAgents = "allowed_agents"
             case hooks
@@ -73,6 +79,9 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             name = try container.decodeIfPresent(String.self, forKey: .name)
             strategy = try container.decodeIfPresent(String.self, forKey: .strategy)
             baseRoot = try container.decodeIfPresent(String.self, forKey: .baseRoot)
+            requireReview = try container.decodeIfPresent(Bool.self, forKey: .requireReview) ?? false
+            maxRuntimeMinutes = try container.decodeIfPresent(Int.self, forKey: .maxRuntimeMinutes)
+            unsafeOverridePolicy = try container.decodeIfPresent(String.self, forKey: .unsafeOverridePolicy)
             reviewChecklist = try container.decodeIfPresent([String].self, forKey: .reviewChecklist) ?? []
             allowedAgents = try container.decodeIfPresent([String].self, forKey: .allowedAgents) ?? []
             hooks = try container.decodeIfPresent([String].self, forKey: .hooks) ?? []
@@ -84,6 +93,9 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             name: String?,
             strategy: String?,
             baseRoot: String?,
+            requireReview: Bool = false,
+            maxRuntimeMinutes: Int? = nil,
+            unsafeOverridePolicy: String? = nil,
             reviewChecklist: [String],
             allowedAgents: [String],
             hooks: [String],
@@ -93,6 +105,9 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             self.name = name
             self.strategy = strategy
             self.baseRoot = baseRoot
+            self.requireReview = requireReview
+            self.maxRuntimeMinutes = maxRuntimeMinutes
+            self.unsafeOverridePolicy = unsafeOverridePolicy
             self.reviewChecklist = reviewChecklist
             self.allowedAgents = allowedAgents
             self.hooks = hooks

@@ -151,6 +151,26 @@ impl<'connection> TaskRepository<'connection> {
         Ok(task)
     }
 
+    pub fn set_automation_mode(
+        &self,
+        task_id: &str,
+        automation_mode: TaskAutomationMode,
+        updated_at: &str,
+    ) -> Result<Task, StorageError> {
+        let mut task = self
+            .get(task_id)?
+            .ok_or_else(|| StorageError::TaskNotFound(task_id.to_string()))?;
+        task.automation_mode = automation_mode;
+        task.updated_at = updated_at.to_string();
+
+        self.connection.execute(
+            "UPDATE tasks SET automation_mode = ?2, updated_at = ?3 WHERE id = ?1",
+            params![task.id, task.automation_mode.as_str(), task.updated_at],
+        )?;
+
+        Ok(task)
+    }
+
     pub fn move_to(
         &self,
         task_id: &str,

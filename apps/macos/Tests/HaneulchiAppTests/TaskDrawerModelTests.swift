@@ -37,6 +37,8 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
                 unreadCount: 0,
                 projectID: "proj_demo",
                 taskID: "task_ready",
+                automationMode: .assisted,
+                trackerBindingState: "local_only",
                 workspaceRoot: "/tmp/demo/worktrees/task_ready",
                 baseRoot: "Sources",
                 latestSummary: "Review evidence",
@@ -58,6 +60,9 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
             name: "Review Workflow",
             strategy: "worktree",
             baseRoot: "Sources",
+            requireReview: true,
+            maxRuntimeMinutes: 45,
+            unsafeOverridePolicy: "explicit_only",
             reviewChecklist: ["tests", "lint"],
             allowedAgents: ["codex"],
             hooks: [],
@@ -74,6 +79,10 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
     #expect(model?.workspaceRoot == "/tmp/demo/worktrees/task_ready")
     #expect(model?.baseRoot == "Sources")
     #expect(model?.workflowName == "Review Workflow")
+    #expect(model?.automationMode == .assisted)
+    #expect(model?.requireReview == true)
+    #expect(model?.maxRuntimeMinutes == 45)
+    #expect(model?.unsafeOverridePolicy == "explicit_only")
     #expect(model?.primaryActionTitle == "Detach Session")
 }
 
@@ -96,6 +105,8 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
                 unreadCount: 0,
                 projectID: "proj_demo",
                 taskID: "task_review",
+                automationMode: .manual,
+                trackerBindingState: "bound",
                 workspaceRoot: "/tmp/demo/worktrees/task_review",
                 baseRoot: ".",
                 latestSummary: "Review ready",
@@ -129,8 +140,11 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
             name: "Review Workflow",
             strategy: "worktree",
             baseRoot: ".",
+            requireReview: true,
+            maxRuntimeMinutes: 30,
+            unsafeOverridePolicy: "explicit_only",
             reviewChecklist: ["tests"],
-            allowedAgents: ["codex"],
+            allowedAgents: ["gemini"],
             hooks: [],
             hookRuns: [:],
             templateBody: nil
@@ -160,4 +174,6 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
     #expect(model?.timeline.count == 2)
     #expect(model?.timeline.last?.warningReason == "broken_link")
     #expect(model?.lastBootstrapOutcome == "launch_succeeded")
+    #expect(model?.trackerBindingState == "bound")
+    #expect(model?.blockerReason == "manual_mode")
 }

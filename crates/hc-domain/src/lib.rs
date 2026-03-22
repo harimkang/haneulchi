@@ -1,3 +1,4 @@
+pub mod orchestrator;
 pub mod review;
 pub mod task;
 pub mod timeline;
@@ -6,6 +7,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+pub use orchestrator::{PolicyPack, TaskAutomationDetails};
 pub use review::{ReviewItem, ReviewStatus};
 pub use task::{
     Task, TaskAutomationMode, TaskBoardColumnProjection, TaskClaimLifecycleState, TaskColumn,

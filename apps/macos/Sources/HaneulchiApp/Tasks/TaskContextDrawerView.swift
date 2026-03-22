@@ -69,6 +69,8 @@ struct TaskContextDrawerView: View {
                     }
                 }
 
+                TaskAutomationSection(model: model)
+
                 TaskTimelineSection(title: "Timeline", entries: model.timeline)
 
                 Button(model.primaryActionTitle) {

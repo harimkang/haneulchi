@@ -3,11 +3,13 @@ use std::path::Path;
 use std::sync::{Mutex, OnceLock};
 
 use hc_domain::{
-    Task, TaskAutomationMode, TaskBoardColumnProjection, TaskColumn, TaskDrawerProjection,
+    ClaimState, PolicyPack, Task, TaskAutomationDetails, TaskAutomationMode,
+    TaskBoardColumnProjection, TaskColumn, TaskDrawerProjection, WorkflowHealth,
 };
 use hc_storage::{NewTaskRecord, NewWorktreeRecord, SqliteStore};
 use serde::{Deserialize, Serialize};
 
+use crate::eligibility::{EligibilityContext, evaluate_task_eligibility};
 use crate::worktrees::ProvisionedTaskWorkspace;
 
 const DEMO_CREATED_AT: &str = "2026-03-23T02:00:00Z";
@@ -15,6 +17,7 @@ const DEMO_UPDATED_AT: &str = "2026-03-23T02:05:00Z";
 const MOVE_UPDATED_AT: &str = "2026-03-23T02:10:00Z";
 const ATTACH_UPDATED_AT: &str = "2026-03-23T02:15:00Z";
 const WORKTREE_UPDATED_AT: &str = "2026-03-23T02:20:00Z";
+const AUTOMATION_UPDATED_AT: &str = "2026-03-23T02:25:00Z";
 
 #[derive(Debug, thiserror::Error)]
 pub enum TaskBoardError {
@@ -109,6 +112,41 @@ impl TaskBoardService {
         self.store.tasks().get(task_id).map_err(Into::into)
     }
 
+    pub fn set_automation_mode(
+        &self,
+        task_id: &str,
+        automation_mode: TaskAutomationMode,
+    ) -> Result<Task, TaskBoardError> {
+        self.store
+            .tasks()
+            .set_automation_mode(task_id, automation_mode, AUTOMATION_UPDATED_AT)
+            .map_err(Into::into)
+    }
+
+    pub fn automation_details(
+        &self,
+        task_id: &str,
+        workflow_health: WorkflowHealth,
+        selected_agent: &str,
+        policy_pack: PolicyPack,
+        claim_state: ClaimState,
+    ) -> Result<TaskAutomationDetails, TaskBoardError> {
+        let task = self
+            .store
+            .tasks()
+            .get(task_id)?
+            .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
+        Ok(evaluate_task_eligibility(
+            &task,
+            &EligibilityContext {
+                workflow_health,
+                selected_agent: selected_agent.to_string(),
+                claim_state,
+                policy_pack,
+            },
+        ))
+    }
+
     pub fn drawer(&self, task_id: &str) -> Result<Option<TaskDrawerProjection>, TaskBoardError> {
         self.store.tasks().drawer(task_id).map_err(Into::into)
     }
@@ -196,6 +234,29 @@ pub fn shared_task_move(
 
 pub fn shared_task(task_id: &str) -> Result<Option<Task>, TaskBoardError> {
     lock_shared_board_service()?.task(task_id)
+}
+
+pub fn shared_set_automation_mode(
+    task_id: &str,
+    automation_mode: TaskAutomationMode,
+) -> Result<Task, TaskBoardError> {
+    lock_shared_board_service()?.set_automation_mode(task_id, automation_mode)
+}
+
+pub fn shared_automation_details(
+    task_id: &str,
+    workflow_health: WorkflowHealth,
+    selected_agent: &str,
+    policy_pack: PolicyPack,
+    claim_state: ClaimState,
+) -> Result<TaskAutomationDetails, TaskBoardError> {
+    lock_shared_board_service()?.automation_details(
+        task_id,
+        workflow_health,
+        selected_agent,
+        policy_pack,
+        claim_state,
+    )
 }
 
 pub fn shared_task_drawer(task_id: &str) -> Result<Option<TaskDrawerProjection>, TaskBoardError> {

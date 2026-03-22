@@ -197,6 +197,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         let sessionID: String
         let projectID: String?
         let taskID: String?
+        let automationMode: TaskBoardAutomationModePayload?
+        let trackerBindingState: String?
         let title: String
         let currentDirectory: String?
         let workspaceRoot: String?
@@ -220,6 +222,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             case sessionID = "session_id"
             case projectID = "project_id"
             case taskID = "task_id"
+            case automationMode = "automation_mode"
+            case trackerBindingState = "tracker_binding_state"
             case title
             case currentDirectory = "cwd"
             case workspaceRoot = "workspace_root"
@@ -251,6 +255,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             unreadCount: Int,
             projectID: String? = nil,
             taskID: String? = nil,
+            automationMode: TaskBoardAutomationModePayload? = nil,
+            trackerBindingState: String? = nil,
             workspaceRoot: String? = nil,
             baseRoot: String? = nil,
             branch: String? = nil,
@@ -266,6 +272,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             self.sessionID = sessionID
             self.projectID = projectID
             self.taskID = taskID
+            self.automationMode = automationMode
+            self.trackerBindingState = trackerBindingState
             self.title = title
             self.currentDirectory = currentDirectory
             self.workspaceRoot = workspaceRoot
