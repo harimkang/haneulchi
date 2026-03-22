@@ -121,3 +121,59 @@ func sessionStackRowsReflectSnapshotVocabulary() {
     #expect(rows[1].signal?.label == "manual takeover")
     #expect(rows[1].showsManualContinueCTA == true)
 }
+
+@Test("inspector resolves the focused session instead of the first session")
+func inspectorUsesFocusedSessionContext() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+        ops: .init(runningSlots: 2, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_02", degradedFlags: []),
+        projects: [],
+        sessions: [
+            .init(
+                sessionID: "ses_01",
+                title: "Build",
+                currentDirectory: "/tmp/demo",
+                mode: .generic,
+                runtimeState: .running,
+                manualControlState: .none,
+                dispatchState: .dispatchable,
+                unreadCount: 1,
+                projectID: "proj_demo",
+                taskID: "task_01",
+                workspaceRoot: "/tmp/demo/.haneulchi/task_01",
+                baseRoot: ".",
+                branch: "main",
+                latestSummary: "Running tests",
+                focusState: .background,
+                canTakeover: false
+            ),
+            .init(
+                sessionID: "ses_02",
+                title: "Review",
+                currentDirectory: "/tmp/demo",
+                mode: .preset,
+                runtimeState: .waitingInput,
+                manualControlState: .takeover,
+                dispatchState: .dispatchable,
+                unreadCount: 3,
+                projectID: "proj_demo",
+                taskID: "task_02",
+                workspaceRoot: "/tmp/demo/.haneulchi/task_02",
+                baseRoot: ".",
+                branch: "feature/task-104",
+                latestSummary: "Awaiting operator answer",
+                focusState: .focused,
+                canTakeover: true
+            ),
+        ],
+        attention: [],
+        retryQueue: [],
+        warnings: []
+    )
+
+    let focusedSession = InspectorPanelView.focusedSession(from: snapshot)
+
+    #expect(focusedSession?.sessionID == "ses_02")
+    #expect(focusedSession?.taskID == "task_02")
+}

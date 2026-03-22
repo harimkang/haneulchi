@@ -27,8 +27,8 @@ struct InspectorPanelView: View {
                     Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
                 case .task:
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(snapshot?.sessions.first?.taskID ?? "No linked task.")
-                        if snapshot?.sessions.first?.taskID != nil {
+                        Text(Self.focusedSession(from: snapshot)?.taskID ?? "No linked task.")
+                        if Self.focusedSession(from: snapshot)?.taskID != nil {
                             Button("Open Task Context") {
                                 onAction(.presentTaskContextDrawer)
                             }
@@ -37,11 +37,11 @@ struct InspectorPanelView: View {
                         }
                     }
                 case .activity:
-                    Text(snapshot?.sessions.first?.latestSummary ?? "No activity yet.")
+                    Text(Self.focusedSession(from: snapshot)?.latestSummary ?? "No activity yet.")
                 case .evidence:
                     Text("Evidence surface reserved for Sprint 2.")
                 case .git:
-                    Text(snapshot?.sessions.first?.branch ?? "No branch information.")
+                    Text(Self.focusedSession(from: snapshot)?.branch ?? "No branch information.")
                 case .diff:
                     Text("Diff surface reserved for Sprint 2.")
                 case .quickActions:
@@ -56,5 +56,15 @@ struct InspectorPanelView: View {
         .padding(16)
         .frame(width: 320, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.surfaceRaised)
+    }
+
+    nonisolated static func focusedSession(from snapshot: AppShellSnapshot?) -> AppShellSnapshot.SessionSummary? {
+        guard let snapshot else {
+            return nil
+        }
+
+        return snapshot.sessions.first(where: {
+            $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
+        }) ?? snapshot.sessions.first
     }
 }

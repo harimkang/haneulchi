@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 output_dir="${repo_root}/evidence"
-mode="live"
+mode="dry-run"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in

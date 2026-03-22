@@ -488,6 +488,73 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
 }
 
 @MainActor
+@Test("refresh shell snapshot clears stale workflow status when the selected project has no workflow")
+func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async throws {
+    let project = LauncherProject(
+        projectID: "proj_no_workflow",
+        name: "demo",
+        rootPath: "/tmp/no-workflow",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 0, maxSlots: 1, retryQueueCount: 0, workflowHealth: .none),
+                app: .init(activeRoute: .projectFocus, focusedSessionID: nil, degradedFlags: []),
+                projects: [],
+                sessions: [],
+                attention: [],
+                retryQueue: [],
+                warnings: [],
+                workflow: nil,
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+            )
+        },
+        workflowValidate: { _ in Data(#"{"state":"none"}"#.utf8) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge,
+        workflowStatus: .init(
+            state: .ok,
+            path: "/tmp/old/WORKFLOW.md",
+            lastGoodHash: "sha256:old",
+            lastReloadAt: "2026-03-23T00:00:00Z",
+            lastError: nil,
+            workflow: .init(
+                name: "Old Workflow",
+                strategy: "worktree",
+                baseRoot: ".",
+                reviewChecklist: ["old"],
+                allowedAgents: ["codex"],
+                hooks: [],
+                hookRuns: [:],
+                templateBody: nil
+            )
+        )
+    )
+
+    await model.refreshShellSnapshot()
+
+    #expect(model.workflowStatus == nil)
+}
+
+@MainActor
 @Test("task context drawer reuses workflow summary for the focused task")
 func taskContextDrawerUsesWorkflowSummary() async throws {
     let project = LauncherProject(

@@ -470,10 +470,17 @@ final class AppShellModel: ObservableObject {
 
     private func syncWorkflowStatus(from snapshot: AppShellSnapshot) {
         guard let workflow = snapshot.workflow else {
+            workflowStatus = nil
+            if selectedRoute == .settings {
+                settingsStatusViewModel = makeSettingsStatusViewModel()
+            }
+            if isTaskContextDrawerPresented {
+                taskContextDrawerModel = makeTaskContextDrawerModel()
+            }
             return
         }
 
-        let summary = workflowStatus?.workflow
+        let summary = workflowStatus?.path == workflow.path ? workflowStatus?.workflow : nil
         workflowStatus = WorkflowStatusPayload(
             state: workflow.state,
             path: workflow.path,

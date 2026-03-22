@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 output_dir="${repo_root}/evidence"
-mode="live"
+mode="dry-run"
 app_package_path="${repo_root}/apps/macos"
 metrics_file=""
 checklist_file=""
