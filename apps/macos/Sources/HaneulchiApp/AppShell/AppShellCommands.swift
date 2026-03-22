@@ -23,6 +23,13 @@ struct AppShellCommands: Commands {
             }
             .keyboardShortcut("P", modifiers: [.command, .shift])
 
+            Button("New Session") {
+                Task {
+                    await model.perform(.presentNewSessionSheet)
+                }
+            }
+            .keyboardShortcut("N", modifiers: [.command])
+
             Button("Settings") {
                 Task {
                     await model.perform(.openSettings)

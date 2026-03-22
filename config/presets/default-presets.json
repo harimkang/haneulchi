@@ -1,0 +1,42 @@
+[
+  {
+    "id": "claude",
+    "title": "Claude Code",
+    "binary": "claude",
+    "default_args": [],
+    "capability_flags": ["agent", "review"],
+    "requires_shell_integration": false
+  },
+  {
+    "id": "codex",
+    "title": "Codex",
+    "binary": "codex",
+    "default_args": ["--sandbox", "workspace-write"],
+    "capability_flags": ["agent", "dispatch"],
+    "requires_shell_integration": false
+  },
+  {
+    "id": "gemini",
+    "title": "Gemini CLI",
+    "binary": "gemini",
+    "default_args": [],
+    "capability_flags": ["agent"],
+    "requires_shell_integration": false
+  },
+  {
+    "id": "yazi",
+    "title": "Yazi",
+    "binary": "yazi",
+    "default_args": [],
+    "capability_flags": ["tui", "file_browser"],
+    "requires_shell_integration": false
+  },
+  {
+    "id": "lazygit",
+    "title": "LazyGit",
+    "binary": "lazygit",
+    "default_args": [],
+    "capability_flags": ["tui", "git"],
+    "requires_shell_integration": false
+  }
+]

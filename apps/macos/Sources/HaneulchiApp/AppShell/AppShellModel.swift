@@ -18,6 +18,8 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var recentProjects: [LauncherProject]
     @Published private(set) var readinessReport: ReadinessReport?
     @Published private(set) var shellSnapshot: AppShellSnapshot?
+    @Published private(set) var isNewSessionSheetPresented = false
+    @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
     @Published private(set) var commandPaletteViewModel: CommandPaletteViewModel?
     @Published private(set) var transientNotice: String?
@@ -31,6 +33,7 @@ final class AppShellModel: ObservableObject {
     private let projectFileIndex: ProjectFileIndex
     private let taskSearchProjectionStore: TaskSearchProjectionStore
     private let inventorySearchProjectionStore: InventorySearchProjectionStore
+    private let presetRegistry: PresetRegistry
 
     init(
         entrySurface: EntrySurface,
@@ -46,7 +49,10 @@ final class AppShellModel: ObservableObject {
         projectFileIndex: ProjectFileIndex = ProjectFileIndex(),
         taskSearchProjectionStore: TaskSearchProjectionStore = .liveDefault,
         inventorySearchProjectionStore: InventorySearchProjectionStore? = nil,
+        presetRegistry: PresetRegistry? = nil,
         shellSnapshot: AppShellSnapshot? = nil,
+        isNewSessionSheetPresented: Bool = false,
+        newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
         commandPaletteViewModel: CommandPaletteViewModel? = nil,
         transientNotice: String? = nil
@@ -57,6 +63,8 @@ final class AppShellModel: ObservableObject {
         self.recentProjects = recentProjects
         self.readinessReport = readinessReport
         self.shellSnapshot = shellSnapshot
+        self.isNewSessionSheetPresented = isNewSessionSheetPresented
+        self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
         self.commandPaletteViewModel = commandPaletteViewModel
         self.transientNotice = transientNotice
@@ -68,6 +76,7 @@ final class AppShellModel: ObservableObject {
         self.projectFileIndex = projectFileIndex
         self.taskSearchProjectionStore = taskSearchProjectionStore
         self.inventorySearchProjectionStore = inventorySearchProjectionStore ?? InventorySearchProjectionStore(restoreStore: restoreStore)
+        self.presetRegistry = presetRegistry ?? (try? PresetRegistry.loadDefault()) ?? PresetRegistry(presets: [])
     }
 
     static func bootstrap(
@@ -192,6 +201,28 @@ final class AppShellModel: ObservableObject {
             setSelectedRoute(route)
         case .openSettings:
             setSelectedRoute(.settings)
+        case .presentNewSessionSheet:
+            newSessionSheetViewModel = NewSessionSheetViewModel(
+                selectedProjectRoot: selectedProject?.rootPath,
+                registry: presetRegistry,
+                workflowSummary: nil
+            )
+            isNewSessionSheetPresented = true
+        case .dismissNewSessionSheet:
+            isNewSessionSheetPresented = false
+            newSessionSheetViewModel = nil
+        case let .launchSession(descriptor):
+            do {
+                var bundles = try restoreStore.load()
+                bundles.append(descriptor.restoreBundle)
+                try restoreStore.save(bundles)
+                setSelectedRoute(.projectFocus)
+                transientNotice = "Session launched: \(descriptor.title)"
+                isNewSessionSheetPresented = false
+                newSessionSheetViewModel = nil
+            } catch {
+                transientNotice = "Session could not be launched. Check restore storage and try again."
+            }
         case .toggleCommandPalette:
             if isCommandPalettePresented {
                 isCommandPalettePresented = false

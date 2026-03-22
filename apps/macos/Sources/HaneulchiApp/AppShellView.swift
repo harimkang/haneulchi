@@ -57,6 +57,24 @@ struct AppShellView: View {
                 }
             }
         }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isNewSessionSheetPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissNewSessionSheet)
+                    }
+                }
+            }
+        )) {
+            if let viewModel = shellModel.newSessionSheetViewModel {
+                NewSessionSheetView(viewModel: viewModel) { descriptor in
+                    Task {
+                        await shellModel.perform(.launchSession(descriptor))
+                    }
+                }
+            }
+        }
     }
 
     private var shellLayout: some View {

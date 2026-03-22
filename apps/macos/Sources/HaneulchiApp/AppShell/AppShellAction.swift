@@ -3,6 +3,9 @@ import Foundation
 enum AppShellAction: Equatable, Sendable {
     case selectRoute(Route)
     case openSettings
+    case presentNewSessionSheet
+    case dismissNewSessionSheet
+    case launchSession(SessionLaunchDescriptor)
     case toggleCommandPalette
     case dismissCommandPalette
     case retryReadiness

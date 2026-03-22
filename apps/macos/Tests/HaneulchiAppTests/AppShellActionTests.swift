@@ -155,3 +155,68 @@ func jumpToLatestUnreadUsesProjectedAttention() async throws {
     #expect(model.selectedRoute == .attentionCenter)
     #expect(model.transientNotice?.contains("Preset binaries missing") == true)
 }
+
+@MainActor
+@Test("new session actions present the sheet and launching a preset stores a new restore bundle")
+func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
+    let restoreStore = TerminalSessionRestoreStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let registry = PresetRegistry(
+        presets: [
+            .init(
+                id: "codex",
+                title: "Codex",
+                binary: "codex",
+                defaultArgs: ["--sandbox", "workspace-write"],
+                capabilityFlags: ["agent"],
+                requiresShellIntegration: false,
+                installState: .installed
+            )
+        ]
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: restoreStore,
+        preferencesStore: .inMemory,
+        presetRegistry: registry
+    )
+
+    await model.perform(.presentNewSessionSheet)
+
+    #expect(model.isNewSessionSheetPresented == true)
+
+    let descriptor = SessionLaunchDescriptor(
+        mode: .preset,
+        title: "Codex",
+        presetID: "codex",
+        restoreBundle: .init(
+            launch: .init(
+                program: "codex",
+                args: ["--sandbox", "workspace-write"],
+                currentDirectory: "/tmp/demo",
+                geometry: .defaultShell
+            ),
+            geometry: .defaultShell
+        ),
+        workspaceRoot: nil,
+        workflowSummary: nil
+    )
+
+    await model.perform(.launchSession(descriptor))
+
+    let savedBundles = try restoreStore.load()
+    #expect(model.selectedRoute == .projectFocus)
+    #expect(model.isNewSessionSheetPresented == false)
+    #expect(savedBundles.last?.launch.program == "codex")
+    #expect(savedBundles.last?.launch.currentDirectory == "/tmp/demo")
+}
