@@ -19,6 +19,8 @@ typedef struct HcBytes {
 HcString hc_runtime_info_json(void);
 HcString hc_state_snapshot_json(void);
 HcString hc_sessions_list_json(void);
+HcString hc_task_board_json(const char *project_id);
+HcString hc_task_move_json(const char *task_id, const char *column);
 HcString hc_terminal_session_spawn_json(const char *config_json);
 HcBytes hc_terminal_session_drain(const char *session_id);
 int hc_terminal_session_write(const char *session_id, const unsigned char *ptr, size_t len);

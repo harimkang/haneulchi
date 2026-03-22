@@ -188,6 +188,11 @@ dependencies = [
 [[package]]
 name = "hc-api"
 version = "0.1.0"
+dependencies = [
+ "hc-control-plane",
+ "hc-domain",
+ "serde_json",
+]
 
 [[package]]
 name = "hc-cli"
@@ -199,7 +204,9 @@ version = "0.1.0"
 dependencies = [
  "hc-domain",
  "hc-runtime",
+ "hc-storage",
  "hc-workflow",
+ "serde",
  "thiserror 1.0.69",
 ]
 
@@ -214,6 +221,7 @@ dependencies = [
 name = "hc-ffi"
 version = "0.1.0"
 dependencies = [
+ "hc-api",
  "hc-control-plane",
  "hc-domain",
  "hc-runtime",
