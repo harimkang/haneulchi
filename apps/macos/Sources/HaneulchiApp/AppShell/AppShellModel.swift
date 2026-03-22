@@ -242,7 +242,9 @@ final class AppShellModel: ObservableObject {
             recentProjects: recentProjects
         )
         if let coreBridge, let bridgeSnapshot = try? coreBridge.stateSnapshot() {
-            shellSnapshot = mergedSnapshot(local: localSnapshot, bridge: bridgeSnapshot)
+            let merged = mergedSnapshot(local: localSnapshot, bridge: bridgeSnapshot)
+            shellSnapshot = merged
+            syncWorkflowStatus(from: merged)
             return
         }
 
@@ -448,6 +450,26 @@ final class AppShellModel: ObservableObject {
             presetRegistry: presetRegistry,
             runtimeInfo: try? coreBridge?.runtimeInfo()
         )
+    }
+
+    private func syncWorkflowStatus(from snapshot: AppShellSnapshot) {
+        guard let workflow = snapshot.workflow else {
+            return
+        }
+
+        let summary = workflowStatus?.workflow
+        workflowStatus = WorkflowStatusPayload(
+            state: workflow.state,
+            path: workflow.path,
+            lastGoodHash: workflow.lastGoodHash,
+            lastReloadAt: workflow.lastReloadAt,
+            lastError: workflow.lastError,
+            workflow: summary
+        )
+
+        if selectedRoute == .settings {
+            settingsStatusViewModel = makeSettingsStatusViewModel()
+        }
     }
 
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {

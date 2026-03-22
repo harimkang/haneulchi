@@ -345,31 +345,49 @@ fn workflow_for_root(root: &str) -> WorkflowRuntimeStatus {
         return empty_workflow_status();
     }
 
+    let runtime = workflow_runtime_for_root(root);
     let workflow_path = PathBuf::from(root).join("WORKFLOW.md");
-    match WorkflowLoader::load(&LoadWorkflowRequest {
-        repo_root: PathBuf::from(root),
-        explicit_workflow_path: None,
-    }) {
-        Ok(Some(loaded)) => WorkflowRuntimeStatus {
-            state: WorkflowHealth::Ok,
-            path: loaded.discovery_path.display().to_string(),
-            last_good_hash: Some(loaded.contract_hash),
-            last_reload_at: None,
-            last_error: None,
-        },
-        Ok(None) => WorkflowRuntimeStatus {
-            state: WorkflowHealth::None,
-            path: workflow_path.display().to_string(),
-            last_good_hash: None,
-            last_reload_at: None,
-            last_error: None,
-        },
-        Err(error) => WorkflowRuntimeStatus {
-            state: WorkflowHealth::InvalidKeptLastGood,
-            path: workflow_path.display().to_string(),
-            last_good_hash: None,
-            last_reload_at: None,
-            last_error: Some(error.to_string()),
-        },
+    let path = runtime
+        .current()
+        .map(|loaded| loaded.discovery_path.display().to_string())
+        .unwrap_or_else(|| workflow_path.display().to_string());
+
+    let state = match runtime.state() {
+        hc_workflow::WorkflowState::None if runtime.last_error().is_some() => {
+            WorkflowHealth::InvalidKeptLastGood
+        }
+        hc_workflow::WorkflowState::None => WorkflowHealth::None,
+        hc_workflow::WorkflowState::Ok => WorkflowHealth::Ok,
+        hc_workflow::WorkflowState::InvalidKeptLastGood => WorkflowHealth::InvalidKeptLastGood,
+        hc_workflow::WorkflowState::ReloadPending => WorkflowHealth::ReloadPending,
+    };
+
+    WorkflowRuntimeStatus {
+        state,
+        path,
+        last_good_hash: runtime.last_known_good().map(|loaded| loaded.contract_hash.clone()),
+        last_reload_at: runtime.last_reload_at().map(str::to_string),
+        last_error: runtime.last_error().map(str::to_string),
     }
+}
+
+fn workflow_runtime_for_root(root: &str) -> WorkflowRuntime {
+    let repo_root = PathBuf::from(root);
+    let key = repo_root.display().to_string();
+    let runtimes = workflow_runtimes();
+    let mut runtimes = runtimes.lock().expect("workflow runtime cache lock");
+    let runtime = runtimes.entry(key).or_insert_with(|| {
+        WorkflowRuntime::new(LoadWorkflowRequest {
+            repo_root: repo_root.clone(),
+            explicit_workflow_path: None,
+        })
+    });
+
+    if runtime.current().is_none() && runtime.last_known_good().is_none() && runtime.last_error().is_none() {
+        let _ = runtime.reload();
+    } else {
+        let _ = runtime.poll_watch();
+    }
+
+    runtime.clone()
 }

@@ -43,6 +43,7 @@ fn workflow_validate_and_reload_commands_return_runtime_status() {
     )
     .expect("valid json");
     assert_eq!(reloaded["state"], "ok");
+    assert!(reloaded["last_reload_at"].as_str().is_some());
 
     let root_c = CString::new(root.to_str().expect("utf8 path")).unwrap();
     let c_payload = hc_workflow_validate_json(root_c.as_ptr());
@@ -62,6 +63,7 @@ fn workflow_validate_and_reload_commands_return_runtime_status() {
     hc_string_free(reload_payload);
     let reload_value: Value = serde_json::from_str(&reload_json).unwrap();
     assert_eq!(reload_value["state"], "ok");
+    assert!(reload_value["last_reload_at"].as_str().is_some());
 }
 
 #[test]

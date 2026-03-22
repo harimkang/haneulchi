@@ -96,8 +96,10 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
             WorkflowState::ReloadPending => "reload_pending",
         },
         "path": loaded.map(|loaded| loaded.discovery_path.clone()),
-        "last_good_hash": loaded.map(|loaded| loaded.contract_hash.clone()),
-        "last_reload_at": serde_json::Value::Null,
+        "last_good_hash": runtime
+            .last_known_good()
+            .map(|loaded| loaded.contract_hash.clone()),
+        "last_reload_at": runtime.last_reload_at(),
         "last_error": runtime.last_error(),
         "workflow": loaded.map(|loaded| serde_json::json!({
             "name": loaded.effective_config.workflow.name,

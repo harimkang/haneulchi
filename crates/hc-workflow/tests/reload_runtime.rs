@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::thread;
+use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_workflow::{LoadWorkflowRequest, WorkflowErrorCode, WorkflowRuntime, WorkflowState};
@@ -130,4 +132,42 @@ fn future_launch_hash_changes_while_running_session_binding_stays_pinned() {
 
     assert_ne!(next_launch_hash, initial_hash);
     assert_eq!(launch_binding.contract_hash, initial_hash);
+}
+
+#[test]
+fn pending_watch_reloads_after_debounce_and_updates_last_reload_time() {
+    let root = temp_dir("watch-reload");
+    let workflow_path = write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Initial Watch\n---\n{{task.title}}\n",
+    );
+
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root.clone(),
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("initial load");
+    let initial_hash = runtime
+        .prepare_launch()
+        .expect("initial launch binding")
+        .contract_hash;
+
+    fs::write(
+        workflow_path,
+        "---\nworkflow:\n  name: Updated Watch\n---\n{{task.title}}\n",
+    )
+    .expect("updated workflow");
+
+    runtime.mark_reload_pending();
+    thread::sleep(Duration::from_millis(1100));
+    runtime.poll_watch().expect("watch poll should reload");
+
+    let updated_hash = runtime
+        .prepare_launch()
+        .expect("updated launch binding")
+        .contract_hash;
+
+    assert_eq!(runtime.state(), WorkflowState::Ok);
+    assert_ne!(updated_hash, initial_hash);
+    assert!(runtime.last_reload_at().is_some());
 }

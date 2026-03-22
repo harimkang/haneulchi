@@ -432,6 +432,62 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
 }
 
 @MainActor
+@Test("refresh shell snapshot syncs workflow status from the authoritative snapshot")
+func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 0, maxSlots: 1, retryQueueCount: 0, workflowHealth: .reloadPending),
+                app: .init(activeRoute: .projectFocus, focusedSessionID: nil, degradedFlags: []),
+                projects: [],
+                sessions: [],
+                attention: [],
+                retryQueue: [],
+                warnings: [],
+                workflow: .init(
+                    state: .reloadPending,
+                    path: "/tmp/demo/WORKFLOW.md",
+                    lastGoodHash: "sha256:abc123",
+                    lastReloadAt: "2026-03-23T00:00:00Z",
+                    lastError: nil
+                ),
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+            )
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+
+    #expect(model.workflowStatus?.state == .reloadPending)
+    #expect(model.workflowStatus?.lastGoodHash == "sha256:abc123")
+}
+
+@MainActor
 @Test("open settings also loads the full workflow summary for the settings surface")
 func openSettingsLoadsWorkflowSummary() async throws {
     let project = LauncherProject(
