@@ -20,13 +20,12 @@ struct TaskCardView: View {
                 .foregroundStyle(.primary)
                 .lineLimit(2)
 
-            HStack(spacing: 8) {
-                Text(task.projectID)
-                    .font(HaneulchiTypography.label(11))
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
-                Text(task.automationMode.label)
-                    .font(HaneulchiTypography.label(11))
-                    .foregroundStyle(HaneulchiChrome.Colors.ready)
+            VStack(alignment: .leading, spacing: 6) {
+                row("status", task.column.title)
+                row("owner", task.linkedSessionID ?? "unassigned")
+                row("evidence", task.column == .review ? "review_ready" : "not_ready")
+                row("project", task.projectID)
+                row("automation", task.automationMode.label)
             }
 
             if let linkedSessionID = task.linkedSessionID {
@@ -39,5 +38,16 @@ struct TaskCardView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(HaneulchiChrome.Colors.surfaceRaised.opacity(0.95))
         .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func row(_ label: String, _ value: String) -> some View {
+        HStack(spacing: 8) {
+            Text(label)
+                .font(HaneulchiTypography.label(11))
+                .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+            Text(value)
+                .font(HaneulchiTypography.caption)
+                .foregroundStyle(.primary)
+        }
     }
 }

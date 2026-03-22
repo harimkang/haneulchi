@@ -3,7 +3,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::tasks::lock_shared_board_service;
+use crate::shared_store::lock_shared_store;
+use crate::tasks::provision_task_workspace_for_store;
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ProvisionedTaskWorkspace {
@@ -42,18 +43,17 @@ pub fn shared_provision_task_workspace(
     fs::create_dir_all(&workspace_root)
         .map_err(|error| WorktreeProvisionError::ProvisioningFailed(error.to_string()))?;
 
-    let service =
-        lock_shared_board_service().map_err(|_| WorktreeProvisionError::TaskBoardUnavailable)?;
-    service
-        .provision_task_workspace(
-            task_id,
-            project_root,
-            workspace_root.to_str().ok_or_else(|| {
-                WorktreeProvisionError::ProvisioningFailed("workspace path is not utf8".to_string())
-            })?,
-            base_root.unwrap_or("."),
-        )
-        .map_err(Into::into)
+    let store = lock_shared_store().map_err(|_| WorktreeProvisionError::TaskBoardUnavailable)?;
+    provision_task_workspace_for_store(
+        &store,
+        task_id,
+        project_root,
+        workspace_root.to_str().ok_or_else(|| {
+            WorktreeProvisionError::ProvisioningFailed("workspace path is not utf8".to_string())
+        })?,
+        base_root.unwrap_or("."),
+    )
+    .map_err(Into::into)
 }
 
 fn sanitize(value: &str) -> String {

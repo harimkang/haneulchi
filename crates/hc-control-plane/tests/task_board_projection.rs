@@ -1,6 +1,8 @@
 use hc_control_plane::{
     EligibilityContext, ReviewDecision, ReviewQueueService, TaskBoardColumnSummary,
-    TaskBoardService, evaluate_task_eligibility,
+    TaskBoardService, evaluate_task_eligibility, reset_review_queue_for_tests,
+    reset_task_board_for_tests, shared_review_decision, shared_review_ready_projection,
+    shared_task_board_projection,
 };
 use hc_domain::{ClaimState, PolicyPack, TaskAutomationMode, TaskColumn, WorkflowHealth};
 
@@ -164,4 +166,26 @@ fn eligibility_keeps_local_board_authoritative_even_when_tracker_binding_exists(
 
     assert_eq!(details.tracker_binding_state, "bound");
     assert_eq!(details.blocker_reason.as_deref(), Some("workflow_invalid"));
+}
+
+#[test]
+fn shared_board_and_review_projections_mutate_one_authoritative_store() {
+    reset_task_board_for_tests();
+    reset_review_queue_for_tests();
+
+    let before = shared_review_ready_projection().expect("initial review projection");
+    assert_eq!(before.items.len(), 1);
+
+    shared_review_decision("task_review", ReviewDecision::Accept).expect("accept review");
+
+    let after_review = shared_review_ready_projection().expect("updated review projection");
+    assert!(after_review.items.is_empty());
+
+    let board = shared_task_board_projection(None).expect("board projection");
+    let done_column = board
+        .columns
+        .iter()
+        .find(|column| column.column == TaskColumn::Done)
+        .expect("done column");
+    assert!(done_column.tasks.iter().any(|task| task.id == "task_review"));
 }

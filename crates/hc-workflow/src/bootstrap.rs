@@ -70,6 +70,7 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
     if let Some(result) = run_phase_if_present(
         &request,
         HookPhase::AfterCreate,
+        &workspace_root,
         &session_cwd,
         &env,
         &mut hook_phase_results,
@@ -102,6 +103,7 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
     if let Some(result) = run_phase_if_present(
         &request,
         HookPhase::BeforeRun,
+        &workspace_root,
         &session_cwd,
         &env,
         &mut hook_phase_results,
@@ -138,6 +140,7 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
     if let Some(result) = run_phase_if_present(
         &request,
         HookPhase::AfterRun,
+        &workspace_root,
         &session_cwd,
         &env,
         &mut hook_phase_results,
@@ -187,6 +190,7 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
 fn run_phase_if_present(
     request: &BootstrapRequest,
     phase: HookPhase,
+    workspace_root: &PathBuf,
     session_cwd: &PathBuf,
     env: &BTreeMap<String, String>,
     results: &mut Vec<HookPhaseResult>,
@@ -197,10 +201,57 @@ fn run_phase_if_present(
         HookPhase::BeforeRun => request.workflow.resolved_paths.before_run.as_ref(),
         HookPhase::AfterRun => request.workflow.resolved_paths.after_run.as_ref(),
     }?;
-
-    let result = run_hook(phase, definition, path, session_cwd, env);
+    let mirrored_path = match mirror_hook_path(&request.repo_root, workspace_root, path) {
+        Ok(path) => path,
+        Err(error) => {
+            let result = HookPhaseResult {
+                phase: match phase {
+                    HookPhase::AfterCreate => "after_create".to_string(),
+                    HookPhase::BeforeRun => "before_run".to_string(),
+                    HookPhase::AfterRun => "after_run".to_string(),
+                },
+                command_path: Some(path.display().to_string()),
+                exit_code: None,
+                stdout: String::new(),
+                stderr: error,
+                succeeded: false,
+            };
+            results.push(result.clone());
+            return Some(result);
+        }
+    };
+    let result = run_hook(phase, definition, &mirrored_path, session_cwd, env);
     results.push(result.clone());
     Some(result)
+}
+
+fn mirror_hook_path(
+    repo_root: &PathBuf,
+    workspace_root: &PathBuf,
+    source_path: &PathBuf,
+) -> Result<PathBuf, String> {
+    let relative_path = source_path
+        .strip_prefix(repo_root)
+        .map_err(|_| format!("hook path outside repo root: {}", source_path.display()))?;
+    let mirrored_path = workspace_root.join(relative_path);
+
+    if let Some(parent) = mirrored_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::copy(source_path, &mirrored_path).map_err(|error| error.to_string())?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let source_mode = fs::metadata(source_path)
+            .map_err(|error| error.to_string())?
+            .permissions()
+            .mode();
+        fs::set_permissions(&mirrored_path, fs::Permissions::from_mode(source_mode))
+            .map_err(|error| error.to_string())?;
+    }
+
+    Ok(mirrored_path)
 }
 
 fn render_prompt(

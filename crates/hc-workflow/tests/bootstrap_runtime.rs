@@ -96,6 +96,16 @@ fn bootstrap_runtime_runs_phases_in_documented_order_and_captures_hook_io() {
     assert!(result.rendered_prompt_path.ends_with("prompt.rendered.md"));
     assert!(result.hook_phase_results.iter().any(|phase| phase.phase == "after_create"));
     assert!(result.hook_phase_results.iter().any(|phase| phase.phase == "before_run"));
+    let after_create_result = result
+        .hook_phase_results
+        .iter()
+        .find(|phase| phase.phase == "after_create")
+        .expect("after_create result");
+    assert!(after_create_result
+        .command_path
+        .as_deref()
+        .expect("command path")
+        .starts_with(&workspace_root.display().to_string()));
     assert!(result
         .hook_phase_results
         .iter()

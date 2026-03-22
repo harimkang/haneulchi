@@ -79,6 +79,7 @@ final class ReviewQueueViewModel: ObservableObject {
     @Published private(set) var items: [ReviewQueueProjectionPayload.Item] = []
     @Published private(set) var selectedTaskID: String?
     @Published private(set) var degradedReason: String?
+    @Published private(set) var actionError: String?
 
     let loadProjection: @Sendable () throws -> ReviewQueueProjectionPayload
     let applyDecision: @Sendable (String, ReviewDecisionCommand) throws -> Void
@@ -104,6 +105,7 @@ final class ReviewQueueViewModel: ObservableObject {
         items = projection.items
         degradedReason = projection.degradedReason
         selectedTaskID = projection.items.first?.taskID
+        actionError = nil
     }
 
     func select(taskID: String) {
@@ -114,8 +116,13 @@ final class ReviewQueueViewModel: ObservableObject {
         guard let taskID = selectedItem?.taskID else {
             return
         }
-        try applyDecision(taskID, command)
-        try reload()
+        do {
+            try applyDecision(taskID, command)
+            try reload()
+        } catch {
+            actionError = String(describing: error)
+            throw error
+        }
     }
 }
 

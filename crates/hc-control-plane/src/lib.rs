@@ -7,6 +7,7 @@ mod orchestrator;
 mod reviews;
 mod scheduler;
 mod session_projection;
+mod shared_store;
 mod snapshot;
 mod tasks;
 mod timeline;
@@ -21,7 +22,7 @@ pub use reviews::{
     ReviewQueueService, reset_review_queue_for_tests, shared_review_decision,
     shared_review_ready_projection,
 };
-pub use scheduler::{BoundedScheduler, SchedulerIssue, SchedulerResult, SchedulerTask};
+pub use scheduler::{BoundedScheduler, SchedulerIssue, SchedulerResult, SchedulerTask, shared_scheduler_tick};
 pub use snapshot::{SnapshotBuildError, SnapshotSeed, build_authoritative_snapshot, project_snapshot};
 pub use tasks::{
     TaskBoardColumnSummary, TaskBoardError, TaskBoardMutationResult, TaskBoardProjection,

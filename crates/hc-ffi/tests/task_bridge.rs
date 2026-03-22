@@ -35,7 +35,13 @@ fn task_board_bridge_exports_columns_and_mutations() {
             .unwrap()
             .is_empty()
     );
-    assert_eq!(refreshed["columns"][3]["tasks"][0]["id"], "task_ready");
+    assert!(
+        refreshed["columns"][3]["tasks"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|task| task["id"] == "task_ready")
+    );
 }
 
 #[test]

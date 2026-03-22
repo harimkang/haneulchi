@@ -55,13 +55,22 @@ struct ReviewQueueView: View {
                     .frame(width: 320)
 
                     ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
-                        try? viewModel.apply(command)
+                        do {
+                            try viewModel.apply(command)
+                        } catch {
+                            // The view model stores the operator-visible error state.
+                        }
                     }
                 }
             }
 
             if let degradedReason = viewModel.degradedReason {
                 Text("Degraded: \(degradedReason)")
+                    .font(HaneulchiTypography.caption)
+                    .foregroundStyle(HaneulchiChrome.Colors.warning)
+            }
+            if let actionError = viewModel.actionError {
+                Text("Action failed: \(actionError)")
                     .font(HaneulchiTypography.caption)
                     .foregroundStyle(HaneulchiChrome.Colors.warning)
             }

@@ -1,9 +1,8 @@
-use std::sync::{Mutex, OnceLock};
-
 use hc_domain::{ReviewStatus, Task, TaskAutomationMode, TaskColumn, TimelineEventKind};
 use hc_storage::{AppendTimelineEvent, NewReviewItem, NewTaskRecord, SqliteStore};
 use serde::{Deserialize, Serialize};
 
+use crate::shared_store::{lock_shared_store_for_reviews, reset_shared_store};
 use crate::timeline::{TaskTimelineEntry, project_task_timeline};
 
 #[derive(Debug, thiserror::Error)]
@@ -66,35 +65,7 @@ impl ReviewQueueService {
     }
 
     pub fn review_ready_projection(&self) -> Result<ReviewQueueProjection, ReviewQueueError> {
-        let board = self.store.tasks().board(None)?;
-        let mut items = Vec::new();
-
-        if let Some(review_column) = board.iter().find(|column| column.column == TaskColumn::Review) {
-            for task in &review_column.tasks {
-                if let Some(review) = self.store.reviews().latest_for_task(&task.id)? {
-                    if review.status == hc_domain::ReviewStatus::Pending {
-                        items.push(ReviewQueueItem {
-                            task_id: task.id.clone(),
-                            project_id: task.project_id.clone(),
-                            title: task.title.clone(),
-                            summary: review.summary,
-                            touched_files: review.touched_files,
-                            diff_summary: review.diff_summary,
-                            tests_summary: review.tests_summary,
-                            command_summary: review.command_summary,
-                            warnings: review.warnings,
-                            evidence_manifest_path: review.evidence_manifest_path,
-                            timeline: project_task_timeline(&self.store, &task.id)?,
-                        });
-                    }
-                }
-            }
-        }
-
-        Ok(ReviewQueueProjection {
-            items,
-            degraded_reason: None,
-        })
+        review_ready_projection_for_store(&self.store)
     }
 
     pub fn apply_decision(
@@ -102,140 +73,158 @@ impl ReviewQueueService {
         task_id: &str,
         decision: ReviewDecision,
     ) -> Result<ReviewDecisionResult, ReviewQueueError> {
-        let review = self
-            .store
-            .reviews()
-            .latest_for_task(task_id)?
-            .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
-        let now = "2026-03-23T09:10:00Z";
-
-        let follow_up_task = match decision {
-            ReviewDecision::Accept => {
-                if self.store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
-                    let _ = self.store.tasks().detach_session(task_id, now)?;
-                }
-                update_review_status(self.store.connection(), &review.id, ReviewStatus::Accepted, now)?;
-                append_review_event(&self.store, task_id, &review.id, "accepted", None, now)?;
-                self.store.tasks().move_to(task_id, TaskColumn::Done, "review_accept", now)?;
-                None
-            }
-            ReviewDecision::RequestChanges => {
-                if self.store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
-                    let _ = self.store.tasks().detach_session(task_id, now)?;
-                }
-                update_review_status(
-                    self.store.connection(),
-                    &review.id,
-                    ReviewStatus::ChangesRequested,
-                    now,
-                )?;
-                append_review_event(&self.store, task_id, &review.id, "changes_requested", None, now)?;
-                self.store.tasks().move_to(task_id, TaskColumn::Ready, "review_changes", now)?;
-                None
-            }
-            ReviewDecision::ManualContinue => {
-                let session_id = review
-                    .session_id
-                    .clone()
-                    .unwrap_or_else(|| "ses_02".to_string());
-                let _ = self.store.tasks().attach_session(task_id, &session_id, now)?;
-                update_review_status(
-                    self.store.connection(),
-                    &review.id,
-                    ReviewStatus::ManualContinue,
-                    now,
-                )?;
-                append_review_event(&self.store, task_id, &review.id, "manual_continue", None, now)?;
-                self.store.tasks().move_to(task_id, TaskColumn::Running, "manual_continue", now)?;
-                None
-            }
-            ReviewDecision::FollowUp => {
-                update_review_status(
-                    self.store.connection(),
-                    &review.id,
-                    ReviewStatus::FollowUpCreated,
-                    now,
-                )?;
-                append_review_event(
-                    &self.store,
-                    task_id,
-                    &review.id,
-                    "follow_up",
-                    None,
-                    now,
-                )?;
-                let follow_up_task = self.store.tasks().create(NewTaskRecord {
-                    id: format!("{task_id}_follow_up"),
-                    project_id: self
-                        .store
-                        .tasks()
-                        .get(task_id)?
-                        .expect("source task")
-                        .project_id,
-                    display_key: format!("{}-FOLLOW-UP", task_id.to_ascii_uppercase()),
-                    title: "Follow-up".to_string(),
-                    description: format!("Follow-up for {task_id}"),
-                    priority: "p2".to_string(),
-                    automation_mode: TaskAutomationMode::Manual,
-                    created_at: now.to_string(),
-                    updated_at: now.to_string(),
-                })?;
-                append_review_event(
-                    &self.store,
-                    task_id,
-                    &review.id,
-                    "follow_up_created",
-                    Some(format!(r#"{{"child_task_id":"{}"}}"#, follow_up_task.id)),
-                    now,
-                )?;
-                Some(follow_up_task)
-            }
-        };
-
-        let task = self
-            .store
-            .tasks()
-            .get(task_id)?
-            .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
-        let timeline = project_task_timeline(&self.store, task_id)?;
-
-        Ok(ReviewDecisionResult {
-            task,
-            follow_up_task,
-            timeline,
-        })
+        apply_decision_for_store(&self.store, task_id, decision)
     }
 }
 
 pub fn shared_review_ready_projection() -> Result<ReviewQueueProjection, ReviewQueueError> {
-    lock_shared_review_queue()?.review_ready_projection()
+    let store = lock_shared_store_for_reviews()?;
+    review_ready_projection_for_store(&store)
 }
 
 pub fn shared_review_decision(
     task_id: &str,
     decision: ReviewDecision,
 ) -> Result<ReviewDecisionResult, ReviewQueueError> {
-    lock_shared_review_queue()?.apply_decision(task_id, decision)
+    let store = lock_shared_store_for_reviews()?;
+    apply_decision_for_store(&store, task_id, decision)
 }
 
 pub fn reset_review_queue_for_tests() {
-    if let Ok(mut service) = lock_shared_review_queue() {
-        if let Ok(demo) = ReviewQueueService::demo() {
-            *service = demo;
+    reset_shared_store();
+}
+
+pub(crate) fn review_ready_projection_for_store(
+    store: &SqliteStore,
+) -> Result<ReviewQueueProjection, ReviewQueueError> {
+    let board = store.tasks().board(None)?;
+    let mut items = Vec::new();
+
+    if let Some(review_column) = board.iter().find(|column| column.column == TaskColumn::Review) {
+        for task in &review_column.tasks {
+            if let Some(review) = store.reviews().latest_for_task(&task.id)? {
+                if review.status == hc_domain::ReviewStatus::Pending {
+                    items.push(ReviewQueueItem {
+                        task_id: task.id.clone(),
+                        project_id: task.project_id.clone(),
+                        title: task.title.clone(),
+                        summary: review.summary,
+                        touched_files: review.touched_files,
+                        diff_summary: review.diff_summary,
+                        tests_summary: review.tests_summary,
+                        command_summary: review.command_summary,
+                        warnings: review.warnings,
+                        evidence_manifest_path: review.evidence_manifest_path,
+                        timeline: project_task_timeline(store, &task.id)?,
+                    });
+                }
+            }
         }
     }
+
+    Ok(ReviewQueueProjection {
+        items,
+        degraded_reason: None,
+    })
 }
 
-fn shared_review_queue() -> &'static Mutex<ReviewQueueService> {
-    static REVIEW_QUEUE: OnceLock<Mutex<ReviewQueueService>> = OnceLock::new();
-    REVIEW_QUEUE.get_or_init(|| Mutex::new(ReviewQueueService::demo().expect("demo review queue")))
-}
+pub(crate) fn apply_decision_for_store(
+    store: &SqliteStore,
+    task_id: &str,
+    decision: ReviewDecision,
+) -> Result<ReviewDecisionResult, ReviewQueueError> {
+    let review = store
+        .reviews()
+        .latest_for_task(task_id)?
+        .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
+    let now = "2026-03-23T09:10:00Z";
 
-fn lock_shared_review_queue()
--> Result<std::sync::MutexGuard<'static, ReviewQueueService>, ReviewQueueError> {
-    shared_review_queue()
-        .lock()
-        .map_err(|_| ReviewQueueError::LockPoisoned)
+    let follow_up_task = match decision {
+        ReviewDecision::Accept => {
+            if store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
+                let _ = store.tasks().detach_session(task_id, now)?;
+            }
+            update_review_status(store.connection(), &review.id, ReviewStatus::Accepted, now)?;
+            append_review_event(store, task_id, &review.id, "accepted", None, now)?;
+            store.tasks().move_to(task_id, TaskColumn::Done, "review_accept", now)?;
+            None
+        }
+        ReviewDecision::RequestChanges => {
+            if store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
+                let _ = store.tasks().detach_session(task_id, now)?;
+            }
+            update_review_status(
+                store.connection(),
+                &review.id,
+                ReviewStatus::ChangesRequested,
+                now,
+            )?;
+            append_review_event(store, task_id, &review.id, "changes_requested", None, now)?;
+            store.tasks().move_to(task_id, TaskColumn::Ready, "review_changes", now)?;
+            None
+        }
+        ReviewDecision::ManualContinue => {
+            let session_id = review
+                .session_id
+                .clone()
+                .unwrap_or_else(|| "ses_02".to_string());
+            let _ = store.tasks().attach_session(task_id, &session_id, now)?;
+            update_review_status(
+                store.connection(),
+                &review.id,
+                ReviewStatus::ManualContinue,
+                now,
+            )?;
+            append_review_event(store, task_id, &review.id, "manual_continue", None, now)?;
+            store.tasks().move_to(task_id, TaskColumn::Running, "manual_continue", now)?;
+            None
+        }
+        ReviewDecision::FollowUp => {
+            update_review_status(
+                store.connection(),
+                &review.id,
+                ReviewStatus::FollowUpCreated,
+                now,
+            )?;
+            append_review_event(store, task_id, &review.id, "follow_up", None, now)?;
+            let follow_up_task = store.tasks().create(NewTaskRecord {
+                id: format!("{task_id}_follow_up"),
+                project_id: store
+                    .tasks()
+                    .get(task_id)?
+                    .expect("source task")
+                    .project_id,
+                display_key: format!("{}-FOLLOW-UP", task_id.to_ascii_uppercase()),
+                title: "Follow-up".to_string(),
+                description: format!("Follow-up for {task_id}"),
+                priority: "p2".to_string(),
+                automation_mode: TaskAutomationMode::Manual,
+                created_at: now.to_string(),
+                updated_at: now.to_string(),
+            })?;
+            append_review_event(
+                store,
+                task_id,
+                &review.id,
+                "follow_up_created",
+                Some(format!(r#"{{"child_task_id":"{}"}}"#, follow_up_task.id)),
+                now,
+            )?;
+            Some(follow_up_task)
+        }
+    };
+
+    let task = store
+        .tasks()
+        .get(task_id)?
+        .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
+    let timeline = project_task_timeline(store, task_id)?;
+
+    Ok(ReviewDecisionResult {
+        task,
+        follow_up_task,
+        timeline,
+    })
 }
 
 fn seed_review_demo(store: &SqliteStore) -> Result<(), ReviewQueueError> {

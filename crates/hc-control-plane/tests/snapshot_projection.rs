@@ -1,6 +1,7 @@
-use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, BoundedScheduler, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
+use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, shared_attach_session, shared_create_task, shared_scheduler_tick, shared_set_automation_mode, shared_task_move, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
 use hc_domain::{
     ClaimState, ProjectSummary, SessionFocusState, SessionRuntimeState, SessionSummary,
+    TaskAutomationMode, TaskColumn,
     TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
 };
 
@@ -167,12 +168,25 @@ fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_project
 
 #[test]
 fn scheduler_respects_slot_capacity_and_reports_stale_targets() {
-    let scheduler = BoundedScheduler::demo();
-    let result = scheduler.tick(0, 1);
+    reset_task_board_for_tests();
+    let extra = shared_create_task("proj_demo", "Overflow candidate").expect("extra task");
+    let extra_two = shared_create_task("proj_demo", "Second overflow").expect("second extra task");
+    shared_task_move(&extra.id, TaskColumn::Ready, "test_seed").expect("move extra task");
+    shared_task_move(&extra_two.id, TaskColumn::Ready, "test_seed").expect("move second extra");
+    shared_set_automation_mode("task_ready", TaskAutomationMode::AutoEligible)
+        .expect("task_ready automation");
+    shared_set_automation_mode(&extra.id, TaskAutomationMode::AutoEligible)
+        .expect("extra automation");
+    shared_set_automation_mode(&extra_two.id, TaskAutomationMode::AutoEligible)
+        .expect("second extra automation");
+    shared_attach_session("task_ready", "stale-session").expect("stale attachment");
 
-    assert_eq!(result.launched_task_ids, vec!["task_auto_01"]);
+    let result = shared_scheduler_tick(0, 1, &[]).expect("scheduler result");
+
+    assert_eq!(result.launched_task_ids, vec![extra.id]);
     assert_eq!(result.queued.len(), 1);
     assert_eq!(result.queued[0].reason_code, "slot_capacity_exhausted");
+    assert_eq!(result.queued[0].task_id, extra_two.id);
     assert_eq!(result.failures.len(), 1);
     assert_eq!(result.failures[0].reason_code, "stale_target_session");
 }
