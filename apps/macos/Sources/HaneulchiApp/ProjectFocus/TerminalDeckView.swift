@@ -24,6 +24,7 @@ struct TerminalDeckView: View {
     }
 
     let model: Model
+    let signalPresentation: SessionSignalPresentation?
     @State private var layout: TerminalDeckLayout
     @StateObject private var deckCoordinator = TerminalDeckCoordinator()
     @State private var keyMonitor: Any?
@@ -32,8 +33,9 @@ struct TerminalDeckView: View {
     private let reservedSessionStackWidth: CGFloat = 220
     private let reservedInspectorWidth: CGFloat = 320
 
-    init(model: Model) {
+    init(model: Model, signalPresentation: SessionSignalPresentation? = nil) {
         self.model = model
+        self.signalPresentation = signalPresentation
         _layout = State(initialValue: model.layout)
     }
 
@@ -88,6 +90,15 @@ struct TerminalDeckView: View {
             HStack(spacing: 8) {
                 Text(pane.surface.title)
                     .font(.headline)
+                if isFocused, let signalPresentation {
+                    Text(signalPresentation.label)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(signalPresentation.foregroundStyle)
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2)
+                        .background(signalPresentation.backgroundStyle)
+                        .clipShape(Capsule())
+                }
                 Spacer()
                 actionStrip(for: pane, isFocused: isFocused)
             }

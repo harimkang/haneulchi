@@ -66,7 +66,7 @@ func liveProjectFocusLayoutCanRetargetFocus() {
     #expect(layout.focusedSurface?.isLive == true)
 }
 
-@Test("session stack rows expose summary, unread, branch, and manual continue state")
+@Test("session stack rows expose summary, unread, branch, manual continue state, and signal tone")
 func sessionStackRowsReflectSnapshotVocabulary() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
@@ -114,6 +114,10 @@ func sessionStackRowsReflectSnapshotVocabulary() {
     #expect(rows[0].summary == "Running tests")
     #expect(rows[0].branch == "main")
     #expect(rows[0].unreadCount == 1)
+    #expect(rows[0].signal?.tone == .weak)
+    #expect(rows[0].signal?.label == "1 unread")
     #expect(rows[1].isFocused == true)
+    #expect(rows[1].signal?.tone == .strong)
+    #expect(rows[1].signal?.label == "manual takeover")
     #expect(rows[1].showsManualContinueCTA == true)
 }

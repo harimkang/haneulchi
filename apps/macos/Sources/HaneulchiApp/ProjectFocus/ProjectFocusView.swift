@@ -65,7 +65,10 @@ struct ProjectFocusView: View {
                     FilesPanelView(workspaceState: $workspaceState)
                 }
 
-                TerminalDeckView(model: model.deck)
+                TerminalDeckView(
+                    model: model.deck,
+                    signalPresentation: focusedSessionSignal
+                )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 if workspaceState.layoutPreset == .explorerTerminalInspector {
@@ -121,5 +124,19 @@ struct ProjectFocusView: View {
         }
         .padding(.horizontal, HaneulchiChrome.Spacing.panelPadding)
         .padding(.vertical, 12)
+    }
+
+    private var focusedSessionSignal: SessionSignalPresentation? {
+        guard let snapshot else {
+            return nil
+        }
+
+        guard let focusedSession = snapshot.sessions.first(where: {
+            $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
+        }) ?? snapshot.sessions.first else {
+            return nil
+        }
+
+        return SessionSignalPresentation.from(session: focusedSession, isFocused: true)
     }
 }

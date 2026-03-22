@@ -7,6 +7,7 @@ struct SessionStackView: View {
         let summary: String
         let branch: String?
         let unreadCount: Int
+        let signal: SessionSignalPresentation?
         let isFocused: Bool
         let showsManualContinueCTA: Bool
 
@@ -30,6 +31,15 @@ struct SessionStackView: View {
                             HStack {
                                 Text(row.title)
                                     .font(.subheadline.weight(row.isFocused ? .semibold : .regular))
+                                if let signal = row.signal {
+                                    Text(signal.label)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(signal.foregroundStyle)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(signal.backgroundStyle)
+                                        .clipShape(Capsule())
+                                }
                                 Spacer()
                                 if row.unreadCount > 0 {
                                     Text("\(row.unreadCount)")
@@ -73,13 +83,15 @@ struct SessionStackView: View {
 
     nonisolated static func rows(from snapshot: AppShellSnapshot) -> [Row] {
         snapshot.sessions.map { session in
-            Row(
+            let isFocused = session.focusState == .focused || snapshot.app.focusedSessionID == session.sessionID
+            return Row(
                 sessionID: session.sessionID,
                 title: session.title,
                 summary: session.latestSummary ?? session.currentDirectory ?? session.title,
                 branch: session.branch,
                 unreadCount: session.unreadCount,
-                isFocused: session.focusState == .focused || snapshot.app.focusedSessionID == session.sessionID,
+                signal: SessionSignalPresentation.from(session: session, isFocused: isFocused),
+                isFocused: isFocused,
                 showsManualContinueCTA: session.canTakeover || session.manualControlState == .takeover
             )
         }
