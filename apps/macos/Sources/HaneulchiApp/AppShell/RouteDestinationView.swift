@@ -26,7 +26,7 @@ struct RouteDestinationDescriptor: Equatable {
             return .init(
                 route: route,
                 title: route.title,
-                summary: "Review queue route is wired. Evidence list and review actions land with MVP2-030 and MVP2-031.",
+                summary: "Review Queue now reads Rust-owned review-ready evidence summaries so touched files, diff signals, test results, and warnings stay aligned with the task projection.",
                 nextActionTitle: "Open Review Queue"
             )
         case .attentionCenter:

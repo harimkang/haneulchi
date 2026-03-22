@@ -2,6 +2,7 @@
 
 mod attention;
 mod commands;
+mod reviews;
 mod session_projection;
 mod snapshot;
 mod tasks;
@@ -9,6 +10,7 @@ mod workflow_projection;
 mod worktrees;
 
 pub use commands::{ControlPlaneError, ControlPlaneState, reload_workflow, validate_workflow};
+pub use reviews::{ReviewQueueError, ReviewQueueProjection, ReviewQueueService};
 pub use snapshot::{SnapshotSeed, project_snapshot};
 pub use tasks::{
     TaskBoardColumnSummary, TaskBoardError, TaskBoardMutationResult, TaskBoardProjection,

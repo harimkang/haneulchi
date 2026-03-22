@@ -8,6 +8,7 @@ use hc_runtime::terminal::backend::TerminalBackendDescriptor;
 mod session_bridge;
 mod state_bridge;
 mod task_bridge;
+mod review_bridge;
 mod workflow_bridge;
 
 #[repr(C)]
@@ -74,6 +75,7 @@ pub use state_bridge::{
     hc_state_snapshot_json, session_attach_task_json, session_detach_task_json, session_focus,
     session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
 };
+pub use review_bridge::{hc_review_queue_json, review_queue_json};
 pub use task_bridge::{
     hc_task_board_json, hc_task_move_json, hc_task_provision_workspace_json, task_board_json,
     task_move_json, task_provision_workspace_json,

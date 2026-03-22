@@ -1,4 +1,4 @@
-use hc_control_plane::{TaskBoardColumnSummary, TaskBoardService};
+use hc_control_plane::{ReviewQueueService, TaskBoardColumnSummary, TaskBoardService};
 use hc_domain::TaskColumn;
 
 #[test]
@@ -48,4 +48,16 @@ fn project_filter_and_move_mutation_update_storage_backed_projection() {
     assert!(updated.columns[1].tasks.is_empty());
     assert_eq!(updated.columns[3].tasks.len(), 1);
     assert_eq!(updated.columns[3].tasks[0].id, "task_ready");
+}
+
+#[test]
+fn review_ready_queue_only_lists_pending_review_items() {
+    let service = ReviewQueueService::demo().expect("review queue");
+
+    let projection = service.review_ready_projection().expect("review queue projection");
+
+    assert_eq!(projection.items.len(), 1);
+    assert_eq!(projection.items[0].task_id, "task_review");
+    assert_eq!(projection.items[0].touched_files, vec!["Sources/Auth.swift", "Tests/AuthTests.swift"]);
+    assert_eq!(projection.items[0].warnings, vec!["snapshot drift"]);
 }

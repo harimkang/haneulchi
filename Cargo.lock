@@ -206,7 +206,9 @@ dependencies = [
  "hc-runtime",
  "hc-storage",
  "hc-workflow",
+ "rusqlite",
  "serde",
+ "serde_json",
  "thiserror 1.0.69",
 ]
 

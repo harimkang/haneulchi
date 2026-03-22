@@ -1,6 +1,6 @@
 use hc_control_plane::{
-    shared_provision_task_workspace, shared_task_board_projection, shared_task_drawer,
-    shared_task_move,
+    ReviewQueueService, shared_provision_task_workspace, shared_task_board_projection,
+    shared_task_drawer, shared_task_move,
 };
 use hc_domain::TaskColumn;
 
@@ -31,4 +31,11 @@ pub fn task_provision_workspace_json(
     let workspace = shared_provision_task_workspace(project_root, task_id, base_root)
         .map_err(|error| error.to_string())?;
     serde_json::to_string(&workspace).map_err(|error| error.to_string())
+}
+
+pub fn review_queue_json() -> Result<String, String> {
+    let projection = ReviewQueueService::demo()
+        .and_then(|service| service.review_ready_projection())
+        .map_err(|error| error.to_string())?;
+    serde_json::to_string(&projection).map_err(|error| error.to_string())
 }

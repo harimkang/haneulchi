@@ -2,4 +2,7 @@
 
 mod tasks;
 
-pub use tasks::{task_drawer_json, task_move_json, task_provision_workspace_json, tasks_list_json};
+pub use tasks::{
+    review_queue_json, task_drawer_json, task_move_json, task_provision_workspace_json,
+    tasks_list_json,
+};
