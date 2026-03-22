@@ -1,4 +1,4 @@
-use hc_control_plane::{ReviewQueueService, TaskBoardColumnSummary, TaskBoardService};
+use hc_control_plane::{ReviewDecision, ReviewQueueService, TaskBoardColumnSummary, TaskBoardService};
 use hc_domain::TaskColumn;
 
 #[test]
@@ -60,4 +60,39 @@ fn review_ready_queue_only_lists_pending_review_items() {
     assert_eq!(projection.items[0].task_id, "task_review");
     assert_eq!(projection.items[0].touched_files, vec!["Sources/Auth.swift", "Tests/AuthTests.swift"]);
     assert_eq!(projection.items[0].warnings, vec!["snapshot drift"]);
+}
+
+#[test]
+fn timeline_accept_request_changes_manual_continue_and_follow_up_update_projections() {
+    let service = ReviewQueueService::demo().expect("review queue");
+
+    let accepted = service
+        .apply_decision("task_review", ReviewDecision::Accept)
+        .expect("accept decision");
+    assert_eq!(accepted.task.column, TaskColumn::Done);
+    assert_eq!(accepted.task.linked_session_id, None);
+
+    let request_changes = ReviewQueueService::demo()
+        .expect("review queue")
+        .apply_decision("task_review", ReviewDecision::RequestChanges)
+        .expect("request changes");
+    assert_eq!(request_changes.task.column, TaskColumn::Ready);
+
+    let manual_continue = ReviewQueueService::demo()
+        .expect("review queue")
+        .apply_decision("task_review", ReviewDecision::ManualContinue)
+        .expect("manual continue");
+    assert_eq!(manual_continue.task.column, TaskColumn::Running);
+    assert_eq!(manual_continue.task.linked_session_id.as_deref(), Some("ses_02"));
+
+    let follow_up = ReviewQueueService::demo()
+        .expect("review queue")
+        .apply_decision("task_review", ReviewDecision::FollowUp)
+        .expect("follow up");
+    assert_eq!(follow_up.follow_up_task.as_ref().expect("follow up").column, TaskColumn::Inbox);
+
+    let timeline = follow_up.timeline;
+    assert!(timeline.iter().any(|item| item.kind == "task_created"));
+    assert!(timeline.iter().any(|item| item.kind == "review_decided"));
+    assert!(timeline.iter().any(|item| item.kind == "follow_up_created"));
 }

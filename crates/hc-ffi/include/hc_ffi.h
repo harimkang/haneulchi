@@ -21,6 +21,7 @@ HcString hc_state_snapshot_json(void);
 HcString hc_sessions_list_json(void);
 HcString hc_session_attach_task_json(const char *session_id, const char *task_id);
 HcString hc_session_detach_task_json(const char *session_id);
+HcString hc_review_decision_json(const char *task_id, const char *decision);
 HcString hc_review_queue_json(void);
 HcString hc_task_board_json(const char *project_id);
 HcString hc_task_move_json(const char *task_id, const char *column);

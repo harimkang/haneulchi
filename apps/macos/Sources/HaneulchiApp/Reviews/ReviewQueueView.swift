@@ -54,7 +54,9 @@ struct ReviewQueueView: View {
                     }
                     .frame(width: 320)
 
-                    ReviewSummaryPanelView(item: viewModel.selectedItem)
+                    ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
+                        try? viewModel.apply(command)
+                    }
                 }
             }
 

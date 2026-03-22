@@ -17,11 +17,13 @@ struct TaskDrawerModel: Equatable, Sendable {
     let lastBootstrapOutcome: String?
     let renderedPromptPath: String?
     let hookPhaseResults: [WorkflowStatusPayload.HookPhaseResult]
+    let timeline: [TaskTimelineEntry]
     let primaryActionTitle: String
 
     static func resolve(
         from snapshot: AppShellSnapshot,
-        workflowStatus: WorkflowStatusPayload?
+        workflowStatus: WorkflowStatusPayload?,
+        timeline: [TaskTimelineEntry] = []
     ) -> Self? {
         let focusedSession = snapshot.sessions.first(where: {
             $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
@@ -48,6 +50,7 @@ struct TaskDrawerModel: Equatable, Sendable {
             lastBootstrapOutcome: workflowStatus?.lastBootstrap?.outcomeCode,
             renderedPromptPath: workflowStatus?.lastBootstrap?.renderedPromptPath,
             hookPhaseResults: workflowStatus?.lastBootstrap?.hookPhaseResults ?? [],
+            timeline: timeline,
             primaryActionTitle: "Detach Session"
         )
     }

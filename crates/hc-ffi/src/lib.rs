@@ -75,7 +75,9 @@ pub use state_bridge::{
     hc_state_snapshot_json, session_attach_task_json, session_detach_task_json, session_focus,
     session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
 };
-pub use review_bridge::{hc_review_queue_json, review_queue_json};
+pub use review_bridge::{
+    hc_review_decision_json, hc_review_queue_json, review_decision_json, review_queue_json,
+};
 pub use task_bridge::{
     hc_task_board_json, hc_task_move_json, hc_task_provision_workspace_json, task_board_json,
     task_move_json, task_provision_workspace_json,
@@ -89,4 +91,5 @@ pub fn reset_test_state() {
     session_bridge::reset_runtime_for_tests();
     state_bridge::reset_control_plane_for_tests();
     hc_control_plane::reset_task_board_for_tests();
+    hc_control_plane::reset_review_queue_for_tests();
 }

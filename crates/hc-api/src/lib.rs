@@ -3,6 +3,6 @@
 mod tasks;
 
 pub use tasks::{
-    review_queue_json, task_drawer_json, task_move_json, task_provision_workspace_json,
-    tasks_list_json,
+    review_decision_json, review_queue_json, task_drawer_json, task_move_json,
+    task_provision_workspace_json, tasks_list_json,
 };

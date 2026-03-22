@@ -69,6 +69,8 @@ struct TaskContextDrawerView: View {
                     }
                 }
 
+                TaskTimelineSection(title: "Timeline", entries: model.timeline)
+
                 Button(model.primaryActionTitle) {
                     onPrimaryAction?(model)
                 }

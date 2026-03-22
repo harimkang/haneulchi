@@ -19,6 +19,19 @@ pub(crate) struct NewTimelineEvent {
     pub created_at: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AppendTimelineEvent {
+    pub task_id: String,
+    pub session_id: Option<String>,
+    pub review_item_id: Option<String>,
+    pub worktree_id: Option<String>,
+    pub kind: TimelineEventKind,
+    pub actor: String,
+    pub reason_code: Option<String>,
+    pub payload_json: Option<String>,
+    pub created_at: String,
+}
+
 pub struct TimelineRepository<'connection> {
     connection: &'connection Connection,
 }
@@ -55,6 +68,23 @@ impl<'connection> TimelineRepository<'connection> {
         }
 
         Ok(events)
+    }
+
+    pub fn append(&self, event: AppendTimelineEvent) -> Result<(), StorageError> {
+        append_event(
+            self.connection,
+            NewTimelineEvent {
+                task_id: event.task_id,
+                session_id: event.session_id,
+                review_item_id: event.review_item_id,
+                worktree_id: event.worktree_id,
+                kind: event.kind,
+                actor: event.actor,
+                reason_code: event.reason_code,
+                payload_json: event.payload_json,
+                created_at: event.created_at,
+            },
+        )
     }
 }
 

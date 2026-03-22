@@ -12,7 +12,7 @@ use rusqlite::Connection;
 
 pub use reviews::{NewReviewItem, ReviewRepository};
 pub use tasks::{NewTaskRecord, TaskRepository, TaskUpdatePatch};
-pub use timeline::TimelineRepository;
+pub use timeline::{AppendTimelineEvent, TimelineRepository};
 pub use worktrees::{NewWorktreeRecord, WorktreeRecord, WorktreeRepository};
 
 #[derive(Debug, thiserror::Error)]

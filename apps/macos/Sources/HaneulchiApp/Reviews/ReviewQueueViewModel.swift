@@ -1,6 +1,13 @@
 import Foundation
 import HCCoreFFI
 
+enum ReviewDecisionCommand: String, Sendable {
+    case accept
+    case requestChanges = "request_changes"
+    case manualContinue = "manual_continue"
+    case followUp = "follow_up"
+}
+
 struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
     struct Item: Decodable, Equatable, Identifiable, Sendable {
         let taskID: String
@@ -13,6 +20,7 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
         let commandSummary: String?
         let warnings: [String]
         let evidenceManifestPath: String?
+        let timeline: [TaskTimelineEntry]
 
         enum CodingKeys: String, CodingKey {
             case taskID = "task_id"
@@ -25,9 +33,36 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             case commandSummary = "command_summary"
             case warnings
             case evidenceManifestPath = "evidence_manifest_path"
+            case timeline
         }
 
         var id: String { taskID }
+
+        init(
+            taskID: String,
+            projectID: String,
+            title: String,
+            summary: String,
+            touchedFiles: [String],
+            diffSummary: String?,
+            testsSummary: String?,
+            commandSummary: String?,
+            warnings: [String],
+            evidenceManifestPath: String?,
+            timeline: [TaskTimelineEntry] = []
+        ) {
+            self.taskID = taskID
+            self.projectID = projectID
+            self.title = title
+            self.summary = summary
+            self.touchedFiles = touchedFiles
+            self.diffSummary = diffSummary
+            self.testsSummary = testsSummary
+            self.commandSummary = commandSummary
+            self.warnings = warnings
+            self.evidenceManifestPath = evidenceManifestPath
+            self.timeline = timeline
+        }
     }
 
     let items: [Item]
@@ -46,11 +81,14 @@ final class ReviewQueueViewModel: ObservableObject {
     @Published private(set) var degradedReason: String?
 
     let loadProjection: @Sendable () throws -> ReviewQueueProjectionPayload
+    let applyDecision: @Sendable (String, ReviewDecisionCommand) throws -> Void
 
     init(
-        loadProjection: @escaping @Sendable () throws -> ReviewQueueProjectionPayload = liveLoadProjection
+        loadProjection: @escaping @Sendable () throws -> ReviewQueueProjectionPayload = liveLoadProjection,
+        applyDecision: @escaping @Sendable (String, ReviewDecisionCommand) throws -> Void = liveApplyDecision
     ) {
         self.loadProjection = loadProjection
+        self.applyDecision = applyDecision
     }
 
     var selectedItem: ReviewQueueProjectionPayload.Item? {
@@ -71,6 +109,14 @@ final class ReviewQueueViewModel: ObservableObject {
     func select(taskID: String) {
         selectedTaskID = taskID
     }
+
+    func apply(_ command: ReviewDecisionCommand) throws {
+        guard let taskID = selectedItem?.taskID else {
+            return
+        }
+        try applyDecision(taskID, command)
+        try reload()
+    }
 }
 
 private enum ReviewQueueBridgeError: Error, Equatable {
@@ -81,6 +127,20 @@ private enum ReviewQueueBridgeError: Error, Equatable {
 
 private struct ReviewQueueBridgeErrorPayload: Decodable {
     let error: String?
+}
+
+private struct ReviewQueueCStringBox {
+    private let storage: [CChar]
+
+    init(_ string: String) {
+        storage = Array(string.utf8CString)
+    }
+
+    func withPointer<T>(_ body: (UnsafePointer<CChar>) throws -> T) rethrows -> T {
+        try storage.withUnsafeBufferPointer { buffer in
+            try body(buffer.baseAddress!)
+        }
+    }
 }
 
 private func reviewQueueStringPayloadData(_ payload: HcString) throws -> Data {
@@ -107,4 +167,14 @@ private func liveLoadProjection() throws -> ReviewQueueProjectionPayload {
         throw ReviewQueueBridgeError.invalidProjection
     }
     return projection
+}
+
+private func liveApplyDecision(taskID: String, command: ReviewDecisionCommand) throws {
+    let taskCString = ReviewQueueCStringBox(taskID)
+    let decisionCString = ReviewQueueCStringBox(command.rawValue)
+    _ = try taskCString.withPointer { taskPointer in
+        try decisionCString.withPointer { decisionPointer in
+            try reviewQueueStringPayloadData(hc_review_decision_json(taskPointer, decisionPointer))
+        }
+    }
 }

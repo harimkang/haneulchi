@@ -53,6 +53,7 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
         lastGoodHash: "sha256:abc123",
         lastReloadAt: "2026-03-23T07:00:00Z",
         lastError: nil,
+        lastBootstrap: nil,
         workflow: .init(
             name: "Review Workflow",
             strategy: "worktree",
@@ -74,4 +75,89 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
     #expect(model?.baseRoot == "Sources")
     #expect(model?.workflowName == "Review Workflow")
     #expect(model?.primaryActionTitle == "Detach Session")
+}
+
+@Test("task drawer model keeps append-only timeline items and broken-link warnings visible")
+func taskDrawerModelKeepsTimelineWarningsVisible() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 4, runtimeRev: 4, projectionRev: 4, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_02", degradedFlags: []),
+        projects: [],
+        sessions: [
+            .init(
+                sessionID: "ses_02",
+                title: "Review",
+                currentDirectory: "/tmp/demo",
+                mode: .generic,
+                runtimeState: .reviewReady,
+                manualControlState: .none,
+                dispatchState: .dispatchable,
+                unreadCount: 0,
+                projectID: "proj_demo",
+                taskID: "task_review",
+                workspaceRoot: "/tmp/demo/worktrees/task_review",
+                baseRoot: ".",
+                latestSummary: "Review ready",
+                focusState: .focused
+            )
+        ],
+        attention: [],
+        retryQueue: [],
+        warnings: []
+    )
+    let workflow = WorkflowStatusPayload(
+        state: .ok,
+        path: "/tmp/demo/WORKFLOW.md",
+        lastGoodHash: "sha256:abc123",
+        lastReloadAt: "2026-03-23T07:10:00Z",
+        lastError: nil,
+        lastBootstrap: .init(
+            workspaceRoot: "/tmp/demo/worktrees/task_review",
+            baseRoot: ".",
+            sessionCwd: "/tmp/demo/worktrees/task_review",
+            renderedPromptPath: "/tmp/demo/worktrees/task_review/prompt.rendered.md",
+            phaseSequence: ["resolve", "launch", "evidence"],
+            hookPhaseResults: [],
+            outcomeCode: "launch_succeeded",
+            warningCodes: [],
+            claimReleased: false,
+            launchExitCode: 0,
+            lastKnownGoodHash: "sha256:abc123"
+        ),
+        workflow: .init(
+            name: "Review Workflow",
+            strategy: "worktree",
+            baseRoot: ".",
+            reviewChecklist: ["tests"],
+            allowedAgents: ["codex"],
+            hooks: [],
+            hookRuns: [:],
+            templateBody: nil
+        )
+    )
+    let timeline = [
+        TaskTimelineEntry(
+            id: "evt_01",
+            kind: "review_ready",
+            actor: "workflow",
+            summary: "Review evidence captured",
+            warningReason: nil,
+            createdAt: "2026-03-23T07:12:00Z"
+        ),
+        TaskTimelineEntry(
+            id: "evt_02",
+            kind: "warning",
+            actor: "timeline",
+            summary: "Missing review item reference",
+            warningReason: "broken_link",
+            createdAt: "2026-03-23T07:13:00Z"
+        ),
+    ]
+
+    let model = TaskDrawerModel.resolve(from: snapshot, workflowStatus: workflow, timeline: timeline)
+
+    #expect(model?.timeline.count == 2)
+    #expect(model?.timeline.last?.warningReason == "broken_link")
+    #expect(model?.lastBootstrapOutcome == "launch_succeeded")
 }

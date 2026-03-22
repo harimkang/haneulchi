@@ -1,6 +1,7 @@
 use hc_control_plane::{
-    ReviewQueueService, shared_provision_task_workspace, shared_task_board_projection,
-    shared_task_drawer, shared_task_move,
+    ReviewDecision, shared_provision_task_workspace, shared_review_decision,
+    shared_review_ready_projection, shared_task_board_projection, shared_task_drawer,
+    shared_task_move,
 };
 use hc_domain::TaskColumn;
 
@@ -34,8 +35,18 @@ pub fn task_provision_workspace_json(
 }
 
 pub fn review_queue_json() -> Result<String, String> {
-    let projection = ReviewQueueService::demo()
-        .and_then(|service| service.review_ready_projection())
-        .map_err(|error| error.to_string())?;
+    let projection = shared_review_ready_projection().map_err(|error| error.to_string())?;
     serde_json::to_string(&projection).map_err(|error| error.to_string())
+}
+
+pub fn review_decision_json(task_id: &str, decision: &str) -> Result<String, String> {
+    let decision = match decision {
+        "accept" => ReviewDecision::Accept,
+        "request_changes" => ReviewDecision::RequestChanges,
+        "manual_continue" => ReviewDecision::ManualContinue,
+        "follow_up" => ReviewDecision::FollowUp,
+        other => return Err(format!("unknown review decision: {other}")),
+    };
+    let result = shared_review_decision(task_id, decision).map_err(|error| error.to_string())?;
+    serde_json::to_string(&result).map_err(|error| error.to_string())
 }
