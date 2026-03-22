@@ -4,7 +4,8 @@ use serde::Serialize;
 
 use crate::terminal::geometry::TerminalGeometry;
 use crate::terminal::session::{
-    TerminalLaunchConfig, TerminalRestorePoint, TerminalSession, TerminalSessionError,
+    ShellIntegrationMetadata, TerminalLaunchConfig, TerminalRestorePoint, TerminalSession,
+    TerminalSessionError,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
@@ -14,6 +15,7 @@ pub struct TerminalSessionSnapshot {
     pub geometry: TerminalGeometry,
     pub running: bool,
     pub exit_code: Option<u32>,
+    pub shell_metadata: ShellIntegrationMetadata,
 }
 
 #[derive(Default)]
@@ -80,7 +82,15 @@ impl TerminalRuntime {
             geometry: session.geometry(),
             running: exit_code.is_none(),
             exit_code,
+            shell_metadata: session.shell_metadata()?,
         })
+    }
+
+    pub fn list_snapshots(&self) -> Result<Vec<TerminalSessionSnapshot>, TerminalSessionError> {
+        self.sessions
+            .keys()
+            .map(|session_id| self.snapshot(session_id))
+            .collect()
     }
 
     pub fn session(&self, session_id: &str) -> Result<&TerminalSession, TerminalSessionError> {

@@ -21,7 +21,7 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
 
     static let defaultShell = Self(
         program: "/bin/zsh",
-        args: [],
+        args: defaultBootstrapArgs(for: "/bin/zsh"),
         currentDirectory: nil,
         geometry: .defaultShell
     )
@@ -29,10 +29,44 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
     static func genericShell(at rootPath: String?) -> Self {
         Self(
             program: "/bin/zsh",
-            args: [],
+            args: defaultBootstrapArgs(for: "/bin/zsh"),
             currentDirectory: rootPath,
             geometry: .defaultShell
         )
+    }
+
+    private static func defaultBootstrapArgs(for program: String) -> [String] {
+        let scriptPath = integrationScriptPath(for: program)
+        return [
+            "-lc",
+            "source '\(scriptPath)'; exec \(program) -i",
+        ]
+    }
+
+    private static func integrationScriptPath(for program: String) -> String {
+        let scriptName = program.contains("bash") ? "haneulchi.bash" : "haneulchi.zsh"
+        var url = URL(fileURLWithPath: #filePath)
+        for _ in 0..<6 {
+            url.deleteLastPathComponent()
+        }
+        return url
+            .appendingPathComponent("config/shell-integration")
+            .appendingPathComponent(scriptName)
+            .path
+    }
+}
+
+struct ShellIntegrationMetadata: Codable, Equatable, Sendable {
+    let currentDirectory: String?
+    let lastCommand: String?
+    let lastExitCode: Int?
+    let branch: String?
+
+    enum CodingKeys: String, CodingKey {
+        case currentDirectory = "current_directory"
+        case lastCommand = "last_command"
+        case lastExitCode = "last_exit_code"
+        case branch
     }
 }
 
@@ -42,6 +76,7 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
     let geometry: TerminalGridSize
     let running: Bool
     let exitCode: Int?
+    let shellMetadata: ShellIntegrationMetadata?
 
     enum CodingKeys: String, CodingKey {
         case sessionID = "session_id"
@@ -49,6 +84,7 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         case geometry
         case running
         case exitCode = "exit_code"
+        case shellMetadata = "shell_metadata"
     }
 
     private struct LaunchPayload: Decodable {
@@ -71,12 +107,15 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         geometry: TerminalGridSize,
         running: Bool,
         exitCode: Int?
+        ,
+        shellMetadata: ShellIntegrationMetadata? = nil
     ) {
         self.sessionID = sessionID
         self.launch = launch
         self.geometry = geometry
         self.running = running
         self.exitCode = exitCode
+        self.shellMetadata = shellMetadata
     }
 
     init(from decoder: Decoder) throws {
@@ -88,6 +127,7 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         self.geometry = geometry
         self.running = try container.decode(Bool.self, forKey: .running)
         self.exitCode = try container.decodeIfPresent(Int.self, forKey: .exitCode)
+        self.shellMetadata = try container.decodeIfPresent(ShellIntegrationMetadata.self, forKey: .shellMetadata)
         self.launch = TerminalSessionLaunchRequest(
             program: launchPayload.program,
             args: launchPayload.args,

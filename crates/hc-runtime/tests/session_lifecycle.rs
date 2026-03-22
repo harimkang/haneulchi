@@ -1,5 +1,6 @@
 use hc_runtime::terminal::geometry::TerminalGeometry;
-use hc_runtime::terminal::session::{TerminalLaunchConfig, TerminalSession};
+use hc_runtime::terminal::session::{ShellIntegrationMetadata, TerminalLaunchConfig, TerminalSession};
+use std::path::PathBuf;
 use std::time::{Duration, Instant};
 
 #[test]
@@ -73,4 +74,44 @@ fn session_terminate_stops_long_running_process() {
     session.terminate().unwrap();
 
     assert!(session.exit_status().is_some());
+}
+
+#[test]
+fn shell_launch_bootstrap_sources_integration_script() {
+    let launch = TerminalLaunchConfig::shell(Some(PathBuf::from("/tmp/demo")));
+
+    assert_eq!(launch.program, "/bin/zsh");
+    assert!(!launch.args.is_empty());
+    assert!(launch.args.join(" ").contains("haneulchi.zsh"));
+}
+
+#[test]
+fn session_strips_shell_markers_and_tracks_shell_metadata() {
+    let mut session = TerminalSession::spawn(
+        TerminalLaunchConfig::command(
+            "/bin/sh",
+            [
+                "-lc",
+                "printf '\\037HC|cwd|/tmp/demo\\n\\037HC|command|npm test\\n\\037HC|exit|17\\nvisible\\n'",
+            ],
+        ),
+        TerminalGeometry::new(80, 24),
+    )
+    .unwrap();
+
+    let drained = session
+        .wait_and_drain(std::time::Duration::from_secs(2))
+        .unwrap();
+    let metadata = session.shell_metadata().unwrap();
+
+    assert!(String::from_utf8_lossy(&drained).contains("visible"));
+    assert_eq!(
+        metadata,
+        ShellIntegrationMetadata {
+            current_directory: Some("/tmp/demo".to_string()),
+            last_command: Some("npm test".to_string()),
+            last_exit_code: Some(17),
+            branch: None,
+        }
+    );
 }

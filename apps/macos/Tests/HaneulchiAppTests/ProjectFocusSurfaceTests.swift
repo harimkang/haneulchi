@@ -65,3 +65,55 @@ func liveProjectFocusLayoutCanRetargetFocus() {
     #expect(layout.focusedPaneID == originalPane)
     #expect(layout.focusedSurface?.isLive == true)
 }
+
+@Test("session stack rows expose summary, unread, branch, and manual continue state")
+func sessionStackRowsReflectSnapshotVocabulary() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+        ops: .init(runningSlots: 2, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_02", degradedFlags: []),
+        projects: [],
+        sessions: [
+            .init(
+                sessionID: "ses_01",
+                title: "Build",
+                currentDirectory: "/tmp/demo",
+                mode: .generic,
+                runtimeState: .running,
+                manualControlState: .none,
+                dispatchState: .dispatchable,
+                unreadCount: 1,
+                branch: "main",
+                latestSummary: "Running tests",
+                focusState: .background,
+                canTakeover: false
+            ),
+            .init(
+                sessionID: "ses_02",
+                title: "Review",
+                currentDirectory: "/tmp/demo",
+                mode: .preset,
+                runtimeState: .waitingInput,
+                manualControlState: .takeover,
+                dispatchState: .dispatchable,
+                unreadCount: 3,
+                branch: "feature/task-104",
+                latestSummary: "Awaiting operator answer",
+                focusState: .focused,
+                canTakeover: true
+            ),
+        ],
+        attention: [],
+        retryQueue: [],
+        warnings: []
+    )
+
+    let rows = SessionStackView.rows(from: snapshot)
+
+    #expect(rows.count == 2)
+    #expect(rows[0].summary == "Running tests")
+    #expect(rows[0].branch == "main")
+    #expect(rows[0].unreadCount == 1)
+    #expect(rows[1].isFocused == true)
+    #expect(rows[1].showsManualContinueCTA == true)
+}

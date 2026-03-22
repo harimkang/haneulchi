@@ -57,6 +57,40 @@ struct AppShellView: View {
                 }
             }
         }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isNewSessionSheetPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissNewSessionSheet)
+                    }
+                }
+            }
+        )) {
+            if let viewModel = shellModel.newSessionSheetViewModel {
+                NewSessionSheetView(viewModel: viewModel) { descriptor in
+                    Task {
+                        await shellModel.perform(.launchSession(descriptor))
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isWorkflowDrawerPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissWorkflowDrawer)
+                    }
+                }
+            }
+        )) {
+            WorkflowDrawerView(status: shellModel.workflowStatus) {
+                Task {
+                    await shellModel.perform(.reloadWorkflow)
+                }
+            }
+        }
     }
 
     private var shellLayout: some View {
@@ -79,7 +113,10 @@ struct AppShellView: View {
                 route: shellModel.selectedRoute,
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
-                readinessReport: shellModel.readinessReport
+                readinessReport: shellModel.readinessReport,
+                workflowStatus: shellModel.workflowStatus,
+                queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
+                onAction: performAction
             )
         }
     }

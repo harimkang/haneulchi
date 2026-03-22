@@ -83,21 +83,23 @@ struct AppShellChromeState: Equatable {
     }
 
     private static func makeBottomStripItems(from snapshot: AppShellSnapshot) -> [StripItem] {
-        var items: [StripItem] = []
-
-        items.append(.init(
-            title: "\(snapshot.sessions.count) sessions",
-            detail: snapshot.projects.first?.name
-        ))
-        items.append(.init(
-            title: "route \(snapshot.app.activeRoute.rawValue)",
-            detail: nil
-        ))
-        items.append(.init(
-            title: "snapshot \(snapshot.meta.snapshotRev)",
-            detail: "runtime \(snapshot.meta.runtimeRev)"
-        ))
-
-        return items
+        [
+            .init(
+                title: "logs",
+                detail: snapshot.warnings.isEmpty ? "clear" : "\(snapshot.warnings.count) warnings"
+            ),
+            .init(
+                title: "problems",
+                detail: snapshot.attention.isEmpty ? "none" : "\(snapshot.attention.count) attention"
+            ),
+            .init(
+                title: "terminal",
+                detail: "\(snapshot.sessions.count) sessions"
+            ),
+            .init(
+                title: "runtime hint",
+                detail: snapshot.ops.workflowHealth.rawValue
+            ),
+        ]
     }
 }
