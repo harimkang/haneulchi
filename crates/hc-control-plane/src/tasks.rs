@@ -1,13 +1,16 @@
 use std::collections::BTreeMap;
 use std::sync::{Mutex, OnceLock};
 
-use hc_domain::{Task, TaskAutomationMode, TaskBoardColumnProjection, TaskColumn};
+use hc_domain::{
+    Task, TaskAutomationMode, TaskBoardColumnProjection, TaskColumn, TaskDrawerProjection,
+};
 use hc_storage::{NewTaskRecord, SqliteStore};
 use serde::{Deserialize, Serialize};
 
 const DEMO_CREATED_AT: &str = "2026-03-23T02:00:00Z";
 const DEMO_UPDATED_AT: &str = "2026-03-23T02:05:00Z";
 const MOVE_UPDATED_AT: &str = "2026-03-23T02:10:00Z";
+const ATTACH_UPDATED_AT: &str = "2026-03-23T02:15:00Z";
 
 #[derive(Debug, thiserror::Error)]
 pub enum TaskBoardError {
@@ -97,6 +100,27 @@ impl TaskBoardService {
 
         Ok(TaskBoardMutationResult { task })
     }
+
+    pub fn task(&self, task_id: &str) -> Result<Option<Task>, TaskBoardError> {
+        self.store.tasks().get(task_id).map_err(Into::into)
+    }
+
+    pub fn drawer(&self, task_id: &str) -> Result<Option<TaskDrawerProjection>, TaskBoardError> {
+        self.store.tasks().drawer(task_id).map_err(Into::into)
+    }
+
+    pub fn attach_session(&self, task_id: &str, session_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+        let task = self
+            .store
+            .tasks()
+            .attach_session(task_id, session_id, ATTACH_UPDATED_AT)?;
+        Ok(TaskBoardMutationResult { task })
+    }
+
+    pub fn detach_session(&self, task_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+        let task = self.store.tasks().detach_session(task_id, ATTACH_UPDATED_AT)?;
+        Ok(TaskBoardMutationResult { task })
+    }
 }
 
 pub fn shared_task_board_projection(
@@ -111,6 +135,22 @@ pub fn shared_task_move(
     actor: &str,
 ) -> Result<TaskBoardMutationResult, TaskBoardError> {
     lock_shared_board_service()?.move_task(task_id, column, actor)
+}
+
+pub fn shared_task(task_id: &str) -> Result<Option<Task>, TaskBoardError> {
+    lock_shared_board_service()?.task(task_id)
+}
+
+pub fn shared_task_drawer(task_id: &str) -> Result<Option<TaskDrawerProjection>, TaskBoardError> {
+    lock_shared_board_service()?.drawer(task_id)
+}
+
+pub fn shared_attach_session(task_id: &str, session_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+    lock_shared_board_service()?.attach_session(task_id, session_id)
+}
+
+pub fn shared_detach_session(task_id: &str) -> Result<TaskBoardMutationResult, TaskBoardError> {
+    lock_shared_board_service()?.detach_session(task_id)
 }
 
 pub fn reset_task_board_for_tests() {

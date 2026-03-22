@@ -23,7 +23,7 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var workflowStatus: WorkflowStatusPayload?
     @Published private(set) var settingsStatusViewModel: SettingsStatusViewModel?
     @Published private(set) var isTaskContextDrawerPresented = false
-    @Published private(set) var taskContextDrawerModel: TaskContextDrawerView.Model?
+    @Published private(set) var taskContextDrawerModel: TaskDrawerModel?
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -64,7 +64,7 @@ final class AppShellModel: ObservableObject {
         workflowStatus: WorkflowStatusPayload? = nil,
         settingsStatusViewModel: SettingsStatusViewModel? = nil,
         isTaskContextDrawerPresented: Bool = false,
-        taskContextDrawerModel: TaskContextDrawerView.Model? = nil,
+        taskContextDrawerModel: TaskDrawerModel? = nil,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -498,12 +498,8 @@ final class AppShellModel: ObservableObject {
         }
     }
 
-    private func makeTaskContextDrawerModel() -> TaskContextDrawerView.Model? {
-        let focusedSession = shellSnapshot?.sessions.first(where: {
-            $0.focusState == .focused || shellSnapshot?.app.focusedSessionID == $0.sessionID
-        }) ?? shellSnapshot?.sessions.first
-
-        guard let session = focusedSession, let taskID = session.taskID else {
+    private func makeTaskContextDrawerModel() -> TaskDrawerModel? {
+        guard let snapshot = shellSnapshot else {
             return nil
         }
 
@@ -519,20 +515,8 @@ final class AppShellModel: ObservableObject {
                 workflow: resolved.workflow ?? fetchedWorkflowStatus?.workflow
             )
         }
-        return TaskContextDrawerView.Model(
-            taskID: taskID,
-            sessionTitle: session.title,
-            workspaceRoot: session.workspaceRoot,
-            workflowName: mergedWorkflowStatus?.workflow?.name ?? "Workflow Contract",
-            workflowPath: mergedWorkflowStatus?.path ?? "",
-            strategy: mergedWorkflowStatus?.workflow?.strategy,
-            baseRoot: mergedWorkflowStatus?.workflow?.baseRoot,
-            reviewChecklist: mergedWorkflowStatus?.workflow?.reviewChecklist ?? [],
-            allowedAgents: mergedWorkflowStatus?.workflow?.allowedAgents ?? [],
-            lastGoodHash: mergedWorkflowStatus?.lastGoodHash,
-            lastReloadAt: mergedWorkflowStatus?.lastReloadAt,
-            lastError: mergedWorkflowStatus?.lastError
-        )
+
+        return TaskDrawerModel.resolve(from: snapshot, workflowStatus: mergedWorkflowStatus)
     }
 
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {

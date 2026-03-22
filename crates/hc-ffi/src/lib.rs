@@ -69,9 +69,10 @@ pub use session_bridge::{
     terminal_session_spawn_json, terminal_session_terminate, terminal_session_write,
 };
 pub use state_bridge::{
-    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
-    hc_state_snapshot_json, session_focus, session_release_takeover, session_takeover,
-    sessions_list_json, state_snapshot_json,
+    hc_session_attach_task_json, hc_session_detach_task_json, hc_session_focus,
+    hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
+    hc_state_snapshot_json, session_attach_task_json, session_detach_task_json, session_focus,
+    session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
 };
 pub use task_bridge::{hc_task_board_json, hc_task_move_json, task_board_json, task_move_json};
 pub use workflow_bridge::{

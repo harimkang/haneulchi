@@ -1,22 +1,16 @@
 import SwiftUI
 
 struct TaskContextDrawerView: View {
-    struct Model: Equatable, Sendable {
-        let taskID: String
-        let sessionTitle: String
-        let workspaceRoot: String?
-        let workflowName: String
-        let workflowPath: String
-        let strategy: String?
-        let baseRoot: String?
-        let reviewChecklist: [String]
-        let allowedAgents: [String]
-        let lastGoodHash: String?
-        let lastReloadAt: String?
-        let lastError: String?
-    }
+    let model: TaskDrawerModel?
+    let onPrimaryAction: ((TaskDrawerModel) -> Void)?
 
-    let model: Model?
+    init(
+        model: TaskDrawerModel?,
+        onPrimaryAction: ((TaskDrawerModel) -> Void)? = nil
+    ) {
+        self.model = model
+        self.onPrimaryAction = onPrimaryAction
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -47,6 +41,10 @@ struct TaskContextDrawerView: View {
                         Text("strategy: \(strategy) · base root: \(baseRoot)")
                             .font(.caption)
                             .foregroundStyle(.secondary)
+                    } else if let baseRoot = model.baseRoot {
+                        Text("base root: \(baseRoot)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                     if let lastGoodHash = model.lastGoodHash {
                         Text("last good: \(lastGoodHash)")
@@ -70,6 +68,12 @@ struct TaskContextDrawerView: View {
                             .foregroundStyle(HaneulchiChrome.Colors.warning)
                     }
                 }
+
+                Button(model.primaryActionTitle) {
+                    onPrimaryAction?(model)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(onPrimaryAction == nil)
             } else {
                 Text("No linked task or workflow context.")
                     .foregroundStyle(.secondary)

@@ -177,3 +177,85 @@ func inspectorUsesFocusedSessionContext() {
     #expect(focusedSession?.sessionID == "ses_02")
     #expect(focusedSession?.taskID == "task_02")
 }
+
+@MainActor
+@Test("presenting the task drawer uses the focused session binding rather than inferred local state")
+func taskDrawerUsesFocusedSessionBinding() async {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 4, runtimeRev: 4, projectionRev: 4, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_02", degradedFlags: []),
+        projects: [],
+        sessions: [
+            .init(
+                sessionID: "ses_01",
+                title: "Build",
+                currentDirectory: "/tmp/demo",
+                mode: .generic,
+                runtimeState: .running,
+                manualControlState: .none,
+                dispatchState: .dispatchable,
+                unreadCount: 0,
+                projectID: "proj_demo",
+                taskID: "task_01",
+                workspaceRoot: "/tmp/demo/.haneulchi/task_01",
+                baseRoot: ".",
+                focusState: .background
+            ),
+            .init(
+                sessionID: "ses_02",
+                title: "Review",
+                currentDirectory: "/tmp/demo",
+                mode: .generic,
+                runtimeState: .running,
+                manualControlState: .none,
+                dispatchState: .dispatchable,
+                unreadCount: 0,
+                projectID: "proj_demo",
+                taskID: "task_ready",
+                workspaceRoot: "/tmp/demo/worktrees/task_ready",
+                baseRoot: "Sources",
+                focusState: .focused
+            ),
+        ],
+        attention: [],
+        retryQueue: [],
+        warnings: []
+    )
+    let workflow = WorkflowStatusPayload(
+        state: .ok,
+        path: "/tmp/demo/WORKFLOW.md",
+        lastGoodHash: "sha256:abc123",
+        lastReloadAt: "2026-03-23T07:05:00Z",
+        lastError: nil,
+        workflow: .init(
+            name: "Review Workflow",
+            strategy: "worktree",
+            baseRoot: "Sources",
+            reviewChecklist: ["tests"],
+            allowedAgents: ["codex"],
+            hooks: [],
+            hookRuns: [:],
+            templateBody: nil
+        )
+    )
+
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        shellSnapshot: snapshot,
+        workflowStatus: workflow
+    )
+
+    await model.perform(.presentTaskContextDrawer)
+
+    #expect(model.taskContextDrawerModel?.taskID == "task_ready")
+    #expect(model.taskContextDrawerModel?.sessionID == "ses_02")
+    #expect(model.taskContextDrawerModel?.workflowName == "Review Workflow")
+}

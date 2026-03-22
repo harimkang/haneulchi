@@ -1,3 +1,5 @@
+use std::sync::atomic::{AtomicU64, Ordering};
+
 use hc_domain::{
     Task, TaskAutomationMode, TaskBoardColumnProjection, TaskClaimLifecycleState, TaskColumn,
     TaskDrawerProjection, project_claim_state,
@@ -7,6 +9,8 @@ use rusqlite::{Connection, OptionalExtension, params};
 use crate::StorageError;
 use crate::reviews::ReviewRepository;
 use crate::timeline::{NewTimelineEvent, append_event};
+
+static CLAIM_COUNTER: AtomicU64 = AtomicU64::new(1);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NewTaskRecord {
@@ -176,6 +180,85 @@ impl<'connection> TaskRepository<'connection> {
                 actor: actor.to_string(),
                 reason_code: Some("task_moved".to_string()),
                 payload_json: Some(format!(r#"{{"column":"{}"}}"#, task.column.as_str())),
+                created_at: task.updated_at.clone(),
+            },
+        )?;
+
+        Ok(task)
+    }
+
+    pub fn attach_session(
+        &self,
+        task_id: &str,
+        session_id: &str,
+        updated_at: &str,
+    ) -> Result<Task, StorageError> {
+        let mut task = self
+            .get(task_id)?
+            .ok_or_else(|| StorageError::TaskNotFound(task_id.to_string()))?;
+        task.linked_session_id = Some(session_id.to_string());
+        task.updated_at = updated_at.to_string();
+
+        self.connection.execute(
+            "UPDATE tasks SET linked_session_id = ?2, updated_at = ?3 WHERE id = ?1",
+            params![task.id, task.linked_session_id, task.updated_at],
+        )?;
+        append_claim_row(
+            self.connection,
+            task_id,
+            TaskClaimLifecycleState::Claimed,
+            updated_at,
+            Some(session_id),
+            "session_attached",
+        )?;
+        append_event(
+            self.connection,
+            NewTimelineEvent {
+                task_id: task.id.clone(),
+                session_id: Some(session_id.to_string()),
+                review_item_id: None,
+                worktree_id: None,
+                kind: hc_domain::TimelineEventKind::TaskAttached,
+                actor: "control_plane".to_string(),
+                reason_code: Some("task_attached".to_string()),
+                payload_json: None,
+                created_at: task.updated_at.clone(),
+            },
+        )?;
+
+        Ok(task)
+    }
+
+    pub fn detach_session(&self, task_id: &str, updated_at: &str) -> Result<Task, StorageError> {
+        let mut task = self
+            .get(task_id)?
+            .ok_or_else(|| StorageError::TaskNotFound(task_id.to_string()))?;
+        task.linked_session_id = None;
+        task.updated_at = updated_at.to_string();
+
+        self.connection.execute(
+            "UPDATE tasks SET linked_session_id = NULL, updated_at = ?2 WHERE id = ?1",
+            params![task.id, task.updated_at],
+        )?;
+        append_claim_row(
+            self.connection,
+            task_id,
+            TaskClaimLifecycleState::Released,
+            updated_at,
+            None,
+            "session_detached",
+        )?;
+        append_event(
+            self.connection,
+            NewTimelineEvent {
+                task_id: task.id.clone(),
+                session_id: None,
+                review_item_id: None,
+                worktree_id: None,
+                kind: hc_domain::TimelineEventKind::TaskDetached,
+                actor: "control_plane".to_string(),
+                reason_code: Some("task_detached".to_string()),
+                payload_json: None,
                 created_at: task.updated_at.clone(),
             },
         )?;
@@ -359,4 +442,50 @@ fn task_from_row(row: &rusqlite::Row<'_>) -> Result<Task, StorageError> {
         created_at: row.get("created_at")?,
         updated_at: row.get("updated_at")?,
     })
+}
+
+fn append_claim_row(
+    connection: &Connection,
+    task_id: &str,
+    state: TaskClaimLifecycleState,
+    claimed_at: &str,
+    session_id: Option<&str>,
+    reason: &str,
+) -> Result<(), StorageError> {
+    let released_at = match state {
+        TaskClaimLifecycleState::Released | TaskClaimLifecycleState::Terminal => Some(claimed_at),
+        _ => None,
+    };
+
+    connection.execute(
+        r#"
+        INSERT INTO task_claims (
+            id,
+            task_id,
+            state,
+            claimed_at,
+            released_at,
+            session_id,
+            reason
+        ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+        "#,
+        params![
+            next_claim_id(),
+            task_id,
+            state.as_str(),
+            claimed_at,
+            released_at,
+            session_id,
+            reason,
+        ],
+    )?;
+
+    Ok(())
+}
+
+fn next_claim_id() -> String {
+    format!(
+        "claim_{:016x}",
+        CLAIM_COUNTER.fetch_add(1, Ordering::Relaxed)
+    )
 }
