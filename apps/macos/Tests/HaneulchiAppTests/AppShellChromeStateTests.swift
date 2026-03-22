@@ -69,6 +69,7 @@ func chromeStateUsesSingleSnapshot() {
 
     #expect(chrome.topBarChips.map(\.title).contains("degraded"))
     #expect(chrome.leftRailItems.first?.route == .projectFocus)
-    #expect(chrome.bottomStripItems.map(\.title).contains("2 sessions"))
+    #expect(chrome.bottomStripItems.map(\.title) == ["logs", "problems", "terminal", "runtime hint"])
+    #expect(chrome.bottomStripItems.first(where: { $0.title == "terminal" })?.detail == "2 sessions")
     #expect(chrome.transientNotice == "File queued")
 }
