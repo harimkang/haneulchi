@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::terminal::geometry::TerminalGeometry;
+use crate::terminal::shell_markers::filter_shell_markers;
 
 #[derive(Debug, Error)]
 pub enum TerminalSessionError {
@@ -35,7 +36,7 @@ impl TerminalLaunchConfig {
     pub fn shell(current_directory: Option<PathBuf>) -> Self {
         Self {
             program: "/bin/zsh".to_string(),
-            args: Vec::new(),
+            args: default_shell_bootstrap_args("/bin/zsh"),
             current_directory,
         }
     }
@@ -65,6 +66,14 @@ impl TerminalLaunchConfig {
     }
 }
 
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct ShellIntegrationMetadata {
+    pub current_directory: Option<String>,
+    pub last_command: Option<String>,
+    pub last_exit_code: Option<i32>,
+    pub branch: Option<String>,
+}
+
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct TerminalRestorePoint {
     pub launch: TerminalLaunchConfig,
@@ -84,6 +93,8 @@ pub struct TerminalSession {
     writer: Box<dyn Write + Send>,
     child: Box<dyn Child + Send + Sync>,
     output: Arc<Mutex<Vec<u8>>>,
+    shell_metadata: Arc<Mutex<ShellIntegrationMetadata>>,
+    marker_remainder: Arc<Mutex<Vec<u8>>>,
     reader_thread: Option<JoinHandle<io::Result<()>>>,
     exit_status: Option<ExitStatus>,
 }
@@ -100,6 +111,8 @@ impl TerminalSession {
         let reader = master.try_clone_reader()?;
         let writer = master.take_writer()?;
         let output = Arc::new(Mutex::new(Vec::new()));
+        let shell_metadata = Arc::new(Mutex::new(ShellIntegrationMetadata::default()));
+        let marker_remainder = Arc::new(Mutex::new(Vec::new()));
         let reader_thread = Some(spawn_reader_thread(reader, Arc::clone(&output)));
 
         Ok(Self {
@@ -109,6 +122,8 @@ impl TerminalSession {
             writer,
             child,
             output,
+            shell_metadata,
+            marker_remainder,
             reader_thread,
             exit_status: None,
         })
@@ -125,7 +140,19 @@ impl TerminalSession {
             .output
             .lock()
             .map_err(|_| io::Error::other("terminal output buffer lock poisoned"))?;
-        Ok(std::mem::take(&mut *output))
+        let drained = std::mem::take(&mut *output);
+        drop(output);
+
+        let mut metadata = self
+            .shell_metadata
+            .lock()
+            .map_err(|_| io::Error::other("terminal metadata lock poisoned"))?;
+        let mut remainder = self
+            .marker_remainder
+            .lock()
+            .map_err(|_| io::Error::other("terminal marker remainder lock poisoned"))?;
+
+        Ok(filter_shell_markers(drained, &mut metadata, &mut remainder))
     }
 
     pub fn wait_and_drain(
@@ -168,6 +195,14 @@ impl TerminalSession {
         TerminalRestorePoint::new(self.launch.clone(), self.geometry)
     }
 
+    pub fn shell_metadata(&self) -> Result<ShellIntegrationMetadata, TerminalSessionError> {
+        let metadata = self
+            .shell_metadata
+            .lock()
+            .map_err(|_| io::Error::other("terminal metadata lock poisoned"))?;
+        Ok(metadata.clone())
+    }
+
     fn wait_for_exit(
         &mut self,
         timeout: Duration,
@@ -202,6 +237,26 @@ impl TerminalSession {
             Err(_) => Err(TerminalSessionError::ReaderThreadPanicked),
         }
     }
+}
+
+fn default_shell_bootstrap_args(program: &str) -> Vec<String> {
+    let script_name = if program.contains("bash") {
+        "haneulchi.bash"
+    } else {
+        "haneulchi.zsh"
+    };
+
+    let script_path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(|path| path.parent())
+        .expect("repo root")
+        .join("config/shell-integration")
+        .join(script_name);
+
+    vec![
+        "-lc".to_string(),
+        format!("source '{}'; exec {} -i", script_path.display(), program),
+    ]
 }
 
 fn spawn_reader_thread(
