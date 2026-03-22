@@ -1,11 +1,16 @@
 //! WORKFLOW.md discovery, validation, and reload scaffold.
 
+mod bootstrap;
 mod contract;
+mod hooks;
 mod loader;
 mod runtime;
 mod template;
 mod watch;
 
+pub use bootstrap::{
+    BootstrapRequest, BootstrapResult, BootstrapStatusSummary, HookPhaseResult, run_bootstrap,
+};
 pub use contract::{
     EffectiveWorkflowConfig, HookDefinition, HookPhase, HooksConfig, LoadedWorkflow,
     PolicyConfig, ResolvedPaths, ReviewConfig, WorkspaceConfig, WorkspaceStrategy,

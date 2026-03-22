@@ -14,6 +14,9 @@ struct TaskDrawerModel: Equatable, Sendable {
     let lastGoodHash: String?
     let lastReloadAt: String?
     let lastError: String?
+    let lastBootstrapOutcome: String?
+    let renderedPromptPath: String?
+    let hookPhaseResults: [WorkflowStatusPayload.HookPhaseResult]
     let primaryActionTitle: String
 
     static func resolve(
@@ -42,6 +45,9 @@ struct TaskDrawerModel: Equatable, Sendable {
             lastGoodHash: workflowStatus?.lastGoodHash,
             lastReloadAt: workflowStatus?.lastReloadAt,
             lastError: workflowStatus?.lastError,
+            lastBootstrapOutcome: workflowStatus?.lastBootstrap?.outcomeCode,
+            renderedPromptPath: workflowStatus?.lastBootstrap?.renderedPromptPath,
+            hookPhaseResults: workflowStatus?.lastBootstrap?.hookPhaseResults ?? [],
             primaryActionTitle: "Detach Session"
         )
     }

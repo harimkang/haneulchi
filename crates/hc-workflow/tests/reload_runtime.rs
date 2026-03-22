@@ -4,7 +4,9 @@ use std::thread;
 use std::time::Duration;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hc_workflow::{LoadWorkflowRequest, WorkflowErrorCode, WorkflowRuntime, WorkflowState};
+use hc_workflow::{
+    BootstrapStatusSummary, LoadWorkflowRequest, WorkflowErrorCode, WorkflowRuntime, WorkflowState,
+};
 
 fn temp_dir(label: &str) -> PathBuf {
     let unique = SystemTime::now()
@@ -170,4 +172,41 @@ fn pending_watch_reloads_after_debounce_and_updates_last_reload_time() {
     assert_eq!(runtime.state(), WorkflowState::Ok);
     assert_ne!(updated_hash, initial_hash);
     assert!(runtime.last_reload_at().is_some());
+}
+
+#[test]
+fn runtime_tracks_last_bootstrap_summary_without_changing_launch_hash_semantics() {
+    let root = temp_dir("bootstrap-summary");
+    write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Bootstrap Summary\n---\n{{task.title}}\n",
+    );
+
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root,
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("initial load");
+    runtime.record_bootstrap(BootstrapStatusSummary {
+        workspace_root: "/tmp/demo/worktrees/task-104".to_string(),
+        base_root: ".".to_string(),
+        session_cwd: "/tmp/demo/worktrees/task-104".to_string(),
+        rendered_prompt_path: "/tmp/demo/worktrees/task-104/prompt.rendered.md".to_string(),
+        phase_sequence: vec!["resolve".to_string(), "launch".to_string()],
+        hook_phase_results: Vec::new(),
+        outcome_code: "launch_succeeded".to_string(),
+        warning_codes: Vec::new(),
+        claim_released: false,
+        launch_exit_code: Some(0),
+        last_known_good_hash: runtime.prepare_launch().map(|binding| binding.contract_hash),
+    });
+
+    assert_eq!(
+        runtime
+            .last_bootstrap()
+            .expect("bootstrap summary")
+            .outcome_code,
+        "launch_succeeded"
+    );
+    assert!(runtime.prepare_launch().is_some());
 }
