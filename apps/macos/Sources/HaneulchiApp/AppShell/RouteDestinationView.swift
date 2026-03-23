@@ -19,14 +19,14 @@ struct RouteDestinationDescriptor: Equatable {
             return .init(
                 route: route,
                 title: route.title,
-                summary: "Task board route is wired. Full board data and editing land with MVP2-026 and MVP2-027.",
+                summary: "Task Board now reads the Rust-owned board projection, supports project filtering, and lets operators move tasks between the fixed six columns.",
                 nextActionTitle: "Open Task Board"
             )
         case .reviewQueue:
             return .init(
                 route: route,
                 title: route.title,
-                summary: "Review queue route is wired. Evidence list and review actions land with MVP2-030 and MVP2-031.",
+                summary: "Review Queue now reads Rust-owned review-ready evidence summaries so touched files, diff signals, test results, and warnings stay aligned with the task projection.",
                 nextActionTitle: "Open Review Queue"
             )
         case .attentionCenter:
@@ -67,7 +67,10 @@ struct RouteDestinationView: View {
         case .settings:
             SettingsView(viewModel: settingsStatusViewModel)
         case .controlTower:
-            ControlTowerPlaceholderView(descriptor: .placeholder(for: .controlTower, snapshot: snapshot))
+            ControlTowerPlaceholderView(
+                descriptor: .placeholder(for: .controlTower, snapshot: snapshot),
+                snapshot: snapshot
+            )
         case .taskBoard:
             TaskBoardPlaceholderView(descriptor: .placeholder(for: .taskBoard, snapshot: snapshot))
         case .reviewQueue:

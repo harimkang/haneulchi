@@ -8,6 +8,7 @@ path = "src/lib.rs"
 crate-type = ["rlib", "staticlib"]
 
 [dependencies]
+hc-api = { path = "../hc-api" }
 hc-control-plane = { path = "../hc-control-plane" }
 hc-domain = { path = "../hc-domain" }
 hc-runtime = { path = "../hc-runtime" }

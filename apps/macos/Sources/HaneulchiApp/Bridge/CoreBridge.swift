@@ -11,6 +11,7 @@ enum CoreBridgeError: Error, Equatable {
 }
 
 struct CoreBridge: Sendable {
+    let provisionTaskWorkspace: @Sendable (String, String, String?) throws -> ProvisionedTaskWorkspace
     let runtimeInfo: @Sendable () throws -> TerminalBackendDescriptor
     let spawnSession: @Sendable (TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot
     let drainSession: @Sendable (String) throws -> Data
@@ -27,6 +28,9 @@ struct CoreBridge: Sendable {
     let workflowReload: @Sendable (String) throws -> Data
 
     init(
+        provisionTaskWorkspace: @escaping @Sendable (String, String, String?) throws -> ProvisionedTaskWorkspace = { _, _, _ in
+            throw CoreBridgeError.operationFailed("task_workspace_provision_unavailable")
+        },
         runtimeInfo: @escaping @Sendable () throws -> TerminalBackendDescriptor,
         spawnSession: @escaping @Sendable (TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot,
         drainSession: @escaping @Sendable (String) throws -> Data,
@@ -56,6 +60,7 @@ struct CoreBridge: Sendable {
             throw CoreBridgeError.operationFailed("workflow_reload_unavailable")
         }
     ) {
+        self.provisionTaskWorkspace = provisionTaskWorkspace
         self.runtimeInfo = runtimeInfo
         self.spawnSession = spawnSession
         self.drainSession = drainSession
@@ -73,6 +78,26 @@ struct CoreBridge: Sendable {
     }
 
     static let live = Self(
+        provisionTaskWorkspace: { projectRoot, taskID, baseRoot in
+            let root = try CStringBox(projectRoot)
+            let task = try CStringBox(taskID)
+            let payload = try root.withPointer { rootPointer in
+                try task.withPointer { taskPointer in
+                    if let baseRoot, !baseRoot.isEmpty {
+                        let base = try CStringBox(baseRoot)
+                        return try base.withPointer { basePointer in
+                            try stringPayloadData(
+                                hc_task_provision_workspace_json(rootPointer, taskPointer, basePointer)
+                            )
+                        }
+                    }
+                    return try stringPayloadData(
+                        hc_task_provision_workspace_json(rootPointer, taskPointer, nil)
+                    )
+                }
+            }
+            return try decodeProvisionedTaskWorkspace(from: payload)
+        },
         runtimeInfo: {
             let data = try stringPayloadData(hc_runtime_info_json())
 
@@ -203,6 +228,15 @@ struct CoreBridge: Sendable {
         let state = MockLiveSessionState(outputChunks: outputChunks)
 
         return Self(
+            provisionTaskWorkspace: { projectRoot, taskID, baseRoot in
+                ProvisionedTaskWorkspace(
+                    taskID: taskID,
+                    worktreeID: "wt_\(taskID)",
+                    workspaceRoot: "\(projectRoot)/worktrees/\(taskID)",
+                    baseRoot: baseRoot ?? ".",
+                    branchName: "hc/\(taskID)"
+                )
+            },
             runtimeInfo: {
                 TerminalBackendDescriptor(
                     rendererID: "swiftterm",
@@ -281,6 +315,14 @@ private func decodeAppShellSnapshot(from data: Data) throws -> AppShellSnapshot 
     }
 
     return snapshot
+}
+
+private func decodeProvisionedTaskWorkspace(from data: Data) throws -> ProvisionedTaskWorkspace {
+    guard let workspace = try? JSONDecoder().decode(ProvisionedTaskWorkspace.self, from: data) else {
+        throw CoreBridgeError.invalidRuntimeInfo
+    }
+
+    return workspace
 }
 
 private func decodeSessionSummaries(from data: Data) throws -> [AppShellSnapshot.SessionSummary] {

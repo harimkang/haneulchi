@@ -1,27 +1,11 @@
 use std::ffi::CString;
 use std::os::raw::c_char;
-use std::sync::{Mutex, OnceLock};
-
-use hc_control_plane::ControlPlaneState;
 
 use crate::HcString;
 use crate::session_bridge::lock_runtime;
 
-fn control_plane() -> &'static Mutex<ControlPlaneState> {
-    static CONTROL_PLANE: OnceLock<Mutex<ControlPlaneState>> = OnceLock::new();
-    CONTROL_PLANE.get_or_init(|| Mutex::new(ControlPlaneState::default()))
-}
-
-fn lock_control_plane() -> Result<std::sync::MutexGuard<'static, ControlPlaneState>, String> {
-    control_plane()
-        .lock()
-        .map_err(|_| "control plane lock poisoned".to_string())
-}
-
 pub fn reset_control_plane_for_tests() {
-    if let Ok(mut control_plane) = lock_control_plane() {
-        *control_plane = ControlPlaneState::default();
-    }
+    hc_control_plane::reset_shared_control_plane_for_tests();
 }
 
 fn read_c_string(value: *const c_char) -> Result<String, String> {
@@ -49,10 +33,13 @@ fn string_to_hcstring(value: Result<String, String>) -> HcString {
 }
 
 pub fn state_snapshot_json() -> Result<String, String> {
+    if std::env::var("HC_FORCE_SNAPSHOT_FAILURE").ok().as_deref() == Some("1") {
+        return Err("snapshot_unavailable".to_string());
+    }
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;
-    let mut control_plane = lock_control_plane()?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     control_plane.sync_from_runtime(&runtime_snapshots);
     serde_json::to_string(control_plane.snapshot()).map_err(|error| error.to_string())
 }
@@ -61,7 +48,7 @@ pub fn sessions_list_json() -> Result<String, String> {
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;
-    let mut control_plane = lock_control_plane()?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     control_plane.sync_from_runtime(&runtime_snapshots);
     serde_json::to_string(&control_plane.snapshot().sessions).map_err(|error| error.to_string())
 }
@@ -70,7 +57,7 @@ pub fn session_focus(session_id: &str) -> Result<(), String> {
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;
-    let mut control_plane = lock_control_plane()?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     control_plane.sync_from_runtime(&runtime_snapshots);
     control_plane.focus_session(session_id).map_err(|error| error.to_string())
 }
@@ -79,7 +66,7 @@ pub fn session_takeover(session_id: &str) -> Result<(), String> {
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;
-    let mut control_plane = lock_control_plane()?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     control_plane.sync_from_runtime(&runtime_snapshots);
     control_plane
         .takeover_session(session_id)
@@ -90,11 +77,35 @@ pub fn session_release_takeover(session_id: &str) -> Result<(), String> {
     let runtime_snapshots = lock_runtime()?
         .list_snapshots()
         .map_err(|error| error.to_string())?;
-    let mut control_plane = lock_control_plane()?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     control_plane.sync_from_runtime(&runtime_snapshots);
     control_plane
         .release_takeover_session(session_id)
         .map_err(|error| error.to_string())
+}
+
+pub fn session_attach_task_json(session_id: &str, task_id: &str) -> Result<String, String> {
+    let runtime_snapshots = lock_runtime()?
+        .list_snapshots()
+        .map_err(|error| error.to_string())?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
+    control_plane.sync_from_runtime(&runtime_snapshots);
+    control_plane
+        .attach_task(session_id, task_id)
+        .map_err(|error| error.to_string())?;
+    serde_json::to_string(control_plane.snapshot()).map_err(|error| error.to_string())
+}
+
+pub fn session_detach_task_json(session_id: &str) -> Result<String, String> {
+    let runtime_snapshots = lock_runtime()?
+        .list_snapshots()
+        .map_err(|error| error.to_string())?;
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
+    control_plane.sync_from_runtime(&runtime_snapshots);
+    control_plane
+        .detach_task(session_id)
+        .map_err(|error| error.to_string())?;
+    serde_json::to_string(control_plane.snapshot()).map_err(|error| error.to_string())
 }
 
 #[unsafe(no_mangle)]
@@ -124,4 +135,20 @@ pub extern "C" fn hc_session_release_takeover(session_id: *const c_char) -> i32 
     let result =
         read_c_string(session_id).and_then(|session_id| session_release_takeover(&session_id));
     if result.is_ok() { 0 } else { 1 }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn hc_session_attach_task_json(
+    session_id: *const c_char,
+    task_id: *const c_char,
+) -> HcString {
+    let payload = read_c_string(session_id).and_then(|session_id| {
+        read_c_string(task_id).and_then(|task_id| session_attach_task_json(&session_id, &task_id))
+    });
+    string_to_hcstring(payload)
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn hc_session_detach_task_json(session_id: *const c_char) -> HcString {
+    string_to_hcstring(read_c_string(session_id).and_then(|session_id| session_detach_task_json(&session_id)))
 }

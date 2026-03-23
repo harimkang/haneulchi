@@ -190,3 +190,28 @@ fn state_snapshot_keeps_last_known_good_after_auto_polled_invalid_reload() {
     assert_eq!(snapshot["workflow"]["state"], "invalid_kept_last_good");
     assert_eq!(snapshot["workflow"]["last_good_hash"], initial_hash);
 }
+
+#[test]
+fn state_snapshot_surfaces_snapshot_unavailable_instead_of_empty_payload() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
+    unsafe {
+        std::env::set_var("HC_FORCE_SNAPSHOT_FAILURE", "1");
+    }
+
+    let error = state_snapshot_json().expect_err("forced snapshot failure");
+    assert_eq!(error, "snapshot_unavailable");
+
+    let payload = hc_state_snapshot_json();
+    let json = unsafe { CStr::from_ptr(payload.ptr) }
+        .to_str()
+        .unwrap()
+        .to_string();
+    hc_string_free(payload);
+    let value: Value = serde_json::from_str(&json).expect("error json");
+    assert_eq!(value["error"], "snapshot_unavailable");
+
+    unsafe {
+        std::env::remove_var("HC_FORCE_SNAPSHOT_FAILURE");
+    }
+}

@@ -1,6 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::contract::LoadedWorkflow;
+use crate::bootstrap::BootstrapStatusSummary;
 use crate::loader::{LoadWorkflowRequest, WorkflowLoader};
 use crate::watch::WorkflowWatchState;
 use crate::WorkflowError;
@@ -30,6 +31,7 @@ pub struct WorkflowRuntime {
     last_known_good: Option<LoadedWorkflow>,
     last_error: Option<String>,
     last_reload_at: Option<String>,
+    last_bootstrap: Option<BootstrapStatusSummary>,
     watch_state: WorkflowWatchState,
 }
 
@@ -42,6 +44,7 @@ impl WorkflowRuntime {
             last_known_good: None,
             last_error: None,
             last_reload_at: None,
+            last_bootstrap: None,
             watch_state: WorkflowWatchState::default(),
         }
     }
@@ -64,6 +67,10 @@ impl WorkflowRuntime {
 
     pub fn last_reload_at(&self) -> Option<&str> {
         self.last_reload_at.as_deref()
+    }
+
+    pub fn last_bootstrap(&self) -> Option<&BootstrapStatusSummary> {
+        self.last_bootstrap.as_ref()
     }
 
     pub fn mark_reload_pending(&mut self) {
@@ -132,6 +139,10 @@ impl WorkflowRuntime {
         self.current.as_ref().map(|workflow| WorkflowLaunchBinding {
             contract_hash: workflow.contract_hash.clone(),
         })
+    }
+
+    pub fn record_bootstrap(&mut self, summary: BootstrapStatusSummary) {
+        self.last_bootstrap = Some(summary);
     }
 }
 

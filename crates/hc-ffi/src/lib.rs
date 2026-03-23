@@ -7,6 +7,8 @@ use hc_runtime::terminal::backend::TerminalBackendDescriptor;
 
 mod session_bridge;
 mod state_bridge;
+mod task_bridge;
+mod review_bridge;
 mod workflow_bridge;
 
 #[repr(C)]
@@ -68,9 +70,17 @@ pub use session_bridge::{
     terminal_session_spawn_json, terminal_session_terminate, terminal_session_write,
 };
 pub use state_bridge::{
-    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_state_snapshot_json,
-    hc_sessions_list_json, session_focus, session_release_takeover, session_takeover,
-    state_snapshot_json, sessions_list_json,
+    hc_session_attach_task_json, hc_session_detach_task_json, hc_session_focus,
+    hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
+    hc_state_snapshot_json, session_attach_task_json, session_detach_task_json, session_focus,
+    session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
+};
+pub use review_bridge::{
+    hc_review_decision_json, hc_review_queue_json, review_decision_json, review_queue_json,
+};
+pub use task_bridge::{
+    hc_task_board_json, hc_task_move_json, hc_task_provision_workspace_json, task_board_json,
+    task_move_json, task_provision_workspace_json,
 };
 pub use workflow_bridge::{
     hc_workflow_reload_json, hc_workflow_validate_json, workflow_reload_json,
@@ -80,4 +90,6 @@ pub use workflow_bridge::{
 pub fn reset_test_state() {
     session_bridge::reset_runtime_for_tests();
     state_bridge::reset_control_plane_for_tests();
+    hc_control_plane::reset_task_board_for_tests();
+    hc_control_plane::reset_review_queue_for_tests();
 }

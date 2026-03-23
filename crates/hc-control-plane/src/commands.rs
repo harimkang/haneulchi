@@ -13,12 +13,19 @@ use hc_workflow::{LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime};
 use crate::attention::derive_attention;
 use crate::session_projection::{focus_session, release_takeover_session, takeover_session};
 use crate::snapshot::{project_snapshot, SnapshotSeed};
+use crate::tasks::{shared_attach_session, shared_detach_session, shared_task};
 use crate::workflow_projection::{sample_tracker_status, sample_workflow_status};
 
 #[derive(Debug, thiserror::Error, Eq, PartialEq)]
 pub enum ControlPlaneError {
     #[error("session not found: {0}")]
     SessionNotFound(String),
+    #[error("task not found: {0}")]
+    TaskNotFound(String),
+    #[error("task claim conflict: {0}")]
+    TaskClaimConflict(String),
+    #[error("task project mismatch: task={task_id} session={session_id}")]
+    TaskProjectMismatch { task_id: String, session_id: String },
 }
 
 pub struct ControlPlaneState {
@@ -76,6 +83,18 @@ impl ControlPlaneState {
             .iter()
             .map(|session| (session.session_id.clone(), session.manual_control.clone()))
             .collect();
+        let previous_task_bindings: BTreeMap<String, Option<String>> = self
+            .snapshot
+            .sessions
+            .iter()
+            .map(|session| (session.session_id.clone(), session.task_id.clone()))
+            .collect();
+        let previous_claim_states: BTreeMap<String, ClaimState> = self
+            .snapshot
+            .sessions
+            .iter()
+            .map(|session| (session.session_id.clone(), session.claim_state))
+            .collect();
 
         let mut sessions: Vec<SessionSummary> = runtime_sessions
             .iter()
@@ -101,7 +120,10 @@ impl ControlPlaneState {
                 SessionSummary {
                     session_id: session.session_id.clone(),
                     project_id: current_directory.clone(),
-                    task_id: None,
+                    task_id: previous_task_bindings
+                        .get(&session.session_id)
+                        .cloned()
+                        .unwrap_or(None),
                     mode: session_mode_for_launch(&session.launch.program),
                     runtime_state: if session.running {
                         SessionRuntimeState::Running
@@ -110,7 +132,10 @@ impl ControlPlaneState {
                     },
                     manual_control: manual_control.clone(),
                     dispatch_state: "not_dispatchable".to_string(),
-                    claim_state: ClaimState::None,
+                    claim_state: previous_claim_states
+                        .get(&session.session_id)
+                        .copied()
+                        .unwrap_or(ClaimState::None),
                     adapter_kind: adapter_kind_for_launch(&session.launch.program),
                     title,
                     cwd: current_directory.clone(),
@@ -185,13 +210,22 @@ impl ControlPlaneState {
                 snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
             },
             ops: OpsSummary {
+                cadence_ms: 15_000,
+                last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                last_reconcile_at: None,
                 running_slots: sessions
                     .iter()
                     .filter(|session| session.runtime_state == SessionRuntimeState::Running)
                     .count() as u32,
                 max_slots: sessions.len().max(1) as u32,
                 retry_queue_count: 0,
+                queued_claim_count: sessions
+                    .iter()
+                    .filter(|session| session.claim_state == ClaimState::Claimed)
+                    .count() as u32,
                 workflow_health: workflow.state,
+                tracker_health: tracker.health.clone(),
+                paused: false,
             },
             workflow,
             tracker,
@@ -222,6 +256,79 @@ impl ControlPlaneState {
     ) -> Result<(), ControlPlaneError> {
         release_takeover_session(&mut self.snapshot, session_id)
     }
+
+    pub fn attach_task(
+        &mut self,
+        session_id: &str,
+        task_id: &str,
+    ) -> Result<(), ControlPlaneError> {
+        let session_index = self
+            .snapshot
+            .sessions
+            .iter()
+            .position(|session| session.session_id == session_id)
+            .ok_or_else(|| ControlPlaneError::SessionNotFound(session_id.to_string()))?;
+        let task = shared_task(task_id)
+            .map_err(|_| ControlPlaneError::TaskNotFound(task_id.to_string()))?
+            .ok_or_else(|| ControlPlaneError::TaskNotFound(task_id.to_string()))?;
+
+        if !task.project_id.is_empty()
+            && !self.snapshot.sessions[session_index].project_id.is_empty()
+            && self.snapshot.sessions[session_index].project_id != task.project_id
+        {
+            return Err(ControlPlaneError::TaskProjectMismatch {
+                task_id: task_id.to_string(),
+                session_id: session_id.to_string(),
+            });
+        }
+
+        if self
+            .snapshot
+            .sessions
+            .iter()
+            .any(|session| {
+                session.session_id != session_id
+                    && session.task_id.as_deref() == Some(task_id)
+                    && is_live_session(session.runtime_state)
+            })
+        {
+            return Err(ControlPlaneError::TaskClaimConflict(task_id.to_string()));
+        }
+
+        if let Some(previous_task_id) = self.snapshot.sessions[session_index].task_id.clone() {
+            if previous_task_id != task_id {
+                let _ = shared_detach_session(&previous_task_id);
+            }
+        }
+
+        shared_attach_session(task_id, session_id)
+            .map_err(|_| ControlPlaneError::TaskNotFound(task_id.to_string()))?;
+        self.snapshot.sessions[session_index].task_id = Some(task_id.to_string());
+        self.snapshot.sessions[session_index].claim_state = ClaimState::Claimed;
+        bump_projection_meta(&mut self.snapshot);
+
+        Ok(())
+    }
+
+    pub fn detach_task(&mut self, session_id: &str) -> Result<(), ControlPlaneError> {
+        let session_index = self
+            .snapshot
+            .sessions
+            .iter()
+            .position(|session| session.session_id == session_id)
+            .ok_or_else(|| ControlPlaneError::SessionNotFound(session_id.to_string()))?;
+        let Some(task_id) = self.snapshot.sessions[session_index].task_id.clone() else {
+            return Ok(());
+        };
+
+        shared_detach_session(&task_id)
+            .map_err(|_| ControlPlaneError::TaskNotFound(task_id.clone()))?;
+        self.snapshot.sessions[session_index].task_id = None;
+        self.snapshot.sessions[session_index].claim_state = ClaimState::None;
+        bump_projection_meta(&mut self.snapshot);
+
+        Ok(())
+    }
 }
 
 impl Default for ControlPlaneState {
@@ -235,10 +342,16 @@ impl Default for ControlPlaneState {
                     snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
                 },
                 ops: OpsSummary {
+                    cadence_ms: 15_000,
+                    last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                    last_reconcile_at: None,
                     running_slots: 0,
                     max_slots: 1,
                     retry_queue_count: 0,
+                    queued_claim_count: 0,
                     workflow_health: WorkflowHealth::None,
+                    tracker_health: "ok".to_string(),
+                    paused: false,
                 },
                 workflow: empty_workflow_status(),
                 tracker: TrackerStatus {
@@ -368,6 +481,45 @@ fn workflow_for_root(root: &str) -> WorkflowRuntimeStatus {
         last_good_hash: runtime.last_known_good().map(|loaded| loaded.contract_hash.clone()),
         last_reload_at: runtime.last_reload_at().map(str::to_string),
         last_error: runtime.last_error().map(str::to_string),
+    }
+}
+
+fn is_live_session(state: SessionRuntimeState) -> bool {
+    matches!(
+        state,
+        SessionRuntimeState::Launching
+            | SessionRuntimeState::Running
+            | SessionRuntimeState::WaitingInput
+            | SessionRuntimeState::ReviewReady
+            | SessionRuntimeState::Blocked
+    )
+}
+
+fn bump_projection_meta(snapshot: &mut AppSnapshot) {
+    snapshot.meta.snapshot_rev = snapshot.meta.snapshot_rev.saturating_add(1);
+    snapshot.meta.projection_rev = snapshot.meta.projection_rev.saturating_add(1);
+}
+
+fn shared_control_plane() -> &'static Mutex<ControlPlaneState> {
+    static CONTROL_PLANE: OnceLock<Mutex<ControlPlaneState>> = OnceLock::new();
+    CONTROL_PLANE.get_or_init(|| Mutex::new(ControlPlaneState::default()))
+}
+
+pub fn lock_shared_control_plane() -> Result<std::sync::MutexGuard<'static, ControlPlaneState>, String> {
+    shared_control_plane()
+        .lock()
+        .map_err(|_| "control plane lock poisoned".to_string())
+}
+
+pub fn reset_shared_control_plane_for_tests() {
+    if let Ok(mut control_plane) = lock_shared_control_plane() {
+        *control_plane = ControlPlaneState::default();
+    }
+}
+
+pub fn reset_shared_control_plane_snapshot_for_tests(snapshot: AppSnapshot) {
+    if let Ok(mut control_plane) = lock_shared_control_plane() {
+        *control_plane = ControlPlaneState::from_snapshot(snapshot);
     }
 }
 

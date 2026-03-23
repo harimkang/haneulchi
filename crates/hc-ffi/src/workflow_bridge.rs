@@ -48,6 +48,7 @@ pub fn workflow_validate_json(project_root: &str) -> Result<String, String> {
             "last_good_hash": loaded.contract_hash,
             "last_reload_at": serde_json::Value::Null,
             "last_error": serde_json::Value::Null,
+            "last_bootstrap": serde_json::Value::Null,
             "workflow": {
                 "name": loaded.effective_config.workflow.name,
                 "strategy": match loaded.effective_config.workspace.strategy {
@@ -55,6 +56,9 @@ pub fn workflow_validate_json(project_root: &str) -> Result<String, String> {
                     hc_workflow::WorkspaceStrategy::SharedRoot => "shared_root",
                 },
                 "base_root": loaded.effective_config.workspace.base_root,
+                "require_review": loaded.effective_config.review.required,
+                "max_runtime_minutes": loaded.effective_config.policy.max_runtime_minutes,
+                "unsafe_override_policy": loaded.effective_config.policy.unsafe_override_policy,
                 "review_checklist": loaded.effective_config.review.checklist,
                 "allowed_agents": loaded.effective_config.agents.allowed,
                 "hooks": hooks,
@@ -101,6 +105,19 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
             .map(|loaded| loaded.contract_hash.clone()),
         "last_reload_at": runtime.last_reload_at(),
         "last_error": runtime.last_error(),
+        "last_bootstrap": runtime.last_bootstrap().map(|summary| serde_json::json!({
+            "workspace_root": summary.workspace_root,
+            "base_root": summary.base_root,
+            "session_cwd": summary.session_cwd,
+            "rendered_prompt_path": summary.rendered_prompt_path,
+            "phase_sequence": summary.phase_sequence,
+            "hook_phase_results": summary.hook_phase_results,
+            "outcome_code": summary.outcome_code,
+            "warning_codes": summary.warning_codes,
+            "claim_released": summary.claim_released,
+            "launch_exit_code": summary.launch_exit_code,
+            "last_known_good_hash": summary.last_known_good_hash,
+        })),
         "workflow": loaded.map(|loaded| serde_json::json!({
             "name": loaded.effective_config.workflow.name,
             "strategy": match loaded.effective_config.workspace.strategy {
@@ -108,6 +125,9 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
                 hc_workflow::WorkspaceStrategy::SharedRoot => "shared_root",
                 },
                 "base_root": loaded.effective_config.workspace.base_root,
+                "require_review": loaded.effective_config.review.required,
+                "max_runtime_minutes": loaded.effective_config.policy.max_runtime_minutes,
+                "unsafe_override_policy": loaded.effective_config.policy.unsafe_override_policy,
                 "review_checklist": loaded.effective_config.review.checklist,
                 "allowed_agents": loaded.effective_config.agents.allowed,
                 "hooks": hooks,

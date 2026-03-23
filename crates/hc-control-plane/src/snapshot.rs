@@ -13,7 +13,16 @@ pub struct SnapshotSeed {
     pub sessions: Vec<SessionSummary>,
 }
 
-pub fn project_snapshot(seed: SnapshotSeed) -> AppSnapshot {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SnapshotBuildError {
+    SnapshotUnavailable,
+}
+
+pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, SnapshotBuildError> {
+    if seed.tracker.health == "snapshot_unavailable" {
+        return Err(SnapshotBuildError::SnapshotUnavailable);
+    }
+
     let running_slots = seed
         .sessions
         .iter()
@@ -27,7 +36,7 @@ pub fn project_snapshot(seed: SnapshotSeed) -> AppSnapshot {
         .or_else(|| seed.sessions.first().map(|session| session.session_id.clone()));
     let attention = derive_attention(&seed.workflow, &seed.sessions);
 
-    AppSnapshot {
+    Ok(AppSnapshot {
         meta: AppSnapshotMeta {
             snapshot_rev: 1,
             runtime_rev: 1,
@@ -35,10 +44,16 @@ pub fn project_snapshot(seed: SnapshotSeed) -> AppSnapshot {
             snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
         },
         ops: OpsSummary {
+            cadence_ms: 15_000,
+            last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+            last_reconcile_at: None,
             running_slots,
             max_slots: running_slots.max(1),
             retry_queue_count: 0,
+            queued_claim_count: 0,
             workflow_health: seed.workflow.state,
+            tracker_health: seed.tracker.health.clone(),
+            paused: false,
         },
         workflow: seed.workflow,
         tracker: seed.tracker,
@@ -52,5 +67,9 @@ pub fn project_snapshot(seed: SnapshotSeed) -> AppSnapshot {
         attention,
         retry_queue: Vec::new(),
         warnings: Vec::<WarningSummary>::new(),
-    }
+    })
+}
+
+pub fn project_snapshot(seed: SnapshotSeed) -> AppSnapshot {
+    build_authoritative_snapshot(seed).expect("snapshot builder")
 }

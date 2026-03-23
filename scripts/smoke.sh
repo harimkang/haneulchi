@@ -119,6 +119,9 @@ CHECKLIST
   workflow|mvp2-055-056-064)
     run_step "Run workflow bridge tests" cargo test -p hc-ffi --test workflow_bridge -- --nocapture
     run_step "Prepare RG-04 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg04-pack.sh" --dry-run
+    run_step "Prepare RG-05 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg05-pack.sh" --dry-run
+    run_step "Prepare RG-06 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg06-pack.sh" --dry-run
+    run_step "Prepare RG-07 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg07-pack.sh" --dry-run
     ;;
   ""|-h|--help|help)
     show_usage

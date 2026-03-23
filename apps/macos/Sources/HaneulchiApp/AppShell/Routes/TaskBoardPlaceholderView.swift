@@ -4,6 +4,6 @@ struct TaskBoardPlaceholderView: View {
     let descriptor: RouteDestinationDescriptor
 
     var body: some View {
-        RoutePlaceholderCard(descriptor: descriptor)
+        TaskBoardView(summary: descriptor.summary)
     }
 }
