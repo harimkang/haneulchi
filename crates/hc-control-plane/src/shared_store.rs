@@ -1,3 +1,4 @@
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use hc_domain::{TaskAutomationMode, TaskColumn};
@@ -23,7 +24,32 @@ pub(crate) fn reset_shared_store() {
 
 fn shared_store() -> &'static Mutex<SqliteStore> {
     static STORE: OnceLock<Mutex<SqliteStore>> = OnceLock::new();
-    STORE.get_or_init(|| Mutex::new(build_seeded_store().expect("seeded control-plane store")))
+    STORE.get_or_init(|| Mutex::new(build_default_store().expect("control-plane store")))
+}
+
+fn build_default_store() -> Result<SqliteStore, hc_storage::StorageError> {
+    let path = persistent_store_path();
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            hc_storage::StorageError::Sqlite(rusqlite::Error::ToSqlConversionFailure(Box::new(error)))
+        })?;
+    }
+    SqliteStore::open(path)
+}
+
+fn persistent_store_path() -> PathBuf {
+    if let Some(path) = std::env::var_os("HC_CONTROL_PLANE_DB") {
+        return PathBuf::from(path);
+    }
+
+    let home = std::env::var_os("HOME")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from("."));
+    home.join("Library")
+        .join("Application Support")
+        .join("Haneulchi")
+        .join("db")
+        .join("control-plane.sqlite")
 }
 
 fn build_seeded_store() -> Result<SqliteStore, hc_storage::StorageError> {
@@ -124,4 +150,53 @@ fn build_seeded_store() -> Result<SqliteStore, hc_storage::StorageError> {
     })?;
 
     Ok(store)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    #[test]
+    fn file_backed_shared_store_persists_rows_across_reopen() {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock drift")
+            .as_nanos();
+        let db_path = std::env::temp_dir().join(format!("hc-shared-store-{unique}.sqlite"));
+
+        let store = SqliteStore::open(&db_path).expect("file store");
+        store.tasks().create(NewTaskRecord {
+            id: "task_persisted".to_string(),
+            project_id: "proj_demo".to_string(),
+            display_key: "TASK-PERSISTED".to_string(),
+            title: "Persisted task".to_string(),
+            description: "persist me".to_string(),
+            priority: "p1".to_string(),
+            automation_mode: TaskAutomationMode::Manual,
+            created_at: "2026-03-23T10:00:00Z".to_string(),
+            updated_at: "2026-03-23T10:00:00Z".to_string(),
+        }).expect("task create");
+        drop(store);
+
+        let reopened = SqliteStore::open(&db_path).expect("reopen store");
+        let task = reopened
+            .tasks()
+            .get("task_persisted")
+            .expect("task lookup")
+            .expect("task row");
+        assert_eq!(task.title, "Persisted task");
+    }
+
+    #[test]
+    fn persistent_store_path_uses_env_override_when_present() {
+        let path = std::env::temp_dir().join("hc-override.sqlite");
+        unsafe {
+            std::env::set_var("HC_CONTROL_PLANE_DB", &path);
+        }
+        assert_eq!(persistent_store_path(), path);
+        unsafe {
+            std::env::remove_var("HC_CONTROL_PLANE_DB");
+        }
+    }
 }

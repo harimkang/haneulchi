@@ -500,6 +500,29 @@ fn bump_projection_meta(snapshot: &mut AppSnapshot) {
     snapshot.meta.projection_rev = snapshot.meta.projection_rev.saturating_add(1);
 }
 
+fn shared_control_plane() -> &'static Mutex<ControlPlaneState> {
+    static CONTROL_PLANE: OnceLock<Mutex<ControlPlaneState>> = OnceLock::new();
+    CONTROL_PLANE.get_or_init(|| Mutex::new(ControlPlaneState::default()))
+}
+
+pub fn lock_shared_control_plane() -> Result<std::sync::MutexGuard<'static, ControlPlaneState>, String> {
+    shared_control_plane()
+        .lock()
+        .map_err(|_| "control plane lock poisoned".to_string())
+}
+
+pub fn reset_shared_control_plane_for_tests() {
+    if let Ok(mut control_plane) = lock_shared_control_plane() {
+        *control_plane = ControlPlaneState::default();
+    }
+}
+
+pub fn reset_shared_control_plane_snapshot_for_tests(snapshot: AppSnapshot) {
+    if let Ok(mut control_plane) = lock_shared_control_plane() {
+        *control_plane = ControlPlaneState::from_snapshot(snapshot);
+    }
+}
+
 fn workflow_runtime_for_root(root: &str) -> WorkflowRuntime {
     let repo_root = PathBuf::from(root);
     let key = repo_root.display().to_string();

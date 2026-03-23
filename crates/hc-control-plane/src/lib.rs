@@ -14,7 +14,11 @@ mod timeline;
 mod workflow_projection;
 mod worktrees;
 
-pub use commands::{ControlPlaneError, ControlPlaneState, reload_workflow, validate_workflow};
+pub use commands::{
+    ControlPlaneError, ControlPlaneState, lock_shared_control_plane,
+    reset_shared_control_plane_for_tests, reset_shared_control_plane_snapshot_for_tests,
+    reload_workflow, validate_workflow,
+};
 pub use eligibility::{EligibilityContext, evaluate_task_eligibility};
 pub use orchestrator::AutomationStatusSummary;
 pub use reviews::{
