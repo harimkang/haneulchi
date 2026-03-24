@@ -203,7 +203,18 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
             let task_id = json.get("task_id").and_then(Value::as_str);
             let target_live = json.get("target_live").and_then(Value::as_bool).unwrap_or(true);
             let payload = json.get("payload").and_then(Value::as_str).ok_or_else(|| "missing_payload".to_string())?;
-            wrap_success(200, dispatch_send_json(target_session_id, task_id, target_live, payload)?)
+            let response = dispatch_send_json(target_session_id, task_id, target_live, payload)?;
+            let parsed: Value = serde_json::from_str(&response).map_err(|e| e.to_string())?;
+            if parsed.get("ok").and_then(Value::as_bool) == Some(false) {
+                let reason = parsed["events"]
+                    .as_array()
+                    .and_then(|events| events.last())
+                    .and_then(|event| event["reason_code"].as_str())
+                    .unwrap_or("dispatch_failed");
+                wrap_error(409, reason, reason)
+            } else {
+                wrap_success(200, response)
+            }
         }
         ("POST", ["v1", "workflow", "validate"]) => {
             let json = parse_json(body)?;

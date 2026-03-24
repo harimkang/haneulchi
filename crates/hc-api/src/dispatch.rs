@@ -10,16 +10,9 @@ pub fn dispatch_send_json(
     if events.is_empty() {
         return Err("session_not_found".to_string());
     }
-    if let Some(failure) = events.last().filter(|event| event.state == hc_control_plane::DispatchLifecycleState::Failed) {
-        return Err(
-            failure
-                .reason_code
-                .clone()
-                .unwrap_or_else(|| "dispatch_failed".to_string()),
-        );
-    }
+    let ok = !events.last().is_some_and(|event| event.state == hc_control_plane::DispatchLifecycleState::Failed);
     serde_json::to_string(&serde_json::json!({
-        "ok": true,
+        "ok": ok,
         "events": events
     }))
     .map_err(|error| error.to_string())

@@ -1,7 +1,7 @@
 use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, OpsSummary, ProjectSummary, RetryQueueEntry,
     SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
-    WorkflowRuntimeStatus,
+    WorkflowRuntimeStatus, time::now_iso8601,
 };
 
 use crate::attention::derive_attention;
@@ -47,7 +47,7 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         .with_automation(OpsSummary {
             status: "running".to_string(),
             cadence_ms: 15_000,
-            last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+            last_tick_at: Some(now_iso8601()),
             last_reconcile_at: None,
             running_slots,
             max_slots: running_slots.max(1),
@@ -65,7 +65,7 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         snapshot_rev: 1,
         runtime_rev: 1,
         projection_rev: 1,
-        snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
+        snapshot_at: Some(now_iso8601()),
     };
     snapshot.projects = seed.projects;
     snapshot.sessions = seed.sessions;

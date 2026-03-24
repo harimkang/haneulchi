@@ -5,7 +5,7 @@ use std::sync::{Mutex, OnceLock};
 use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, ProjectSummary,
     SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
-    WorkflowHealth, WorkflowRuntimeStatus,
+    WorkflowHealth, WorkflowRuntimeStatus, time::now_iso8601,
 };
 use hc_runtime::terminal::runtime::TerminalSessionSnapshot as RuntimeSessionSnapshot;
 use hc_workflow::{LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime};
@@ -224,7 +224,7 @@ impl ControlPlaneState {
             .with_automation(OpsSummary {
                 status: "running".to_string(),
                 cadence_ms: 15_000,
-                last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                last_tick_at: Some(now_iso8601()),
                 last_reconcile_at: None,
                 running_slots: sessions
                     .iter()
@@ -244,7 +244,7 @@ impl ControlPlaneState {
             snapshot_rev: self.snapshot.meta.snapshot_rev.saturating_add(1),
             runtime_rev: self.snapshot.meta.runtime_rev.saturating_add(1),
             projection_rev: self.snapshot.meta.projection_rev.saturating_add(1),
-            snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
+            snapshot_at: Some(now_iso8601()),
         };
         snapshot.projects = projects;
         snapshot.sessions = sessions;
@@ -383,7 +383,7 @@ impl Default for ControlPlaneState {
                 .with_automation(OpsSummary {
                     status: "running".to_string(),
                     cadence_ms: 15_000,
-                    last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+                    last_tick_at: Some(now_iso8601()),
                     last_reconcile_at: None,
                     running_slots: 0,
                     max_slots: 1,
@@ -400,7 +400,7 @@ impl Default for ControlPlaneState {
                     snapshot_rev: 1,
                     runtime_rev: 1,
                     projection_rev: 1,
-                    snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
+                    snapshot_at: Some(now_iso8601()),
                 };
                 snapshot
             },

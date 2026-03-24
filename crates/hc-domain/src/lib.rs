@@ -1,6 +1,7 @@
 pub mod orchestrator;
 pub mod review;
 pub mod task;
+pub mod time;
 pub mod timeline;
 
 use std::collections::BTreeMap;

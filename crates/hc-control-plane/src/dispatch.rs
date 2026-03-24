@@ -1,4 +1,5 @@
 use hc_domain::SessionSummary;
+use hc_domain::time::now_iso8601;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -24,7 +25,7 @@ pub fn dispatch_to_session(
     target_live: bool,
     payload: &str,
 ) -> Vec<DispatchEvent> {
-    let created_at = "2026-03-23T16:45:00Z".to_string();
+    let created_at = now_iso8601();
     let mut events = vec![
         DispatchEvent {
             state: DispatchLifecycleState::Queued,

@@ -147,7 +147,8 @@ pub(crate) fn apply_decision_for_store(
         .reviews()
         .latest_for_task(task_id)?
         .ok_or_else(|| hc_storage::StorageError::TaskNotFound(task_id.to_string()))?;
-    let now = "2026-03-23T09:10:00Z";
+    let now_owned = hc_domain::time::now_iso8601();
+    let now = now_owned.as_str();
 
     let follow_up_task = match decision {
         ReviewDecision::Accept => {

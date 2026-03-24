@@ -52,6 +52,7 @@ fn reconcile_releases_stale_claims_and_is_idempotent_without_touching_takeover_s
     let first = reconcile_snapshot(&mut snapshot);
     assert_eq!(first.released_session_ids, vec!["ses_stale"]);
     assert_eq!(first.skipped_manual_takeover_ids, vec!["ses_manual"]);
+    assert!(first.cleaned_exited_ids.is_empty());
     assert_eq!(snapshot.sessions[0].claim_state, ClaimState::Released);
     assert_eq!(snapshot.sessions[0].dispatch_state, "not_dispatchable");
     assert_eq!(snapshot.sessions[1].claim_state, ClaimState::Stale);
@@ -61,4 +62,31 @@ fn reconcile_releases_stale_claims_and_is_idempotent_without_touching_takeover_s
     let second = reconcile_snapshot(&mut snapshot);
     assert!(second.released_session_ids.is_empty());
     assert_eq!(second.skipped_manual_takeover_ids, vec!["ses_manual"]);
+}
+
+#[test]
+fn reconcile_cleans_exited_sessions_with_active_claims() {
+    let mut snapshot = snapshot();
+
+    let mut exited_claimed = SessionSummary::new("ses_exited", "proj_demo", "Exited session");
+    exited_claimed.runtime_state = SessionRuntimeState::Exited;
+    exited_claimed.claim_state = ClaimState::Claimed;
+    exited_claimed.dispatch_state = "dispatchable".to_string();
+
+    let mut running_ok = SessionSummary::new("ses_running", "proj_demo", "Running session");
+    running_ok.runtime_state = SessionRuntimeState::Running;
+    running_ok.claim_state = ClaimState::Claimed;
+    running_ok.dispatch_state = "dispatchable".to_string();
+
+    snapshot.sessions = vec![exited_claimed, running_ok];
+    let initial_rev = snapshot.meta.projection_rev;
+
+    let report = reconcile_snapshot(&mut snapshot);
+    assert_eq!(report.cleaned_exited_ids, vec!["ses_exited"]);
+    assert!(report.released_session_ids.is_empty());
+    assert_eq!(snapshot.sessions[0].claim_state, ClaimState::Released);
+    assert_eq!(snapshot.sessions[0].dispatch_reason.as_deref(), Some("session_exited"));
+    assert_eq!(snapshot.sessions[1].claim_state, ClaimState::Claimed);
+    assert_eq!(snapshot.meta.projection_rev, initial_rev + 1);
+    assert!(snapshot.ops.automation.last_reconcile_at.is_some());
 }

@@ -83,7 +83,7 @@ pub fn session_focus_json(session_id: &str) -> Result<String, String> {
         .map_err(map_control_plane_error)?;
     serde_json::to_string(&json!({
         "session_id": session_id,
-        "accepted_at": "2026-03-23T18:30:00Z",
+        "accepted_at": hc_domain::time::now_iso8601(),
         "ui_action": "focus_requested"
     }))
     .map_err(|error| error.to_string())
