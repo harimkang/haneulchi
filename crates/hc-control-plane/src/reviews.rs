@@ -27,8 +27,13 @@ pub struct ReviewQueueItem {
     pub diff_summary: Option<String>,
     pub tests_summary: Option<String>,
     pub command_summary: Option<String>,
+    pub hook_summary: Option<String>,
+    pub evidence_summary: Option<String>,
+    pub checklist_summary: Option<String>,
     pub warnings: Vec<String>,
     pub evidence_manifest_path: Option<String>,
+    pub ci_run_url: Option<String>,
+    pub pr_url: Option<String>,
     pub timeline: Vec<TaskTimelineEntry>,
 }
 
@@ -113,8 +118,13 @@ pub(crate) fn review_ready_projection_for_store(
                         diff_summary: review.diff_summary,
                         tests_summary: review.tests_summary,
                         command_summary: review.command_summary,
+                        hook_summary: review.hook_summary,
+                        evidence_summary: review.evidence_summary,
+                        checklist_summary: review.checklist_summary,
                         warnings: review.warnings,
                         evidence_manifest_path: review.evidence_manifest_path,
+                        ci_run_url: None,
+                        pr_url: None,
                         timeline: project_task_timeline(store, &task.id)?,
                     });
                 }
@@ -269,8 +279,11 @@ fn seed_review_demo(store: &SqliteStore) -> Result<(), ReviewQueueError> {
             diff_summary = ?3,
             tests_summary = ?4,
             command_summary = ?5,
-            warnings_json = ?6,
-            evidence_manifest_path = ?7
+            hook_summary = ?6,
+            evidence_summary = ?7,
+            checklist_summary = ?8,
+            warnings_json = ?9,
+            evidence_manifest_path = ?10
         WHERE id = ?1
         "#,
         rusqlite::params![
@@ -279,7 +292,10 @@ fn seed_review_demo(store: &SqliteStore) -> Result<(), ReviewQueueError> {
             "+42 -8",
             "12 passing",
             "cargo test -p hc-workflow",
-            serde_json::to_string(&vec!["snapshot drift"])?,
+            "after_run_failed: evidence degraded",
+            "Captured diff, tests, command, and degraded hook note",
+            "1/2 checks complete",
+            serde_json::to_string(&vec!["after_run_failed", "snapshot drift"])?,
             "evidence/reviews/task_review/review_01/manifest.json",
         ],
     )?;

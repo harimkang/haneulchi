@@ -5,6 +5,11 @@ use std::sync::Mutex;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use hc_control_plane::reset_shared_control_plane_snapshot_for_tests;
+use hc_domain::{
+    AppSnapshot, ClaimState, RetryState, SessionRuntimeState, SessionSummary, TrackerStatus,
+    WorkflowHealth, WorkflowRuntimeStatus,
+};
 use hc_ffi::{
     hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_state_snapshot_json,
     hc_string_free, hc_sessions_list_json, session_focus, session_release_takeover,
@@ -37,12 +42,73 @@ fn state_snapshot_json_contains_authoritative_top_level_groups() {
     assert!(value.get("sessions").is_some());
     assert!(value.get("attention").is_some());
     assert!(value.get("retry_queue").is_some());
-    assert!(value.get("workflow").is_some());
-    assert!(value.get("tracker").is_some());
+    assert!(value.get("workflow").is_none());
+    assert!(value.get("tracker").is_none());
+    assert!(value.get("app").is_none());
+    assert!(value["ops"].get("automation").is_some());
+    assert!(value["ops"].get("workflow").is_some());
+    assert!(value["ops"].get("tracker").is_some());
+    assert!(value["ops"].get("app").is_some());
 
     let sessions_json = sessions_list_json().expect("sessions list");
     let sessions_value: Value = serde_json::from_str(&sessions_json).expect("sessions array");
     assert!(sessions_value.is_array());
+}
+
+#[test]
+fn state_snapshot_json_exposes_retry_claim_state_and_adapter_watch_fields() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
+
+    let workflow = WorkflowRuntimeStatus {
+        state: WorkflowHealth::Ok,
+        path: "/tmp/demo/WORKFLOW.md".to_string(),
+        last_good_hash: Some("sha256:ffi".to_string()),
+        last_reload_at: Some("2026-03-23T12:00:00Z".to_string()),
+        last_error: None,
+    };
+    let tracker = TrackerStatus {
+        state: "local_only".to_string(),
+        last_sync_at: None,
+        health: "ok".to_string(),
+    };
+    let mut session = SessionSummary::new("ses_watch", "proj_demo", "Watched adapter");
+    session.runtime_state = SessionRuntimeState::WaitingInput;
+    session.dispatch_state = "dispatchable".to_string();
+    session.provider_id = Some("anthropic".to_string());
+    session.model_id = Some("claude-sonnet-4".to_string());
+    session.latest_commentary = Some("Need approval before rerunning the suite.".to_string());
+    session.active_window_title = Some("Terminal 1".to_string());
+    session.dispatch_reason = Some("dispatchable".to_string());
+
+    reset_shared_control_plane_snapshot_for_tests(
+        AppSnapshot::new(workflow, tracker)
+            .with_session(session)
+            .with_retry_entry(hc_domain::RetryQueueEntry {
+                task_id: "task_retry".to_string(),
+                project_id: "proj_demo".to_string(),
+                attempt: 2,
+                reason_code: "adapter_timeout".to_string(),
+                due_at: Some("2026-03-23T12:05:00Z".to_string()),
+                backoff_ms: 45_000,
+                claim_state: ClaimState::Claimed,
+                retry_state: RetryState::Due,
+            }),
+    );
+
+    let snapshot: Value =
+        serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid json");
+    let session = &snapshot["sessions"][0];
+
+    assert_eq!(session["provider_id"], "anthropic");
+    assert_eq!(session["model_id"], "claude-sonnet-4");
+    assert_eq!(
+        session["latest_commentary"],
+        "Need approval before rerunning the suite."
+    );
+    assert_eq!(session["active_window_title"], "Terminal 1");
+    assert_eq!(session["dispatch_reason"], "dispatchable");
+    assert_eq!(snapshot["retry_queue"][0]["claim_state"], "claimed");
 }
 
 #[test]
@@ -71,7 +137,7 @@ fn session_commands_mutate_exported_snapshot() {
 
     let snapshot: Value =
         serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid json");
-    assert_eq!(snapshot["app"]["focused_session_id"], session_id);
+    assert_eq!(snapshot["ops"]["app"]["focused_session_id"], session_id);
 }
 
 #[test]
@@ -187,8 +253,8 @@ fn state_snapshot_keeps_last_known_good_after_auto_polled_invalid_reload() {
     let snapshot: Value =
         serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid json");
 
-    assert_eq!(snapshot["workflow"]["state"], "invalid_kept_last_good");
-    assert_eq!(snapshot["workflow"]["last_good_hash"], initial_hash);
+    assert_eq!(snapshot["ops"]["workflow"]["state"], "invalid_kept_last_good");
+    assert_eq!(snapshot["ops"]["workflow"]["last_good_hash"], initial_hash);
 }
 
 #[test]

@@ -3,10 +3,10 @@
   "RG-02": "dry-run",
   "RG-03": "dry-run",
   "RG-04": "dry-run",
-  "RG-05": "not_run",
-  "RG-06": "not_run",
-  "RG-07": "not_run",
+  "RG-05": "dry-run",
+  "RG-06": "dry-run",
+  "RG-07": "dry-run",
   "RG-08": "not_run",
-  "RG-09": "not_run",
-  "RG-10": "not_run"
+  "RG-09": "dry-run",
+  "RG-10": "dry-run"
 }

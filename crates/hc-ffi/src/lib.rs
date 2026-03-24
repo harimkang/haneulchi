@@ -6,6 +6,10 @@ use std::os::raw::c_char;
 use hc_runtime::terminal::backend::TerminalBackendDescriptor;
 
 mod session_bridge;
+mod api_server_bridge;
+mod automation_bridge;
+mod attention_bridge;
+mod dispatch_bridge;
 mod state_bridge;
 mod task_bridge;
 mod review_bridge;
@@ -69,12 +73,21 @@ pub use session_bridge::{
     terminal_session_drain, terminal_session_resize, terminal_session_snapshot_json,
     terminal_session_spawn_json, terminal_session_terminate, terminal_session_write,
 };
+pub use api_server_bridge::{
+    api_server_start_json, hc_api_server_start_json, resolve_api_server_socket_path,
+};
+pub use automation_bridge::{hc_reconcile_now_json, reconcile_automation_json};
 pub use state_bridge::{
     hc_session_attach_task_json, hc_session_detach_task_json, hc_session_focus,
     hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
     hc_state_snapshot_json, session_attach_task_json, session_detach_task_json, session_focus,
     session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
 };
+pub use attention_bridge::{
+    attention_dismiss_json, attention_resolve_json, attention_snooze_json,
+    hc_attention_dismiss_json, hc_attention_resolve_json, hc_attention_snooze_json,
+};
+pub use dispatch_bridge::{dispatch_send_json, hc_dispatch_send_json};
 pub use review_bridge::{
     hc_review_decision_json, hc_review_queue_json, review_decision_json, review_queue_json,
 };

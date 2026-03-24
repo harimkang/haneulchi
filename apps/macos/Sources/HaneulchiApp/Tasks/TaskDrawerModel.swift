@@ -4,6 +4,9 @@ struct TaskDrawerModel: Equatable, Sendable {
     let automationMode: TaskBoardAutomationModePayload?
     let claimState: ClaimState
     let trackerBindingState: String?
+    let dispatchState: DispatchState
+    let dispatchReason: String?
+    let retryState: String?
     let requireReview: Bool
     let maxRuntimeMinutes: Int?
     let unsafeOverridePolicy: String?
@@ -39,11 +42,17 @@ struct TaskDrawerModel: Equatable, Sendable {
         guard let session = focusedSession, let taskID = session.taskID else {
             return nil
         }
+        let retryState = snapshot.retryQueue
+            .first(where: { $0.taskID == taskID })
+            .map { "attempt \($0.attempt) · due \($0.dueAt ?? "pending")" }
 
         return Self(
             automationMode: session.automationMode,
             claimState: session.claimState,
             trackerBindingState: session.trackerBindingState,
+            dispatchState: session.dispatchState,
+            dispatchReason: session.dispatchReason,
+            retryState: retryState,
             requireReview: workflowStatus?.workflow?.requireReview ?? false,
             maxRuntimeMinutes: workflowStatus?.workflow?.maxRuntimeMinutes,
             unsafeOverridePolicy: workflowStatus?.workflow?.unsafeOverridePolicy,

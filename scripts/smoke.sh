@@ -46,6 +46,7 @@ Targets:
   terminal-quality  RG-02 automated pack
   terminal-deck     MVP2-009 / MVP2-010 / MVP2-012
   workflow          MVP2-055 / MVP2-056 / MVP2-064
+  control           Sprint 4 control / parity / security packs
 
 Aliases:
   mvp2-001-002-003
@@ -56,6 +57,7 @@ Aliases:
   mvp2-rg02
   mvp2-009-010-012
   mvp2-055-056-064
+  sprint4-control
 EOF
 }
 
@@ -122,6 +124,13 @@ CHECKLIST
     run_step "Prepare RG-05 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg05-pack.sh" --dry-run
     run_step "Prepare RG-06 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg06-pack.sh" --dry-run
     run_step "Prepare RG-07 dry-run evidence" bash "${repo_root}/scripts/qa/workflow/run-rg07-pack.sh" --dry-run
+    ;;
+  control|sprint4-control)
+    run_step "Prepare RG-05 control pack" bash "${repo_root}/scripts/qa/control/run-rg05-pack.sh" --dry-run
+    run_step "Prepare RG-06 control pack" bash "${repo_root}/scripts/qa/control/run-rg06-pack.sh" --dry-run
+    run_step "Prepare RG-07 control pack" bash "${repo_root}/scripts/qa/control/run-rg07-pack.sh" --dry-run
+    run_step "Prepare RG-09 control pack" bash "${repo_root}/scripts/qa/control/run-rg09-pack.sh" --dry-run
+    run_step "Prepare RG-10 control pack" bash "${repo_root}/scripts/qa/control/run-rg10-pack.sh" --dry-run
     ;;
   ""|-h|--help|help)
     show_usage

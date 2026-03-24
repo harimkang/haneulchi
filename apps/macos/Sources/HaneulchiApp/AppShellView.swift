@@ -28,7 +28,7 @@ struct AppShellView: View {
                 shellLayout
             }
         }
-        .task(id: shellModel.selectedProject?.projectID) {
+        .task(id: "\(shellModel.selectedProject?.projectID ?? "none"):\(shellModel.projectFocusRefreshToken)") {
             await MainActor.run {
                 guard shellModel.entrySurface == .shell else {
                     return
@@ -54,6 +54,52 @@ struct AppShellView: View {
                     Task {
                         await shellModel.perform(.dismissCommandPalette)
                     }
+                }
+            }
+        }
+        .overlay(alignment: .topTrailing) {
+            if shellModel.entrySurface == .shell, shellModel.isNotificationDrawerPresented {
+                NotificationDrawerView(
+                    items: NotificationDrawerModel(
+                        snapshot: shellModel.shellSnapshot ?? AppShellSnapshot.empty(
+                            activeRoute: shellModel.selectedRoute,
+                            selectedProject: shellModel.selectedProject
+                        )
+                    ).items,
+                    onAction: { action in
+                        Task {
+                            await shellModel.perform(.dismissNotificationDrawer)
+                            await shellModel.perform(action)
+                        }
+                    }
+                )
+                .padding(.top, 64)
+                .padding(.trailing, HaneulchiChrome.Spacing.screenPadding)
+            }
+        }
+        .overlay {
+            if shellModel.entrySurface == .shell, let quickDispatchComposer = shellModel.quickDispatchComposer {
+                ZStack {
+                    Color.black.opacity(0.18)
+                        .ignoresSafeArea()
+                        .onTapGesture {
+                            performAction(.dismissQuickDispatch)
+                        }
+                    QuickDispatchComposerView(
+                        viewModel: quickDispatchComposer,
+                        onSend: { targetSessionID, message in
+                            performAction(
+                                .submitQuickDispatch(
+                                    targetID: targetSessionID,
+                                    message: message
+                                )
+                            )
+                        },
+                        onClose: {
+                            performAction(.dismissQuickDispatch)
+                        }
+                    )
+                    .frame(maxWidth: 520)
                 }
             }
         }
@@ -101,7 +147,14 @@ struct AppShellView: View {
                 }
             }
         )) {
-            TaskContextDrawerView(model: shellModel.taskContextDrawerModel)
+            TaskContextDrawerView(
+                model: shellModel.taskContextDrawerModel,
+                onQuickDispatch: {
+                    Task {
+                        await shellModel.perform(.presentQuickDispatch(shellModel.selectedRoute))
+                    }
+                }
+            )
         }
     }
 

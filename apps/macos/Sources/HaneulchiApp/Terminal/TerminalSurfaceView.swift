@@ -60,6 +60,8 @@ struct TerminalSurfaceView: View {
     private let paneID: String?
     private let deckCoordinator: TerminalDeckCoordinator?
     private let isFocused: Bool
+    private let onSessionReady: ((String) -> Void)?
+    @State private var reportedSessionID: String?
 
     init(
         configuration: TerminalSurfaceConfiguration,
@@ -68,7 +70,8 @@ struct TerminalSurfaceView: View {
         restoreStore: TerminalSessionRestoreStore = .liveDefault,
         paneID: String? = nil,
         deckCoordinator: TerminalDeckCoordinator? = nil,
-        isFocused: Bool = false
+        isFocused: Bool = false,
+        onSessionReady: ((String) -> Void)? = nil
     ) {
         self.configuration = configuration
         self.liveBundle = configuration.liveBundle
@@ -76,6 +79,7 @@ struct TerminalSurfaceView: View {
         self.paneID = paneID
         self.deckCoordinator = deckCoordinator
         self.isFocused = isFocused
+        self.onSessionReady = onSessionReady
         self.state = if configuration.isLive {
             controller.bootstrapLive()
         } else {
@@ -116,6 +120,17 @@ struct TerminalSurfaceView: View {
                             }
                             .onReceive(liveController.$restorePoint) { bundle in
                                 try? restoreStore.save([bundle])
+                            }
+                            .onReceive(liveController.$sessionSnapshot) { snapshot in
+                                guard
+                                    let snapshot,
+                                    snapshot.running,
+                                    reportedSessionID != snapshot.sessionID
+                                else {
+                                    return
+                                }
+                                reportedSessionID = snapshot.sessionID
+                                onSessionReady?(snapshot.sessionID)
                             }
                     } else {
                         statusView(for: resolvedState)

@@ -1,11 +1,11 @@
 {
   "product": "Haneulchi",
   "release_target": "MVP",
-  "build_id": "2026.03.22-151625",
-  "commit": "03469620824751076d11df20138f7cbbff2c3891",
+  "build_id": "2026.03.23-123818",
+  "commit": "8c6444dd4b47cb1ab721278860535aafab5be044",
   "api_version": "1",
   "workflow_contract_version": "1",
   "snapshot_schema_version": "1",
   "operator": "harimkang",
-  "executed_at": "2026-03-22T15:16:25Z"
+  "executed_at": "2026-03-23T12:38:18Z"
 }

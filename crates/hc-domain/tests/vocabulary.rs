@@ -66,8 +66,8 @@ fn snapshot_contract_types_expose_required_sprint_two_groups() {
 
     assert_eq!(snapshot.projects.len(), 1);
     assert_eq!(snapshot.sessions.len(), 1);
-    assert_eq!(snapshot.workflow.state, WorkflowHealth::Ok);
-    assert_eq!(snapshot.tracker.health, "ok");
+    assert_eq!(snapshot.ops.workflow.state, WorkflowHealth::Ok);
+    assert_eq!(snapshot.ops.tracker.health, "ok");
     assert_eq!(snapshot.projects[0].task_counts["Inbox"], 1);
     assert_eq!(snapshot.sessions[0].focus_state, SessionFocusState::Focused);
 }

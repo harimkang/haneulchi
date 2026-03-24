@@ -24,7 +24,12 @@ struct InspectorPanelView: View {
             Group {
                 switch workspaceState.activeInspectorSection {
                 case .commentary:
-                    Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
+                    if let focusedSession = Self.focusedSession(from: snapshot),
+                       focusedSession.providerID != nil || focusedSession.latestCommentary != nil {
+                        AdapterWatchSummaryView(session: focusedSession)
+                    } else {
+                        Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
+                    }
                 case .task:
                     VStack(alignment: .leading, spacing: 8) {
                         Text(Self.focusedSession(from: snapshot)?.taskID ?? "No linked task.")
@@ -37,7 +42,12 @@ struct InspectorPanelView: View {
                         }
                     }
                 case .activity:
-                    Text(Self.focusedSession(from: snapshot)?.latestSummary ?? "No activity yet.")
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(Self.focusedSession(from: snapshot)?.latestSummary ?? "No activity yet.")
+                        if let retry = snapshot?.retryQueue.first {
+                            Text("retry: attempt \(retry.attempt) · due \(retry.dueAt ?? "pending")")
+                        }
+                    }
                 case .evidence:
                     Text("Evidence surface reserved for Sprint 2.")
                 case .git:
@@ -45,7 +55,10 @@ struct InspectorPanelView: View {
                 case .diff:
                     Text("Diff surface reserved for Sprint 2.")
                 case .quickActions:
-                    Text("Quick actions surface reserved for Sprint 2.")
+                    Button("Open Quick Dispatch") {
+                        onAction(.presentQuickDispatch(.projectFocus))
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
             .font(HaneulchiTypography.body)

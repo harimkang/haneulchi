@@ -3,13 +3,16 @@ import SwiftUI
 struct TaskContextDrawerView: View {
     let model: TaskDrawerModel?
     let onPrimaryAction: ((TaskDrawerModel) -> Void)?
+    let onQuickDispatch: (() -> Void)?
 
     init(
         model: TaskDrawerModel?,
-        onPrimaryAction: ((TaskDrawerModel) -> Void)? = nil
+        onPrimaryAction: ((TaskDrawerModel) -> Void)? = nil,
+        onQuickDispatch: (() -> Void)? = nil
     ) {
         self.model = model
         self.onPrimaryAction = onPrimaryAction
+        self.onQuickDispatch = onQuickDispatch
     }
 
     var body: some View {
@@ -22,6 +25,9 @@ struct TaskContextDrawerView: View {
                     .font(.title3.weight(.semibold))
 
                 Text("session: \(model.sessionTitle)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("dispatch: \(model.dispatchReason ?? model.dispatchState.rawValue)")
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -78,6 +84,12 @@ struct TaskContextDrawerView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(onPrimaryAction == nil)
+
+                Button("Quick Dispatch") {
+                    onQuickDispatch?()
+                }
+                .buttonStyle(.bordered)
+                .disabled(onQuickDispatch == nil)
             } else {
                 Text("No linked task or workflow context.")
                     .foregroundStyle(.secondary)

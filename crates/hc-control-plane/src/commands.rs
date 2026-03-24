@@ -20,6 +20,8 @@ use crate::workflow_projection::{sample_tracker_status, sample_workflow_status};
 pub enum ControlPlaneError {
     #[error("session not found: {0}")]
     SessionNotFound(String),
+    #[error("attention not found: {0}")]
+    AttentionNotFound(String),
     #[error("task not found: {0}")]
     TaskNotFound(String),
     #[error("task claim conflict: {0}")]
@@ -67,6 +69,7 @@ impl ControlPlaneState {
                     .with_workspace_root("/tmp/demo")
                     .with_base_root("."),
             ],
+            retry_queue: vec![],
         });
         Self { snapshot }
     }
@@ -75,8 +78,12 @@ impl ControlPlaneState {
         &self.snapshot
     }
 
+    pub fn snapshot_mut(&mut self) -> &mut AppSnapshot {
+        &mut self.snapshot
+    }
+
     pub fn sync_from_runtime(&mut self, runtime_sessions: &[RuntimeSessionSnapshot]) {
-        let previous_focus = self.snapshot.app.focused_session_id.clone();
+        let previous_focus = self.snapshot.ops.app.focused_session_id.clone();
         let previous_manual: BTreeMap<String, String> = self
             .snapshot
             .sessions
@@ -137,12 +144,18 @@ impl ControlPlaneState {
                         .copied()
                         .unwrap_or(ClaimState::None),
                     adapter_kind: adapter_kind_for_launch(&session.launch.program),
+                    provider_id: None,
+                    model_id: None,
+                    dispatch_reason: None,
                     title,
                     cwd: current_directory.clone(),
                     workspace_root: current_directory.clone(),
                     base_root: ".".to_string(),
                     branch: session.shell_metadata.branch.clone(),
                     latest_summary: session.shell_metadata.last_command.clone(),
+                    latest_commentary: None,
+                    commentary_updated_at: None,
+                    active_window_title: None,
                     unread_count: 0,
                     last_activity_at: None,
                     focus_state: if previous_focus.as_deref() == Some(session.session_id.as_str()) {
@@ -200,16 +213,16 @@ impl ControlPlaneState {
             last_sync_at: None,
             health: "ok".to_string(),
         };
-        let attention = derive_attention(&workflow, &sessions);
+        let retry_queue = Vec::new();
+        let attention = derive_attention(&workflow, &sessions, &retry_queue);
+        let queued_claim_count = sessions
+            .iter()
+            .filter(|session| session.claim_state == ClaimState::Claimed)
+            .count() as u32;
 
-        self.snapshot = AppSnapshot {
-            meta: AppSnapshotMeta {
-                snapshot_rev: self.snapshot.meta.snapshot_rev.saturating_add(1),
-                runtime_rev: self.snapshot.meta.runtime_rev.saturating_add(1),
-                projection_rev: self.snapshot.meta.projection_rev.saturating_add(1),
-                snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
-            },
-            ops: OpsSummary {
+        let mut snapshot = AppSnapshot::new(workflow.clone(), tracker.clone())
+            .with_automation(OpsSummary {
+                status: "running".to_string(),
                 cadence_ms: 15_000,
                 last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
                 last_reconcile_at: None,
@@ -218,28 +231,28 @@ impl ControlPlaneState {
                     .filter(|session| session.runtime_state == SessionRuntimeState::Running)
                     .count() as u32,
                 max_slots: sessions.len().max(1) as u32,
-                retry_queue_count: 0,
-                queued_claim_count: sessions
-                    .iter()
-                    .filter(|session| session.claim_state == ClaimState::Claimed)
-                    .count() as u32,
-                workflow_health: workflow.state,
-                tracker_health: tracker.health.clone(),
+                retry_due_count: 0,
+                queued_claim_count,
                 paused: false,
-            },
-            workflow,
-            tracker,
-            app: AppState {
+            })
+            .with_app_state(AppState {
                 active_route: "project_focus".to_string(),
                 focused_session_id,
                 degraded_flags: Vec::new(),
-            },
-            projects,
-            sessions,
-            attention,
-            retry_queue: Vec::new(),
-            warnings: Vec::<WarningSummary>::new(),
+            });
+        snapshot.meta = AppSnapshotMeta {
+            snapshot_rev: self.snapshot.meta.snapshot_rev.saturating_add(1),
+            runtime_rev: self.snapshot.meta.runtime_rev.saturating_add(1),
+            projection_rev: self.snapshot.meta.projection_rev.saturating_add(1),
+            snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
         };
+        snapshot.projects = projects;
+        snapshot.sessions = sessions;
+        snapshot.attention = attention;
+        snapshot.retry_queue = retry_queue;
+        snapshot.warnings = Vec::<WarningSummary>::new();
+
+        self.snapshot = snapshot;
     }
 
     pub fn focus_session(&mut self, session_id: &str) -> Result<(), ControlPlaneError> {
@@ -329,46 +342,67 @@ impl ControlPlaneState {
 
         Ok(())
     }
+
+    pub fn resolve_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
+        if !crate::attention::resolve_attention(&mut self.snapshot, attention_id) {
+            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+        }
+        bump_projection_meta(&mut self.snapshot);
+        Ok(())
+    }
+
+    pub fn dismiss_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
+        if !crate::attention::dismiss_attention(&mut self.snapshot, attention_id) {
+            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+        }
+        bump_projection_meta(&mut self.snapshot);
+        Ok(())
+    }
+
+    pub fn snooze_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
+        if !crate::attention::snooze_attention(&mut self.snapshot, attention_id) {
+            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+        }
+        bump_projection_meta(&mut self.snapshot);
+        Ok(())
+    }
 }
 
 impl Default for ControlPlaneState {
     fn default() -> Self {
         Self {
-            snapshot: AppSnapshot {
-                meta: AppSnapshotMeta {
-                    snapshot_rev: 1,
-                    runtime_rev: 1,
-                    projection_rev: 1,
-                    snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
-                },
-                ops: OpsSummary {
+            snapshot: {
+                let mut snapshot = AppSnapshot::new(
+                    empty_workflow_status(),
+                    TrackerStatus {
+                        state: "local_only".to_string(),
+                        last_sync_at: None,
+                        health: "ok".to_string(),
+                    },
+                )
+                .with_automation(OpsSummary {
+                    status: "running".to_string(),
                     cadence_ms: 15_000,
                     last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
                     last_reconcile_at: None,
                     running_slots: 0,
                     max_slots: 1,
-                    retry_queue_count: 0,
+                    retry_due_count: 0,
                     queued_claim_count: 0,
-                    workflow_health: WorkflowHealth::None,
-                    tracker_health: "ok".to_string(),
                     paused: false,
-                },
-                workflow: empty_workflow_status(),
-                tracker: TrackerStatus {
-                    state: "local_only".to_string(),
-                    last_sync_at: None,
-                    health: "ok".to_string(),
-                },
-                app: AppState {
+                })
+                .with_app_state(AppState {
                     active_route: "project_focus".to_string(),
                     focused_session_id: None,
                     degraded_flags: Vec::new(),
-                },
-                projects: Vec::new(),
-                sessions: Vec::new(),
-                attention: Vec::new(),
-                retry_queue: Vec::new(),
-                warnings: Vec::new(),
+                });
+                snapshot.meta = AppSnapshotMeta {
+                    snapshot_rev: 1,
+                    runtime_rev: 1,
+                    projection_rev: 1,
+                    snapshot_at: Some("2026-03-22T00:00:00Z".to_string()),
+                };
+                snapshot
             },
         }
     }

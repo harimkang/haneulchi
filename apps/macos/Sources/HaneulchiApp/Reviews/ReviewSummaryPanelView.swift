@@ -20,31 +20,7 @@ struct ReviewSummaryPanelView: View {
             if let item {
                 Text(item.title)
                     .font(HaneulchiTypography.heading(20))
-                Text(item.summary)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
-
-                if !item.touchedFiles.isEmpty {
-                    Text("Touched files: \(item.touchedFiles.joined(separator: ", "))")
-                        .font(HaneulchiTypography.caption)
-                }
-                if let diffSummary = item.diffSummary {
-                    Text("Diff: \(diffSummary)")
-                        .font(HaneulchiTypography.caption)
-                }
-                if let testsSummary = item.testsSummary {
-                    Text("Tests: \(testsSummary)")
-                        .font(HaneulchiTypography.caption)
-                }
-                if let commandSummary = item.commandSummary {
-                    Text("Commands: \(commandSummary)")
-                        .font(HaneulchiTypography.caption)
-                }
-                if !item.warnings.isEmpty {
-                    Text("Warnings: \(item.warnings.joined(separator: ", "))")
-                        .font(HaneulchiTypography.caption)
-                        .foregroundStyle(HaneulchiChrome.Colors.warning)
-                }
+                ReviewEvidencePackView(model: ReviewEvidencePackModel(item: item))
 
                 TaskTimelineSection(title: "Audit Timeline", entries: item.timeline)
 

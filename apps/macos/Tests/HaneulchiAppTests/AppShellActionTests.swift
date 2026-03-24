@@ -2,6 +2,14 @@ import Foundation
 import Testing
 @testable import HaneulchiApp
 
+private final class SendableBox<T>: @unchecked Sendable {
+    var value: T
+
+    init(_ value: T) {
+        self.value = value
+    }
+}
+
 @MainActor
 @Test("file selection intent routes back to project focus and records a visible shell notice")
 func fileSelectionActionUsesSharedDispatcher() async throws {
@@ -155,6 +163,426 @@ func jumpToLatestUnreadUsesProjectedAttention() async throws {
 
     #expect(model.selectedRoute == .attentionCenter)
     #expect(model.transientNotice?.contains("Preset binaries missing") == true)
+}
+
+@MainActor
+@Test("notification drawer toggles from shell state")
+func notificationDrawerToggleUpdatesPresentationState() async throws {
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory
+    )
+
+    #expect(model.isNotificationDrawerPresented == false)
+
+    await model.perform(.toggleNotificationDrawer)
+    #expect(model.isNotificationDrawerPresented == true)
+
+    await model.perform(.dismissNotificationDrawer)
+    #expect(model.isNotificationDrawerPresented == false)
+}
+
+@MainActor
+@Test("quick dispatch overlay can open from control tower and dismiss after send")
+func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async throws {
+    let sent = SendableBox<[(String, String?, String)]>([])
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+                app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
+                projects: [],
+                sessions: [
+                    .init(
+                        sessionID: "ses_dispatch",
+                        title: "Dispatch target",
+                        currentDirectory: "/tmp/demo",
+                        mode: .structuredAdapter,
+                        runtimeState: .running,
+                        manualControlState: .none,
+                        dispatchState: .dispatchable,
+                        unreadCount: 0,
+                        projectID: "proj_demo",
+                        focusState: .focused
+                    )
+                ],
+                attention: [],
+                retryQueue: [],
+                warnings: []
+            )
+        },
+        dispatchSend: { sent.value.append(($0, $1, $2)) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.presentQuickDispatch(.controlTower))
+
+    #expect(model.quickDispatchComposer != nil)
+    #expect(model.quickDispatchOrigin == .controlTower)
+
+    await model.perform(.dispatchSend(targetSessionID: "ses_dispatch", taskID: nil, message: "run tests"))
+
+    #expect(sent.value.count == 1)
+    #expect(model.quickDispatchComposer == nil)
+}
+
+@MainActor
+@Test("quick dispatch new adapter target opens a prefilled new session sheet instead of dispatching a synthetic session id")
+func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
+    let sent = SendableBox<[(String, String?, String)]>([])
+    let registry = PresetRegistry(
+        presets: [
+            .init(
+                id: "codex",
+                title: "Codex",
+                binary: "codex",
+                defaultArgs: ["--sandbox", "workspace-write"],
+                capabilityFlags: ["agent", "dispatch"],
+                requiresShellIntegration: false,
+                installState: .installed
+            )
+        ]
+    )
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+                app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
+                projects: [],
+                sessions: [
+                    .init(
+                        sessionID: "ses_dispatch",
+                        title: "Dispatch target",
+                        currentDirectory: "/tmp/demo",
+                        mode: .structuredAdapter,
+                        runtimeState: .running,
+                        manualControlState: .none,
+                        dispatchState: .dispatchable,
+                        unreadCount: 0,
+                        projectID: "proj_demo",
+                        adapterKind: "codex",
+                        focusState: .focused
+                    )
+                ],
+                attention: [],
+                retryQueue: [],
+                warnings: []
+            )
+        },
+        dispatchSend: { sent.value.append(($0, $1, $2)) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        presetRegistry: registry,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.presentQuickDispatch(.controlTower))
+    await model.perform(.submitQuickDispatch(targetID: "new:codex", message: "run tests"))
+
+    #expect(sent.value.isEmpty)
+    #expect(model.quickDispatchComposer == nil)
+    #expect(model.isNewSessionSheetPresented == true)
+    #expect(model.newSessionSheetViewModel?.selectedPresetID == "codex")
+}
+
+@MainActor
+@Test("pending quick dispatch replays onto the launched live session once the terminal reports its real session id")
+func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
+    let sent = SendableBox<[(String, String?, String)]>([])
+    let restoreStore = TerminalSessionRestoreStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let registry = PresetRegistry(
+        presets: [
+            .init(
+                id: "codex",
+                title: "Codex",
+                binary: "codex",
+                defaultArgs: ["--sandbox", "workspace-write"],
+                capabilityFlags: ["agent", "dispatch"],
+                requiresShellIntegration: false,
+                installState: .installed
+            )
+        ]
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        dispatchSend: { sent.value.append(($0, $1, $2)) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: restoreStore,
+        preferencesStore: .inMemory,
+        presetRegistry: registry,
+        coreBridge: bridge
+    )
+
+    await model.perform(.submitQuickDispatch(targetID: "new:codex", message: "run tests"))
+    let descriptor = SessionLaunchDescriptor(
+        mode: .preset,
+        title: "Codex",
+        presetID: "codex",
+        restoreBundle: .init(
+            launch: .init(
+                program: "codex",
+                args: ["--sandbox", "workspace-write"],
+                currentDirectory: "/tmp/demo",
+                geometry: .defaultShell
+            ),
+            geometry: .defaultShell
+        ),
+        workspaceRoot: nil,
+        workflowSummary: nil
+    )
+
+    await model.perform(.launchSession(descriptor))
+    await model.perform(.terminalSessionReady("ses_live"))
+
+    #expect(sent.value.count == 1)
+    #expect(sent.value.first?.0 == "ses_live")
+    #expect(sent.value.first?.1 == nil)
+    #expect(sent.value.first?.2 == "run tests")
+}
+
+@MainActor
+@Test("reconcile automation requests the live bridge and refreshes shell snapshot")
+func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async throws {
+    let reconcileCalls = SendableBox(0)
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(
+                    lastReconcileAt: reconcileCalls.value == 0 ? nil : "2026-03-23T18:00:00Z",
+                    runningSlots: 1,
+                    maxSlots: 2,
+                    retryQueueCount: 0,
+                    workflowHealth: .ok
+                ),
+                app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
+                projects: [],
+                sessions: [],
+                attention: [],
+                retryQueue: [],
+                warnings: []
+            )
+        },
+        reconcileAutomation: {
+            reconcileCalls.value += 1
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    #expect(model.shellSnapshot?.ops.lastReconcileAt == nil)
+
+    await model.perform(.reconcileAutomation)
+
+    #expect(reconcileCalls.value == 1)
+    #expect(model.shellSnapshot?.ops.lastReconcileAt == "2026-03-23T18:00:00Z")
+}
+
+@MainActor
+@Test("attention actions call the live bridge closures")
+func attentionActionsInvokeBridge() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let resolved = SendableBox<[String]>([])
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        resolveAttention: { resolved.value.append($0) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .attentionCenter,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.resolveAttention("att_waiting"))
+
+    #expect(resolved.value == ["att_waiting"])
+}
+
+@MainActor
+@Test("quick dispatch send calls the live bridge closure")
+func quickDispatchSendInvokesBridge() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let sent = SendableBox<[(String, String?, String)]>([])
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        dispatchSend: { sent.value.append(($0, $1, $2)) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.dispatchSend(targetSessionID: "ses_api", taskID: "task_ready", message: "run tests"))
+
+    #expect(sent.value.count == 1)
+    #expect(sent.value.first?.0 == "ses_api")
+    #expect(sent.value.first?.1 == "task_ready")
+    #expect(sent.value.first?.2 == "run tests")
+}
+
+@MainActor
+@Test("export snapshot writes the current shell snapshot to disk")
+func exportSnapshotWritesFile() async throws {
+    let exportURL = FileManager.default.temporaryDirectory
+        .appendingPathComponent("haneulchi-export-\(UUID().uuidString).json")
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot.empty(activeRoute: .projectFocus)
+        },
+        stateSnapshotJSON: {
+            #"{"meta":{"snapshot_rev":1,"runtime_rev":1,"projection_rev":1,"snapshot_at":"2026-03-23T00:00:00Z"}}"#
+        }
+    )
+
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .settings,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    setenv("HC_EXPORT_SNAPSHOT_PATH", exportURL.path, 1)
+    defer {
+        try? FileManager.default.removeItem(at: exportURL)
+        unsetenv("HC_EXPORT_SNAPSHOT_PATH")
+    }
+
+    await model.perform(.exportSnapshot)
+
+    let exported = try String(contentsOf: exportURL, encoding: .utf8)
+    #expect(exported.contains("\"meta\""))
+    #expect(model.transientNotice?.contains(exportURL.lastPathComponent) == true)
 }
 
 @MainActor

@@ -2,6 +2,14 @@ import Foundation
 import Testing
 @testable import HaneulchiApp
 
+private final class SendableBox<T>: @unchecked Sendable {
+    var value: T
+
+    init(_ value: T) {
+        self.value = value
+    }
+}
+
 @Test("app shell shows welcome launcher until a project is selected")
 @MainActor
 func appShellBootstrapsLauncherWhenNoProjectExists() throws {
@@ -205,4 +213,72 @@ func liveDefaultCanUseCoreBridgeSnapshot() async throws {
 
     #expect(model.shellSnapshot?.app.focusedSessionID == "bridge-session")
     #expect(model.shellSnapshot?.sessions.first?.sessionID == "bridge-session")
+}
+
+@MainActor
+@Test("app shell can request local control server startup through the bridge")
+func appShellRequestsLocalControlServerStartup() async throws {
+    let started = SendableBox<[Bool]>([])
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        startLocalControlServer: { started.value.append(true) }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.startLocalControlServerIfNeeded()
+
+    #expect(started.value == [true])
+}
+
+@MainActor
+@Test("local control server startup surfaces socket ownership diagnostics")
+func appShellSurfacesLocalControlServerStartupFailure() async throws {
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        startLocalControlServer: {
+            throw CoreBridgeError.operationFailed("socket_already_owned:/tmp/haneulchi/control.sock")
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.startLocalControlServerIfNeeded()
+
+    #expect(model.transientNotice?.contains("Local control API") == true)
+    #expect(model.transientNotice?.contains("/tmp/haneulchi/control.sock") == true)
 }

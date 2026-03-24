@@ -1,8 +1,6 @@
-pub fn reconcile_now_json() -> Result<String, String> {
-    let snapshot = {
-        let control_plane = hc_control_plane::lock_shared_control_plane()?;
-        control_plane.snapshot().clone()
-    };
+pub fn reconcile_now_json(project_id: Option<&str>) -> Result<String, String> {
+    let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
+    let snapshot = control_plane.snapshot().clone();
     let live_session_ids = snapshot
         .sessions
         .iter()
@@ -20,15 +18,20 @@ pub fn reconcile_now_json() -> Result<String, String> {
         .collect::<Vec<_>>();
 
     let result = hc_control_plane::shared_scheduler_tick(
-        snapshot.ops.running_slots,
-        snapshot.ops.max_slots,
+        snapshot.ops.automation.running_slots,
+        snapshot.ops.automation.max_slots,
         &live_session_ids,
     )
         .map_err(|error| error.to_string())?;
+    let reconcile = hc_control_plane::reconcile_snapshot(control_plane.snapshot_mut());
+    let updated_snapshot = control_plane.snapshot().clone();
     serde_json::to_string(&serde_json::json!({
         "ok": true,
         "action": "reconcile_requested",
-        "result": result
+        "project_id": project_id,
+        "result": result,
+        "reconcile": reconcile,
+        "snapshot": updated_snapshot
     }))
     .map_err(|error| error.to_string())
 }

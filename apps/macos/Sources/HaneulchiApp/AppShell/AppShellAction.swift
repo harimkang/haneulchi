@@ -2,12 +2,25 @@ import Foundation
 
 enum AppShellAction: Equatable, Sendable {
     case selectRoute(Route)
+    case toggleNotificationDrawer
+    case dismissNotificationDrawer
+    case refreshShellSnapshot
     case openSettings
     case presentWorkflowDrawer
     case dismissWorkflowDrawer
     case presentTaskContextDrawer
     case dismissTaskContextDrawer
+    case reconcileAutomation
     case reloadWorkflow
+    case resolveAttention(String)
+    case dismissAttention(String)
+    case snoozeAttention(String)
+    case presentQuickDispatch(Route)
+    case dismissQuickDispatch
+    case submitQuickDispatch(targetID: String, message: String)
+    case terminalSessionReady(String)
+    case dispatchSend(targetSessionID: String, taskID: String?, message: String)
+    case exportSnapshot
     case presentNewSessionSheet
     case dismissNewSessionSheet
     case launchSession(SessionLaunchDescriptor)

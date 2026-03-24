@@ -19,8 +19,8 @@ pub fn task_move_json(task_id: &str, column: &str) -> Result<String, String> {
     serde_json::to_string(&result).map_err(|error| error.to_string())
 }
 
-pub fn task_create_json(project_id: &str, title: &str) -> Result<String, String> {
-    let task = shared_create_task(project_id, title).map_err(|error| error.to_string())?;
+pub fn task_create_json(project_id: &str, title: &str, _priority: Option<&str>) -> Result<String, String> {
+    let task = shared_create_task(project_id, title, _priority).map_err(|error| error.to_string())?;
     serde_json::to_string(&task).map_err(|error| error.to_string())
 }
 

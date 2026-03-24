@@ -43,6 +43,11 @@ struct ReviewQueueView: View {
                                     Text(item.summary)
                                         .font(HaneulchiTypography.caption)
                                         .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                                    if let hookSummary = item.hookSummary {
+                                        Text(hookSummary)
+                                            .font(HaneulchiTypography.caption)
+                                            .foregroundStyle(HaneulchiChrome.Colors.warning)
+                                    }
                                 }
                                 .padding(16)
                                 .frame(maxWidth: .infinity, alignment: .leading)

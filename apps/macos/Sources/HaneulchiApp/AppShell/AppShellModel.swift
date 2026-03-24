@@ -18,12 +18,17 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var recentProjects: [LauncherProject]
     @Published private(set) var readinessReport: ReadinessReport?
     @Published private(set) var shellSnapshot: AppShellSnapshot?
+    @Published private(set) var isNotificationDrawerPresented = false
     @Published private(set) var pendingProjectFocusFilePath: String?
     @Published private(set) var isWorkflowDrawerPresented = false
     @Published private(set) var workflowStatus: WorkflowStatusPayload?
     @Published private(set) var settingsStatusViewModel: SettingsStatusViewModel?
     @Published private(set) var isTaskContextDrawerPresented = false
     @Published private(set) var taskContextDrawerModel: TaskDrawerModel?
+    @Published private(set) var quickDispatchComposer: QuickDispatchComposerViewModel?
+    @Published private(set) var quickDispatchOrigin: Route?
+    @Published private(set) var quickDispatchTaskID: String?
+    @Published private(set) var projectFocusRefreshToken = 0
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -41,6 +46,7 @@ final class AppShellModel: ObservableObject {
     private let inventorySearchProjectionStore: InventorySearchProjectionStore
     private let presetRegistry: PresetRegistry
     private let coreBridge: CoreBridge?
+    private var pendingQuickDispatchReplay: PendingQuickDispatchReplay?
 
     init(
         entrySurface: EntrySurface,
@@ -59,12 +65,17 @@ final class AppShellModel: ObservableObject {
         presetRegistry: PresetRegistry? = nil,
         coreBridge: CoreBridge? = nil,
         shellSnapshot: AppShellSnapshot? = nil,
+        isNotificationDrawerPresented: Bool = false,
         pendingProjectFocusFilePath: String? = nil,
         isWorkflowDrawerPresented: Bool = false,
         workflowStatus: WorkflowStatusPayload? = nil,
         settingsStatusViewModel: SettingsStatusViewModel? = nil,
         isTaskContextDrawerPresented: Bool = false,
         taskContextDrawerModel: TaskDrawerModel? = nil,
+        quickDispatchComposer: QuickDispatchComposerViewModel? = nil,
+        quickDispatchOrigin: Route? = nil,
+        quickDispatchTaskID: String? = nil,
+        projectFocusRefreshToken: Int = 0,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -77,12 +88,17 @@ final class AppShellModel: ObservableObject {
         self.recentProjects = recentProjects
         self.readinessReport = readinessReport
         self.shellSnapshot = shellSnapshot
+        self.isNotificationDrawerPresented = isNotificationDrawerPresented
         self.pendingProjectFocusFilePath = pendingProjectFocusFilePath
         self.isWorkflowDrawerPresented = isWorkflowDrawerPresented
         self.workflowStatus = workflowStatus
         self.settingsStatusViewModel = settingsStatusViewModel
         self.isTaskContextDrawerPresented = isTaskContextDrawerPresented
         self.taskContextDrawerModel = taskContextDrawerModel
+        self.quickDispatchComposer = quickDispatchComposer
+        self.quickDispatchOrigin = quickDispatchOrigin
+        self.quickDispatchTaskID = quickDispatchTaskID
+        self.projectFocusRefreshToken = projectFocusRefreshToken
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -161,12 +177,17 @@ final class AppShellModel: ObservableObject {
                 readinessRunner: readinessRunner,
                 coreBridge: coreBridge,
                 shellSnapshot: model.shellSnapshot,
+                isNotificationDrawerPresented: model.isNotificationDrawerPresented,
                 pendingProjectFocusFilePath: model.pendingProjectFocusFilePath,
                 isWorkflowDrawerPresented: model.isWorkflowDrawerPresented,
                 workflowStatus: model.workflowStatus,
                 settingsStatusViewModel: model.settingsStatusViewModel,
                 isTaskContextDrawerPresented: model.isTaskContextDrawerPresented,
                 taskContextDrawerModel: model.taskContextDrawerModel,
+                quickDispatchComposer: model.quickDispatchComposer,
+                quickDispatchOrigin: model.quickDispatchOrigin,
+                quickDispatchTaskID: model.quickDispatchTaskID,
+                projectFocusRefreshToken: model.projectFocusRefreshToken,
                 isNewSessionSheetPresented: model.isNewSessionSheetPresented,
                 newSessionSheetViewModel: model.newSessionSheetViewModel,
                 isCommandPalettePresented: model.isCommandPalettePresented,
@@ -263,6 +284,12 @@ final class AppShellModel: ObservableObject {
         switch action {
         case let .selectRoute(route):
             setSelectedRoute(route)
+        case .toggleNotificationDrawer:
+            isNotificationDrawerPresented.toggle()
+        case .dismissNotificationDrawer:
+            isNotificationDrawerPresented = false
+        case .refreshShellSnapshot:
+            break
         case .openSettings:
             if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
                 workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
@@ -281,6 +308,14 @@ final class AppShellModel: ObservableObject {
             isTaskContextDrawerPresented = true
         case .dismissTaskContextDrawer:
             isTaskContextDrawerPresented = false
+            taskContextDrawerModel = nil
+        case .reconcileAutomation:
+            do {
+                try coreBridge?.reconcileAutomation()
+                transientNotice = "Reconcile requested."
+            } catch {
+                transientNotice = "Reconcile unavailable."
+            }
         case .reloadWorkflow:
             guard let selectedProject, let coreBridge else {
                 return
@@ -294,44 +329,88 @@ final class AppShellModel: ObservableObject {
             if isTaskContextDrawerPresented {
                 taskContextDrawerModel = makeTaskContextDrawerModel()
             }
-        case .presentNewSessionSheet:
-            let resolvedWorkflowSummary = selectedProject.flatMap { project in
-                fetchWorkflowStatus(for: project)?.workflow.map {
-                    WorkflowLaunchSummary(
-                        name: $0.name ?? project.name,
-                        strategy: $0.strategy ?? "worktree",
-                        baseRoot: $0.baseRoot ?? ".",
-                        reviewChecklist: $0.reviewChecklist,
-                        allowedAgents: $0.allowedAgents
-                    )
-                }
+        case let .resolveAttention(attentionID):
+            try? coreBridge?.resolveAttention(attentionID)
+            transientNotice = "Resolved attention: \(attentionID)"
+        case let .dismissAttention(attentionID):
+            try? coreBridge?.dismissAttention(attentionID)
+            transientNotice = "Dismissed attention: \(attentionID)"
+        case let .snoozeAttention(attentionID):
+            try? coreBridge?.snoozeAttention(attentionID)
+            transientNotice = "Snoozed attention: \(attentionID)"
+        case let .presentQuickDispatch(origin):
+            if let snapshot = shellSnapshot {
+                quickDispatchComposer = QuickDispatchComposerViewModel(snapshot: snapshot, origin: origin)
+                quickDispatchOrigin = origin
+                quickDispatchTaskID = resolveQuickDispatchTaskID(origin: origin, snapshot: snapshot)
             }
-            newSessionSheetViewModel = NewSessionSheetViewModel(
-                selectedProjectRoot: selectedProject?.rootPath,
-                selectedTaskID: taskContextDrawerModel?.taskID,
-                registry: presetRegistry,
-                workflowSummary: resolvedWorkflowSummary,
-                provisionIsolatedWorkspace: { [coreBridge] projectRoot, taskID in
-                    guard let coreBridge else {
-                        throw NewSessionSheetError.isolatedProvisionUnavailable
-                    }
-                    return try coreBridge.provisionTaskWorkspace(
-                        projectRoot,
-                        taskID,
-                        resolvedWorkflowSummary?.baseRoot
-                    )
-                }
-            )
-            isNewSessionSheetPresented = true
+        case .dismissQuickDispatch:
+            quickDispatchComposer = nil
+            quickDispatchOrigin = nil
+            quickDispatchTaskID = nil
+        case let .submitQuickDispatch(targetID, message):
+            if let adapterKind = targetID.split(separator: ":", maxSplits: 1).dropFirst().first {
+                let taskID = quickDispatchTaskID
+                quickDispatchComposer = nil
+                quickDispatchOrigin = nil
+                quickDispatchTaskID = nil
+                pendingQuickDispatchReplay = PendingQuickDispatchReplay(
+                    taskID: taskID,
+                    message: message
+                )
+                presentNewSessionSheet(prefillPresetID: presetID(for: String(adapterKind)))
+                transientNotice = "Open a new \(adapterKind) session, then continue quick dispatch."
+            } else {
+                pendingQuickDispatchReplay = nil
+                try? coreBridge?.dispatchSend(targetID, quickDispatchTaskID, message)
+                transientNotice = "Dispatch sent to \(targetID)"
+                quickDispatchComposer = nil
+                quickDispatchOrigin = nil
+                quickDispatchTaskID = nil
+            }
+        case let .terminalSessionReady(sessionID):
+            if let pendingQuickDispatchReplay {
+                try? coreBridge?.dispatchSend(
+                    sessionID,
+                    pendingQuickDispatchReplay.taskID,
+                    pendingQuickDispatchReplay.message
+                )
+                self.pendingQuickDispatchReplay = nil
+                transientNotice = "Dispatch sent to \(sessionID)"
+            }
+        case let .dispatchSend(targetSessionID, taskID, message):
+            pendingQuickDispatchReplay = nil
+            try? coreBridge?.dispatchSend(targetSessionID, taskID ?? quickDispatchTaskID, message)
+            transientNotice = "Dispatch sent to \(targetSessionID)"
+            quickDispatchComposer = nil
+            quickDispatchOrigin = nil
+            quickDispatchTaskID = nil
+        case .exportSnapshot:
+            if let coreBridge, let payload = try? coreBridge.stateSnapshotJSON() {
+                let exportURL = snapshotExportURL()
+                try? FileManager.default.createDirectory(
+                    at: exportURL.deletingLastPathComponent(),
+                    withIntermediateDirectories: true
+                )
+                try? payload.write(to: exportURL, atomically: true, encoding: .utf8)
+                transientNotice = "Snapshot exported to \(exportURL.lastPathComponent)"
+            } else {
+                transientNotice = "Snapshot export unavailable."
+            }
+        case .presentNewSessionSheet:
+            presentNewSessionSheet(prefillPresetID: nil)
         case .dismissNewSessionSheet:
             isNewSessionSheetPresented = false
             newSessionSheetViewModel = nil
+            pendingQuickDispatchReplay = nil
         case let .launchSession(descriptor):
             do {
                 let bootstrappedDescriptor = try bootstrapIfNeeded(descriptor)
                 var bundles = try restoreStore.load()
-                bundles.append(bootstrappedDescriptor.restoreBundle)
+                bundles.removeAll(where: { $0 == bootstrappedDescriptor.restoreBundle })
+                bundles.insert(bootstrappedDescriptor.restoreBundle, at: 0)
                 try restoreStore.save(bundles)
+                projectFocusRefreshToken &+= 1
                 setSelectedRoute(.projectFocus)
                 transientNotice = "Session launched: \(bootstrappedDescriptor.title)"
                 isNewSessionSheetPresented = false
@@ -382,7 +461,18 @@ final class AppShellModel: ObservableObject {
                 await refreshShellSnapshot()
             }
             if let latestAttention = shellSnapshot?.attention.first {
-                setSelectedRoute(latestAttention.targetRoute)
+                if let sessionID = latestAttention.targetSessionID {
+                    setSelectedRoute(.projectFocus)
+                    if let coreBridge {
+                        do {
+                            try coreBridge.focusSession(sessionID)
+                        } catch {
+                            transientNotice = "Focus requested for session \(sessionID)"
+                        }
+                    }
+                } else {
+                    setSelectedRoute(latestAttention.targetRoute)
+                }
                 transientNotice = "Jumped to latest unread: \(latestAttention.headline)"
             }
         case .retryReadiness:
@@ -421,6 +511,14 @@ final class AppShellModel: ObservableObject {
                     await self.refreshShellSnapshot()
                 }
             }
+        }
+    }
+
+    func startLocalControlServerIfNeeded() async {
+        do {
+            try coreBridge?.startLocalControlServer()
+        } catch {
+            transientNotice = localControlServerStartupNotice(for: error)
         }
     }
 
@@ -475,7 +573,8 @@ final class AppShellModel: ObservableObject {
             report: readinessReport,
             workflowStatus: workflowStatus,
             presetRegistry: presetRegistry,
-            runtimeInfo: try? coreBridge?.runtimeInfo()
+            runtimeInfo: try? coreBridge?.runtimeInfo(),
+            snapshot: shellSnapshot
         )
     }
 
@@ -528,6 +627,94 @@ final class AppShellModel: ObservableObject {
         }
 
         return TaskDrawerModel.resolve(from: snapshot, workflowStatus: mergedWorkflowStatus)
+    }
+
+    private func presentNewSessionSheet(prefillPresetID: String?) {
+        let resolvedWorkflowSummary = selectedProject.flatMap { project in
+            fetchWorkflowStatus(for: project)?.workflow.map {
+                WorkflowLaunchSummary(
+                    name: $0.name ?? project.name,
+                    strategy: $0.strategy ?? "worktree",
+                    baseRoot: $0.baseRoot ?? ".",
+                    reviewChecklist: $0.reviewChecklist,
+                    allowedAgents: $0.allowedAgents
+                )
+            }
+        }
+        newSessionSheetViewModel = NewSessionSheetViewModel(
+            selectedProjectRoot: selectedProject?.rootPath,
+            selectedTaskID: taskContextDrawerModel?.taskID,
+            registry: presetRegistry,
+            workflowSummary: resolvedWorkflowSummary,
+            preferredPresetID: prefillPresetID,
+            provisionIsolatedWorkspace: { [coreBridge] projectRoot, taskID in
+                guard let coreBridge else {
+                    throw NewSessionSheetError.isolatedProvisionUnavailable
+                }
+                return try coreBridge.provisionTaskWorkspace(
+                    projectRoot,
+                    taskID,
+                    resolvedWorkflowSummary?.baseRoot
+                )
+            }
+        )
+        isNewSessionSheetPresented = true
+    }
+
+    private func resolveQuickDispatchTaskID(origin: Route, snapshot: AppShellSnapshot) -> String? {
+        switch origin {
+        case .projectFocus, .taskBoard:
+            if let taskID = taskContextDrawerModel?.taskID {
+                return taskID
+            }
+            return focusedSession(from: snapshot)?.taskID
+        case .controlTower, .reviewQueue, .attentionCenter, .settings:
+            return nil
+        }
+    }
+
+    private func focusedSession(from snapshot: AppShellSnapshot) -> AppShellSnapshot.SessionSummary? {
+        snapshot.sessions.first(where: {
+            $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
+        })
+    }
+
+    private func localControlServerStartupNotice(for error: Error) -> String {
+        guard case let CoreBridgeError.operationFailed(message) = error else {
+            return "Local control API unavailable."
+        }
+
+        if message.hasPrefix("socket_already_owned:") {
+            let socketPath = String(message.dropFirst("socket_already_owned:".count))
+            return "Local control API already owned by another Haneulchi instance at \(socketPath)."
+        }
+
+        if message == "socket_already_owned" {
+            return "Local control API already owned by another Haneulchi instance."
+        }
+
+        return "Local control API unavailable: \(message)"
+    }
+
+    private func presetID(for adapterKind: String) -> String? {
+        let normalized = adapterKind.lowercased()
+        if normalized.contains("claude") {
+            return presetRegistry.preset(id: "claude") != nil ? "claude" : nil
+        }
+        if normalized.contains("codex") {
+            return presetRegistry.preset(id: "codex") != nil ? "codex" : nil
+        }
+        if normalized.contains("gemini") {
+            return presetRegistry.preset(id: "gemini") != nil ? "gemini" : nil
+        }
+        return presetRegistry.presets.first(where: { preset in
+            normalized.contains(preset.id.lowercased()) || preset.id.lowercased().contains(normalized)
+        })?.id
+    }
+
+    private struct PendingQuickDispatchReplay {
+        let taskID: String?
+        let message: String
     }
 
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {
@@ -609,7 +796,7 @@ final class AppShellModel: ObservableObject {
 
         return AppShellSnapshot(
             meta: bridge.meta,
-            ops: bridge.sessions.isEmpty ? local.ops : bridge.ops,
+            ops: bridge.ops,
             app: .init(
                 activeRoute: selectedRoute,
                 focusedSessionID: bridge.app.focusedSessionID ?? local.app.focusedSessionID,
@@ -623,5 +810,15 @@ final class AppShellModel: ObservableObject {
             workflow: bridge.workflow ?? local.workflow,
             tracker: bridge.tracker ?? local.tracker
         )
+    }
+
+    private func snapshotExportURL() -> URL {
+        if let override = ProcessInfo.processInfo.environment["HC_EXPORT_SNAPSHOT_PATH"] {
+            return URL(fileURLWithPath: override)
+        }
+
+        return FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support/Haneulchi/evidence", isDirectory: true)
+            .appendingPathComponent("exported-snapshot.json")
     }
 }

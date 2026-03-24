@@ -63,6 +63,10 @@ struct SessionStackView: View {
                         .padding(12)
                         .background(row.isFocused ? HaneulchiChrome.Colors.surfaceRaised : HaneulchiChrome.Colors.secondaryPanel)
                         .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .paneAttentionDecoration(
+                            hasAttention: row.signal?.tone == .strong,
+                            hasUnread: row.unreadCount > 0
+                        )
                     }
                     .buttonStyle(.plain)
 

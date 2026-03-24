@@ -46,19 +46,22 @@ struct SettingsStatusViewModel: Equatable, Sendable {
     let workflowRow: WorkflowRow?
     let presetRows: [PresetRow]
     let automationRows: [AutomationRow]
+    let controlPanel: AutomationControlPanelViewModel?
 
     static let empty = Self(
         report: nil,
         workflowStatus: nil,
         presetRegistry: .init(presets: []),
-        runtimeInfo: nil
+        runtimeInfo: nil,
+        snapshot: nil
     )
 
     init(
         report: ReadinessReport?,
         workflowStatus: WorkflowStatusPayload?,
         presetRegistry: PresetRegistry,
-        runtimeInfo: TerminalBackendDescriptor?
+        runtimeInfo: TerminalBackendDescriptor?,
+        snapshot: AppShellSnapshot?
     ) {
         let checks = report?.checks ?? []
         readinessRows = checks
@@ -118,27 +121,45 @@ struct SettingsStatusViewModel: Equatable, Sendable {
             AutomationRow(
                 id: .cli,
                 title: "hc CLI",
-                statusLabel: "deferred",
-                detail: "CLI install path and version are not surfaced in this build yet.",
-                nextAction: "Open Workflow Contract"
+                statusLabel: snapshot == nil ? "deferred" : "available",
+                detail: snapshot == nil
+                    ? "CLI install path and version are not surfaced in this build yet."
+                    : "CLI parity uses the same local snapshot contract as the Swift shell.",
+                nextAction: snapshot == nil ? "Open Workflow Contract" : nil
             ),
             AutomationRow(
                 id: .workflowWatch,
                 title: "Workflow Watch",
-                statusLabel: "deferred",
-                detail: workflowStatus.map {
-                    "Workflow contract loaded from \($0.path). Watch diagnostics will surface here once runtime watch state is exported."
-                } ?? "Workflow watch state is not available until a repo workflow is loaded.",
-                nextAction: workflowStatus == nil ? "Open Workflow Contract" : nil
+                statusLabel: snapshot?.workflow?.state.rawValue
+                    ?? workflowStatus?.state.rawValue
+                    ?? "deferred",
+                detail: snapshot?.workflow.map {
+                    var parts = ["workflow: \($0.path)"]
+                    if let lastReloadAt = $0.lastReloadAt {
+                        parts.append("last reload: \(lastReloadAt)")
+                    }
+                    if let lastError = $0.lastError {
+                        parts.append("error: \(lastError)")
+                    }
+                    return parts.joined(separator: " · ")
+                }
+                    ?? workflowStatus.map {
+                        "Workflow contract loaded from \($0.path). Watch diagnostics will surface here once runtime watch state is exported."
+                    }
+                    ?? "Workflow watch state is not available until a repo workflow is loaded.",
+                nextAction: snapshot == nil && workflowStatus == nil ? "Open Workflow Contract" : nil
             ),
             AutomationRow(
                 id: .workflowDefaults,
                 title: "Cadence / Slots / Retry Defaults",
-                statusLabel: "deferred",
-                detail: "Workflow cadence, max slots, and retry-cap defaults are not surfaced in this build yet.",
-                nextAction: "Open Workflow Contract"
+                statusLabel: snapshot == nil ? "deferred" : "available",
+                detail: snapshot.map {
+                    "\($0.ops.cadenceMs)ms cadence · \($0.ops.runningSlots)/\($0.ops.maxSlots) slots · \($0.ops.retryQueueCount) retry · workflow \($0.workflow?.state.rawValue ?? "none") · tracker \($0.tracker?.health ?? "unknown")"
+                } ?? "Workflow cadence, max slots, and retry-cap defaults are not surfaced in this build yet.",
+                nextAction: snapshot == nil ? "Open Workflow Contract" : nil
             ),
         ]
+        controlPanel = snapshot.map { AutomationControlPanelViewModel(snapshot: $0, runtimeInfo: runtimeInfo) }
     }
 
     private static func readinessRow(_ check: ReadinessCheck) -> ReadinessRow {

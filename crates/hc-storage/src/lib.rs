@@ -1,18 +1,27 @@
 //! SQLite, artifact store, and Keychain boundary scaffold.
 
+pub mod orchestrator;
+pub mod retry_queue;
 pub mod reviews;
 pub mod schema;
 pub mod tasks;
 pub mod timeline;
+pub mod tracker_bindings;
 pub mod worktrees;
 
 use std::path::Path;
 
 use rusqlite::Connection;
 
+pub use orchestrator::OrchestratorRepository;
+pub use retry_queue::{
+    NewRetryQueueEntry, RetryFailureClass, RetryQueueRepository, advance_retry_state,
+    schedule_retry_entry,
+};
 pub use reviews::{NewReviewItem, ReviewRepository};
 pub use tasks::{NewTaskRecord, TaskRepository, TaskUpdatePatch};
 pub use timeline::{AppendTimelineEvent, TimelineRepository};
+pub use tracker_bindings::TrackerBindingRepository;
 pub use worktrees::{NewWorktreeRecord, WorktreeRecord, WorktreeRepository};
 
 #[derive(Debug, thiserror::Error)]
@@ -29,6 +38,8 @@ pub enum StorageError {
     UnknownTaskColumn(String),
     #[error("unknown task automation mode: {0}")]
     UnknownTaskAutomationMode(String),
+    #[error("unknown claim state: {0}")]
+    UnknownClaimState(String),
     #[error("unknown task claim lifecycle state: {0}")]
     UnknownTaskClaimLifecycleState(String),
     #[error("unknown review status: {0}")]
@@ -66,6 +77,18 @@ impl SqliteStore {
 
     pub fn reviews(&self) -> ReviewRepository<'_> {
         ReviewRepository::new(&self.connection)
+    }
+
+    pub fn retry_queue(&self) -> RetryQueueRepository<'_> {
+        RetryQueueRepository::new(&self.connection)
+    }
+
+    pub fn orchestrator(&self) -> OrchestratorRepository<'_> {
+        OrchestratorRepository::new(&self.connection)
+    }
+
+    pub fn tracker_bindings(&self) -> TrackerBindingRepository<'_> {
+        TrackerBindingRepository::new(&self.connection)
     }
 
     pub fn timeline(&self) -> TimelineRepository<'_> {

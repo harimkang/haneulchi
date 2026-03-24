@@ -19,6 +19,10 @@ pub enum TimelineEventKind {
     ReviewDecided,
     FollowUpCreated,
     DispatchSent,
+    DispatchFailed,
+    RetryQueued,
+    WorkflowReloaded,
+    TrackerBindingUpdated,
     AttentionCreated,
 }
 
@@ -39,6 +43,10 @@ impl TimelineEventKind {
             Self::ReviewDecided => "review_decided",
             Self::FollowUpCreated => "follow_up_created",
             Self::DispatchSent => "dispatch_sent",
+            Self::DispatchFailed => "dispatch_failed",
+            Self::RetryQueued => "retry_queued",
+            Self::WorkflowReloaded => "workflow_reloaded",
+            Self::TrackerBindingUpdated => "tracker_binding_updated",
             Self::AttentionCreated => "attention_created",
         }
     }
@@ -63,6 +71,10 @@ impl FromStr for TimelineEventKind {
             "review_decided" => Ok(Self::ReviewDecided),
             "follow_up_created" => Ok(Self::FollowUpCreated),
             "dispatch_sent" => Ok(Self::DispatchSent),
+            "dispatch_failed" => Ok(Self::DispatchFailed),
+            "retry_queued" => Ok(Self::RetryQueued),
+            "workflow_reloaded" => Ok(Self::WorkflowReloaded),
+            "tracker_binding_updated" => Ok(Self::TrackerBindingUpdated),
             "attention_created" => Ok(Self::AttentionCreated),
             _ => Err(value.to_string()),
         }

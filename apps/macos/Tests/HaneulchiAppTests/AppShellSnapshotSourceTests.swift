@@ -13,27 +13,34 @@ func snapshotDecodesRicherProjectionContract() throws {
         "snapshot_at": "2026-03-22T00:00:00Z"
       },
       "ops": {
-        "running_slots": 1,
-        "max_slots": 4,
-        "retry_queue_count": 2,
-        "workflow_health": "ok"
-      },
-      "workflow": {
-        "state": "ok",
-        "path": "/tmp/demo/WORKFLOW.md",
-        "last_good_hash": "sha256:abc123",
-        "last_reload_at": "2026-03-22T00:00:00Z",
-        "last_error": null
-      },
-      "tracker": {
-        "state": "local_only",
-        "last_sync_at": null,
-        "health": "ok"
-      },
-      "app": {
-        "active_route": "project_focus",
-        "focused_session_id": "ses_demo",
-        "degraded_flags": []
+        "automation": {
+          "status": "running",
+          "cadence_ms": 15000,
+          "last_tick_at": "2026-03-22T00:00:00Z",
+          "last_reconcile_at": null,
+          "running_slots": 1,
+          "max_slots": 4,
+          "retry_due_count": 2,
+          "queued_claim_count": 1,
+          "paused": false
+        },
+        "workflow": {
+          "state": "ok",
+          "path": "/tmp/demo/WORKFLOW.md",
+          "last_good_hash": "sha256:abc123",
+          "last_reload_at": "2026-03-22T00:00:00Z",
+          "last_error": null
+        },
+        "tracker": {
+          "state": "local_only",
+          "last_sync_at": null,
+          "health": "ok"
+        },
+        "app": {
+          "active_route": "project_focus",
+          "focused_session_id": "ses_demo",
+          "degraded_flags": []
+        }
       },
       "projects": [
         {
@@ -69,6 +76,12 @@ func snapshotDecodesRicherProjectionContract() throws {
           "base_root": ".",
           "branch": "main",
           "latest_summary": "Ready",
+          "provider_id": "anthropic",
+          "model_id": "claude-sonnet-4",
+          "dispatch_reason": "dispatchable",
+          "latest_commentary": "Need confirmation before rerun.",
+          "commentary_updated_at": "2026-03-22T00:00:02Z",
+          "active_window_title": "Terminal 1",
           "unread_count": 0,
           "last_activity_at": "2026-03-22T00:00:01Z",
           "focus_state": "focused",
@@ -85,7 +98,17 @@ func snapshotDecodesRicherProjectionContract() throws {
           "attempt": 2,
           "reason_code": "hook_failed",
           "due_at": "2026-03-22T00:10:00Z",
-          "backoff_ms": 30000
+          "backoff_ms": 30000,
+          "claim_state": "claimed"
+        }
+      ],
+      "recent_artifacts": [
+        {
+          "task_id": "task_demo",
+          "project_id": "proj_demo",
+          "summary": "Review ready",
+          "jump_target": "review_queue",
+          "manifest_path": "evidence/manifest.json"
         }
       ],
       "warnings": []
@@ -97,11 +120,18 @@ func snapshotDecodesRicherProjectionContract() throws {
 
     #expect(snapshot.workflow?.state == .ok)
     #expect(snapshot.tracker?.health == "ok")
+    #expect(snapshot.app.focusedSessionID == "ses_demo")
     #expect(snapshot.projects.first?.taskCounts["Inbox"] == 1)
     #expect(snapshot.sessions.first?.automationMode == .autoEligible)
     #expect(snapshot.sessions.first?.trackerBindingState == "bound")
+    #expect(snapshot.sessions.first?.providerID == "anthropic")
+    #expect(snapshot.sessions.first?.modelID == "claude-sonnet-4")
+    #expect(snapshot.sessions.first?.latestCommentary == "Need confirmation before rerun.")
+    #expect(snapshot.sessions.first?.activeWindowTitle == "Terminal 1")
     #expect(snapshot.sessions.first?.claimState == ClaimState.none)
     #expect(snapshot.sessions.first?.focusState == SessionFocusState.focused)
+    #expect(snapshot.retryQueue.first?.claimState == .claimed)
+    #expect(snapshot.recentArtifacts.first?.jumpTarget == "review_queue")
     #expect(snapshot.retryQueue.first?.reasonCode == "hook_failed")
 }
 
@@ -138,6 +168,7 @@ func localSnapshotUsesCurrentShellInputs() async throws {
     #expect(snapshot.app.activeRoute == .projectFocus)
     #expect(snapshot.ops.runningSlots == 0)
     #expect(snapshot.ops.retryQueueCount == 0)
+    #expect(snapshot.tracker?.health == "ok")
     #expect(snapshot.projects.map(\.rootPath) == ["/tmp/demo"])
     #expect(snapshot.sessions.count == 1)
     #expect(snapshot.sessions.first?.mode == .generic)
@@ -146,5 +177,6 @@ func localSnapshotUsesCurrentShellInputs() async throws {
     #expect(snapshot.attention.first?.headline == "Preset binaries missing")
     #expect(snapshot.attention.first?.targetRoute == .attentionCenter)
     #expect(snapshot.retryQueue.isEmpty)
+    #expect(snapshot.recentArtifacts.isEmpty)
     #expect(snapshot.warnings.map(\.severity) == [.degraded])
 }

@@ -25,6 +25,8 @@ struct TerminalDeckView: View {
 
     let model: Model
     let signalPresentation: SessionSignalPresentation?
+    let onQuickDispatch: (() -> Void)?
+    let onSessionReady: ((String) -> Void)?
     @State private var layout: TerminalDeckLayout
     @StateObject private var deckCoordinator = TerminalDeckCoordinator()
     @State private var keyMonitor: Any?
@@ -33,9 +35,16 @@ struct TerminalDeckView: View {
     private let reservedSessionStackWidth: CGFloat = 220
     private let reservedInspectorWidth: CGFloat = 320
 
-    init(model: Model, signalPresentation: SessionSignalPresentation? = nil) {
+    init(
+        model: Model,
+        signalPresentation: SessionSignalPresentation? = nil,
+        onQuickDispatch: (() -> Void)? = nil,
+        onSessionReady: ((String) -> Void)? = nil
+    ) {
         self.model = model
         self.signalPresentation = signalPresentation
+        self.onQuickDispatch = onQuickDispatch
+        self.onSessionReady = onSessionReady
         _layout = State(initialValue: model.layout)
     }
 
@@ -113,7 +122,8 @@ struct TerminalDeckView: View {
                 configuration: pane.surface,
                 paneID: pane.id,
                 deckCoordinator: deckCoordinator,
-                isFocused: isFocused
+                isFocused: isFocused,
+                onSessionReady: onSessionReady
             )
         }
         .padding(16)
@@ -125,6 +135,10 @@ struct TerminalDeckView: View {
         .overlay(
             RoundedRectangle(cornerRadius: 18)
                 .strokeBorder(isFocused ? HaneulchiChrome.Colors.accent.opacity(0.45) : Color.clear, lineWidth: 1)
+        )
+        .paneAttentionDecoration(
+            hasAttention: isFocused && signalPresentation?.tone == .strong,
+            hasUnread: isFocused && signalPresentation?.tone == .weak
         )
         .frame(
             minWidth: max(320, reservedSessionStackWidth),
@@ -150,6 +164,11 @@ struct TerminalDeckView: View {
                 }
                 Button("Paste") {
                     deckCoordinator.pasteClipboard(in: pane.id)
+                }
+                if let onQuickDispatch {
+                    Button("Dispatch") {
+                        onQuickDispatch()
+                    }
                 }
                 Button("Split H") {
                     splitFocusedPane(axis: .horizontal)

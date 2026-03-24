@@ -64,7 +64,28 @@ fn review_ready_queue_only_lists_pending_review_items() {
     assert_eq!(projection.items.len(), 1);
     assert_eq!(projection.items[0].task_id, "task_review");
     assert_eq!(projection.items[0].touched_files, vec!["Sources/Auth.swift", "Tests/AuthTests.swift"]);
-    assert_eq!(projection.items[0].warnings, vec!["snapshot drift"]);
+    assert_eq!(
+        projection.items[0].warnings,
+        vec!["after_run_failed", "snapshot drift"]
+    );
+    assert_eq!(
+        projection.items[0].hook_summary.as_deref(),
+        Some("after_run_failed: evidence degraded")
+    );
+    assert_eq!(
+        projection.items[0].evidence_summary.as_deref(),
+        Some("Captured diff, tests, command, and degraded hook note")
+    );
+    assert_eq!(
+        projection.items[0].checklist_summary.as_deref(),
+        Some("1/2 checks complete")
+    );
+    assert_eq!(
+        projection.items[0].evidence_manifest_path.as_deref(),
+        Some("evidence/reviews/task_review/review_01/manifest.json")
+    );
+    assert_eq!(projection.items[0].ci_run_url, None);
+    assert_eq!(projection.items[0].pr_url, None);
 }
 
 #[test]
@@ -100,6 +121,9 @@ fn timeline_accept_request_changes_manual_continue_and_follow_up_update_projecti
     assert!(timeline.iter().any(|item| item.kind == "task_created"));
     assert!(timeline.iter().any(|item| item.kind == "review_decided"));
     assert!(timeline.iter().any(|item| item.kind == "follow_up_created"));
+    assert!(timeline
+        .iter()
+        .any(|item| item.summary.contains("Follow-up task created")));
 }
 
 #[test]

@@ -65,18 +65,18 @@ struct RouteDestinationView: View {
                 onAction: onAction
             )
         case .settings:
-            SettingsView(viewModel: settingsStatusViewModel)
+            SettingsView(viewModel: settingsStatusViewModel, onAction: onAction)
         case .controlTower:
             ControlTowerPlaceholderView(
-                descriptor: .placeholder(for: .controlTower, snapshot: snapshot),
-                snapshot: snapshot
+                snapshot: snapshot,
+                onAction: onAction
             )
         case .taskBoard:
             TaskBoardPlaceholderView(descriptor: .placeholder(for: .taskBoard, snapshot: snapshot))
         case .reviewQueue:
             ReviewQueuePlaceholderView(descriptor: .placeholder(for: .reviewQueue, snapshot: snapshot))
         case .attentionCenter:
-            AttentionCenterPlaceholderView(descriptor: .placeholder(for: .attentionCenter, snapshot: snapshot))
+            AttentionCenterPlaceholderView(snapshot: snapshot, onAction: onAction)
         }
     }
 }

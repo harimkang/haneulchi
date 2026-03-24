@@ -67,7 +67,13 @@ struct ProjectFocusView: View {
 
                 TerminalDeckView(
                     model: model.deck,
-                    signalPresentation: focusedSessionSignal
+                    signalPresentation: focusedSessionSignal,
+                    onQuickDispatch: {
+                        onAction(.presentQuickDispatch(.projectFocus))
+                    },
+                    onSessionReady: { sessionID in
+                        onAction(.terminalSessionReady(sessionID))
+                    }
                 )
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 

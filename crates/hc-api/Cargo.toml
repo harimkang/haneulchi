@@ -9,4 +9,7 @@ path = "src/lib.rs"
 [dependencies]
 hc-control-plane = { path = "../hc-control-plane" }
 hc-domain = { path = "../hc-domain" }
+hc-workflow = { path = "../hc-workflow" }
+httparse = "1.10"
+serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

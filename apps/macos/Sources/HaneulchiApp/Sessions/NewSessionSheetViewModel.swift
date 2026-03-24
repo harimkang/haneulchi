@@ -41,6 +41,7 @@ final class NewSessionSheetViewModel: ObservableObject {
         selectedTaskID: String? = nil,
         registry: PresetRegistry,
         workflowSummary: WorkflowLaunchSummary?,
+        preferredPresetID: String? = nil,
         provisionIsolatedWorkspace: @escaping @Sendable (String, String) throws -> ProvisionedTaskWorkspace = { _, _ in
             throw NewSessionSheetError.isolatedProvisionUnavailable
         }
@@ -50,7 +51,9 @@ final class NewSessionSheetViewModel: ObservableObject {
         self.registry = registry
         self.workflowSummary = workflowSummary
         self.provisionIsolatedWorkspace = provisionIsolatedWorkspace
-        self.selectedPresetID = registry.presets.first?.id
+        self.selectedPresetID =
+            registry.preset(id: preferredPresetID)?.id
+            ?? registry.presets.first?.id
     }
 
     func makeGenericDescriptor() throws -> SessionLaunchDescriptor {

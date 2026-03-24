@@ -1,10 +1,13 @@
 import SwiftUI
 
 struct ControlTowerPlaceholderView: View {
-    let descriptor: RouteDestinationDescriptor
     let snapshot: AppShellSnapshot
+    let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        ControlTowerOpsStripView(model: AutomationPanelViewModel(snapshot: snapshot))
+        ControlTowerView(
+            model: ControlTowerViewModel(snapshot: snapshot),
+            onAction: onAction
+        )
     }
 }

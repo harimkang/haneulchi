@@ -89,8 +89,9 @@ impl TaskBoardService {
         &self,
         project_id: &str,
         title: &str,
+        priority: Option<&str>,
     ) -> Result<Task, TaskBoardError> {
-        create_task_for_store(&self.store, project_id, title)
+        create_task_for_store(&self.store, project_id, title, priority)
     }
 
     pub fn set_automation_mode(
@@ -167,9 +168,13 @@ pub fn shared_task(task_id: &str) -> Result<Option<Task>, TaskBoardError> {
     task_for_store(&store, task_id)
 }
 
-pub fn shared_create_task(project_id: &str, title: &str) -> Result<Task, TaskBoardError> {
+pub fn shared_create_task(
+    project_id: &str,
+    title: &str,
+    priority: Option<&str>,
+) -> Result<Task, TaskBoardError> {
     let store = lock_shared_store()?;
-    create_task_for_store(&store, project_id, title)
+    create_task_for_store(&store, project_id, title, priority)
 }
 
 pub fn shared_set_automation_mode(
@@ -260,6 +265,7 @@ pub(crate) fn create_task_for_store(
     store: &SqliteStore,
     project_id: &str,
     title: &str,
+    priority: Option<&str>,
 ) -> Result<Task, TaskBoardError> {
     let task_id = format!(
         "task_{}",
@@ -278,7 +284,7 @@ pub(crate) fn create_task_for_store(
             display_key: task_id.to_ascii_uppercase(),
             title: title.to_string(),
             description: title.to_string(),
-            priority: "p2".to_string(),
+            priority: priority.unwrap_or("p2").to_string(),
             automation_mode: TaskAutomationMode::Manual,
             created_at: AUTOMATION_UPDATED_AT.to_string(),
             updated_at: AUTOMATION_UPDATED_AT.to_string(),

@@ -142,6 +142,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             case runningSlots = "running_slots"
             case maxSlots = "max_slots"
             case retryQueueCount = "retry_queue_count"
+            case retryDueCount = "retry_due_count"
             case queuedClaimCount = "queued_claim_count"
             case workflowHealth = "workflow_health"
             case trackerHealth = "tracker_health"
@@ -179,9 +180,12 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             lastReconcileAt = try container.decodeIfPresent(String.self, forKey: .lastReconcileAt)
             runningSlots = try container.decode(Int.self, forKey: .runningSlots)
             maxSlots = try container.decode(Int.self, forKey: .maxSlots)
-            retryQueueCount = try container.decode(Int.self, forKey: .retryQueueCount)
+            retryQueueCount =
+                try container.decodeIfPresent(Int.self, forKey: .retryQueueCount)
+                ?? container.decodeIfPresent(Int.self, forKey: .retryDueCount)
+                ?? 0
             queuedClaimCount = try container.decodeIfPresent(Int.self, forKey: .queuedClaimCount) ?? 0
-            workflowHealth = try container.decode(WorkflowHealth.self, forKey: .workflowHealth)
+            workflowHealth = try container.decodeIfPresent(WorkflowHealth.self, forKey: .workflowHealth) ?? .none
             trackerHealth = try container.decodeIfPresent(String.self, forKey: .trackerHealth) ?? "ok"
             paused = try container.decodeIfPresent(Bool.self, forKey: .paused) ?? false
         }
@@ -255,6 +259,12 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         let baseRoot: String?
         let branch: String?
         let latestSummary: String?
+        let providerID: String?
+        let modelID: String?
+        let dispatchReason: String?
+        let latestCommentary: String?
+        let commentaryUpdatedAt: String?
+        let activeWindowTitle: String?
         let mode: SessionMode
         let runtimeState: SessionRuntimeState
         let manualControlState: ManualControlState
@@ -280,6 +290,12 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             case baseRoot = "base_root"
             case branch
             case latestSummary = "latest_summary"
+            case providerID = "provider_id"
+            case modelID = "model_id"
+            case dispatchReason = "dispatch_reason"
+            case latestCommentary = "latest_commentary"
+            case commentaryUpdatedAt = "commentary_updated_at"
+            case activeWindowTitle = "active_window_title"
             case mode
             case runtimeState = "runtime_state"
             case manualControlState = "manual_control"
@@ -311,6 +327,12 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             baseRoot: String? = nil,
             branch: String? = nil,
             latestSummary: String? = nil,
+            providerID: String? = nil,
+            modelID: String? = nil,
+            dispatchReason: String? = nil,
+            latestCommentary: String? = nil,
+            commentaryUpdatedAt: String? = nil,
+            activeWindowTitle: String? = nil,
             claimState: ClaimState = .none,
             adapterKind: String? = nil,
             lastActivityAt: String? = nil,
@@ -330,6 +352,12 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             self.baseRoot = baseRoot
             self.branch = branch
             self.latestSummary = latestSummary
+            self.providerID = providerID
+            self.modelID = modelID
+            self.dispatchReason = dispatchReason
+            self.latestCommentary = latestCommentary
+            self.commentaryUpdatedAt = commentaryUpdatedAt
+            self.activeWindowTitle = activeWindowTitle
             self.mode = mode
             self.runtimeState = runtimeState
             self.manualControlState = manualControlState
@@ -422,7 +450,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         let reasonCode: String
         let dueAt: String?
         let backoffMs: Int
-        let sessionID: String?
+        let claimState: ClaimState
 
         enum CodingKeys: String, CodingKey {
             case taskID = "task_id"
@@ -431,10 +459,71 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             case reasonCode = "reason_code"
             case dueAt = "due_at"
             case backoffMs = "backoff_ms"
-            case sessionID = "session_id"
+            case claimState = "claim_state"
+        }
+
+        init(
+            taskID: String,
+            projectID: String,
+            attempt: Int,
+            reasonCode: String,
+            dueAt: String?,
+            backoffMs: Int,
+            claimState: ClaimState = .none
+        ) {
+            self.taskID = taskID
+            self.projectID = projectID
+            self.attempt = attempt
+            self.reasonCode = reasonCode
+            self.dueAt = dueAt
+            self.backoffMs = backoffMs
+            self.claimState = claimState
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            taskID = try container.decode(String.self, forKey: .taskID)
+            projectID = try container.decode(String.self, forKey: .projectID)
+            attempt = try container.decode(Int.self, forKey: .attempt)
+            reasonCode = try container.decode(String.self, forKey: .reasonCode)
+            dueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
+            backoffMs = try container.decode(Int.self, forKey: .backoffMs)
+            claimState = try container.decodeIfPresent(ClaimState.self, forKey: .claimState) ?? .none
         }
 
         var id: String { "\(projectID):\(taskID):\(attempt)" }
+    }
+
+    struct RecentArtifactSummary: Decodable, Equatable, Identifiable, Sendable {
+        let taskID: String
+        let projectID: String
+        let summary: String
+        let jumpTarget: String
+        let manifestPath: String?
+
+        enum CodingKeys: String, CodingKey {
+            case taskID = "task_id"
+            case projectID = "project_id"
+            case summary
+            case jumpTarget = "jump_target"
+            case manifestPath = "manifest_path"
+        }
+
+        init(
+            taskID: String,
+            projectID: String,
+            summary: String,
+            jumpTarget: String,
+            manifestPath: String?
+        ) {
+            self.taskID = taskID
+            self.projectID = projectID
+            self.summary = summary
+            self.jumpTarget = jumpTarget
+            self.manifestPath = manifestPath
+        }
+
+        var id: String { "\(projectID):\(taskID):\(jumpTarget)" }
     }
 
     struct WarningSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -463,6 +552,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
     let warnings: [WarningSummary]
     let workflow: WorkflowRuntimeStatus?
     let tracker: TrackerStatus?
+    let recentArtifacts: [RecentArtifactSummary]
 
     enum CodingKeys: String, CodingKey {
         case meta
@@ -475,6 +565,14 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         case warnings
         case workflow
         case tracker
+        case recentArtifacts = "recent_artifacts"
+    }
+
+    private enum OpsEnvelopeKeys: String, CodingKey {
+        case automation
+        case workflow
+        case tracker
+        case app
     }
 
     init(
@@ -487,7 +585,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         retryQueue: [RetryQueueSummary],
         warnings: [WarningSummary],
         workflow: WorkflowRuntimeStatus? = nil,
-        tracker: TrackerStatus? = nil
+        tracker: TrackerStatus? = nil,
+        recentArtifacts: [RecentArtifactSummary] = []
     ) {
         self.meta = meta
         self.ops = ops
@@ -499,6 +598,50 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         self.warnings = warnings
         self.workflow = workflow
         self.tracker = tracker
+        self.recentArtifacts = recentArtifacts
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        meta = try container.decode(Meta.self, forKey: .meta)
+
+        if let opsContainer = try? container.nestedContainer(keyedBy: OpsEnvelopeKeys.self, forKey: .ops),
+           opsContainer.contains(.automation)
+        {
+            let automation = try opsContainer.decode(OpsSummary.self, forKey: .automation)
+            let decodedWorkflow = try opsContainer.decodeIfPresent(WorkflowRuntimeStatus.self, forKey: .workflow)
+            let decodedTracker = try opsContainer.decodeIfPresent(TrackerStatus.self, forKey: .tracker)
+            workflow = decodedWorkflow
+            tracker = decodedTracker
+            app = try opsContainer.decodeIfPresent(AppState.self, forKey: .app)
+                ?? AppState(activeRoute: .projectFocus, focusedSessionID: nil, degradedFlags: [])
+            ops = OpsSummary(
+                cadenceMs: automation.cadenceMs,
+                lastTickAt: automation.lastTickAt,
+                lastReconcileAt: automation.lastReconcileAt,
+                runningSlots: automation.runningSlots,
+                maxSlots: automation.maxSlots,
+                retryQueueCount: automation.retryQueueCount,
+                queuedClaimCount: automation.queuedClaimCount,
+                workflowHealth: decodedWorkflow?.state ?? automation.workflowHealth,
+                trackerHealth: decodedTracker?.health ?? automation.trackerHealth,
+                paused: automation.paused
+            )
+        } else {
+            ops = try container.decode(OpsSummary.self, forKey: .ops)
+            workflow = try container.decodeIfPresent(WorkflowRuntimeStatus.self, forKey: .workflow)
+            tracker = try container.decodeIfPresent(TrackerStatus.self, forKey: .tracker)
+            app = try container.decode(AppState.self, forKey: .app)
+        }
+
+        projects = try container.decode([ProjectSummary].self, forKey: .projects)
+        sessions = try container.decode([SessionSummary].self, forKey: .sessions)
+        attention = try container.decode([AttentionSummary].self, forKey: .attention)
+        retryQueue = try container.decode([RetryQueueSummary].self, forKey: .retryQueue)
+        warnings = try container.decode([WarningSummary].self, forKey: .warnings)
+        recentArtifacts =
+            try container.decodeIfPresent([RecentArtifactSummary].self, forKey: .recentArtifacts)
+            ?? []
     }
 
     static func empty(activeRoute: Route, selectedProject: LauncherProject? = nil) -> Self {
@@ -526,7 +669,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             retryQueue: [],
             warnings: [],
             workflow: nil,
-            tracker: nil
+            tracker: nil,
+            recentArtifacts: []
         )
     }
 }

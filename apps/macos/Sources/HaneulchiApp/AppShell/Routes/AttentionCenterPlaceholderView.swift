@@ -1,9 +1,18 @@
 import SwiftUI
 
 struct AttentionCenterPlaceholderView: View {
-    let descriptor: RouteDestinationDescriptor
+    let snapshot: AppShellSnapshot
+    let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        RoutePlaceholderCard(descriptor: descriptor)
+        AttentionCenterView(
+            viewModel: AttentionCenterViewModel(
+                snapshot: snapshot,
+                openTarget: onAction,
+                resolveAttention: { onAction(.resolveAttention($0)) },
+                dismissAttention: { onAction(.dismissAttention($0)) },
+                snoozeAttention: { onAction(.snoozeAttention($0)) }
+            )
+        )
     }
 }

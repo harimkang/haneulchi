@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsAutomationStatusSection: View {
     let viewModel: SettingsStatusViewModel
+    let onAction: (AppShellAction) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
@@ -26,6 +27,10 @@ struct SettingsAutomationStatusSection: View {
                     }
                 }
                 .padding(.vertical, 4)
+            }
+
+            if let controlPanel = viewModel.controlPanel {
+                AutomationControlPanelView(viewModel: controlPanel, onAction: onAction)
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)

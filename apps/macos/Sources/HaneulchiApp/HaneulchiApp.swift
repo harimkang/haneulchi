@@ -7,6 +7,9 @@ struct HaneulchiApp: App {
     var body: some Scene {
         WindowGroup {
             AppShellView(model: shellModel)
+                .task {
+                    await shellModel.startLocalControlServerIfNeeded()
+                }
         }
         .commands {
             AppShellCommands(model: shellModel)

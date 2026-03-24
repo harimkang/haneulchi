@@ -58,7 +58,9 @@ struct LocalAppShellSnapshotSource: Sendable {
             sessions: sessions,
             attention: attention,
             retryQueue: [],
-            warnings: warnings
+            warnings: warnings,
+            workflow: nil,
+            tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
         )
     }
 

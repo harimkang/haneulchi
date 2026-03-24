@@ -18,7 +18,7 @@ pub fn focus_session(snapshot: &mut AppSnapshot, session_id: &str) -> Result<(),
         return Err(ControlPlaneError::SessionNotFound(session_id.to_string()));
     }
 
-    snapshot.app.focused_session_id = Some(session_id.to_string());
+    snapshot.ops.app.focused_session_id = Some(session_id.to_string());
     Ok(())
 }
 

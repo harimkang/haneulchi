@@ -17,15 +17,21 @@ typedef struct HcBytes {
 } HcBytes;
 
 HcString hc_runtime_info_json(void);
+HcString hc_api_server_start_json(const char *socket_path);
+HcString hc_reconcile_now_json(void);
 HcString hc_state_snapshot_json(void);
 HcString hc_sessions_list_json(void);
 HcString hc_session_attach_task_json(const char *session_id, const char *task_id);
 HcString hc_session_detach_task_json(const char *session_id);
 HcString hc_review_decision_json(const char *task_id, const char *decision);
 HcString hc_review_queue_json(void);
+HcString hc_attention_resolve_json(const char *attention_id);
+HcString hc_attention_dismiss_json(const char *attention_id);
+HcString hc_attention_snooze_json(const char *attention_id);
 HcString hc_task_board_json(const char *project_id);
 HcString hc_task_move_json(const char *task_id, const char *column);
 HcString hc_task_provision_workspace_json(const char *project_root, const char *task_id, const char *base_root);
+HcString hc_dispatch_send_json(const char *target_session_id, const char *task_id, _Bool target_live, const char *payload);
 HcString hc_terminal_session_spawn_json(const char *config_json);
 HcBytes hc_terminal_session_drain(const char *session_id);
 int hc_terminal_session_write(const char *session_id, const unsigned char *ptr, size_t len);

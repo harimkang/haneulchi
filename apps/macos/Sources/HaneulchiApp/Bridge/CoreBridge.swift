@@ -20,10 +20,17 @@ struct CoreBridge: Sendable {
     let terminateSession: @Sendable (String) throws -> Void
     let snapshotSession: @Sendable (String) throws -> TerminalSessionSnapshot
     let stateSnapshot: @Sendable () throws -> AppShellSnapshot
+    let stateSnapshotJSON: @Sendable () throws -> String
     let sessionsList: @Sendable () throws -> [AppShellSnapshot.SessionSummary]
     let focusSession: @Sendable (String) throws -> Void
     let takeoverSession: @Sendable (String) throws -> Void
     let releaseTakeoverSession: @Sendable (String) throws -> Void
+    let resolveAttention: @Sendable (String) throws -> Void
+    let dismissAttention: @Sendable (String) throws -> Void
+    let snoozeAttention: @Sendable (String) throws -> Void
+    let dispatchSend: @Sendable (String, String?, String) throws -> Void
+    let startLocalControlServer: @Sendable () throws -> Void
+    let reconcileAutomation: @Sendable () throws -> Void
     let workflowValidate: @Sendable (String) throws -> Data
     let workflowReload: @Sendable (String) throws -> Data
 
@@ -41,6 +48,9 @@ struct CoreBridge: Sendable {
         stateSnapshot: @escaping @Sendable () throws -> AppShellSnapshot = {
             throw CoreBridgeError.operationFailed("state_snapshot_unavailable")
         },
+        stateSnapshotJSON: @escaping @Sendable () throws -> String = {
+            throw CoreBridgeError.operationFailed("state_snapshot_unavailable")
+        },
         sessionsList: @escaping @Sendable () throws -> [AppShellSnapshot.SessionSummary] = {
             throw CoreBridgeError.operationFailed("sessions_list_unavailable")
         },
@@ -52,6 +62,22 @@ struct CoreBridge: Sendable {
         },
         releaseTakeoverSession: @escaping @Sendable (String) throws -> Void = { _ in
             throw CoreBridgeError.operationFailed("session_release_takeover_unavailable")
+        },
+        resolveAttention: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("attention_resolve_unavailable")
+        },
+        dismissAttention: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("attention_dismiss_unavailable")
+        },
+        snoozeAttention: @escaping @Sendable (String) throws -> Void = { _ in
+            throw CoreBridgeError.operationFailed("attention_snooze_unavailable")
+        },
+        dispatchSend: @escaping @Sendable (String, String?, String) throws -> Void = { _, _, _ in
+            throw CoreBridgeError.operationFailed("dispatch_send_unavailable")
+        },
+        startLocalControlServer: @escaping @Sendable () throws -> Void = { },
+        reconcileAutomation: @escaping @Sendable () throws -> Void = {
+            throw CoreBridgeError.operationFailed("reconcile_unavailable")
         },
         workflowValidate: @escaping @Sendable (String) throws -> Data = { _ in
             throw CoreBridgeError.operationFailed("workflow_validate_unavailable")
@@ -69,10 +95,17 @@ struct CoreBridge: Sendable {
         self.terminateSession = terminateSession
         self.snapshotSession = snapshotSession
         self.stateSnapshot = stateSnapshot
+        self.stateSnapshotJSON = stateSnapshotJSON
         self.sessionsList = sessionsList
         self.focusSession = focusSession
         self.takeoverSession = takeoverSession
         self.releaseTakeoverSession = releaseTakeoverSession
+        self.resolveAttention = resolveAttention
+        self.dismissAttention = dismissAttention
+        self.snoozeAttention = snoozeAttention
+        self.dispatchSend = dispatchSend
+        self.startLocalControlServer = startLocalControlServer
+        self.reconcileAutomation = reconcileAutomation
         self.workflowValidate = workflowValidate
         self.workflowReload = workflowReload
     }
@@ -185,6 +218,10 @@ struct CoreBridge: Sendable {
             let payload = try stringPayloadData(hc_state_snapshot_json())
             return try decodeAppShellSnapshot(from: payload)
         },
+        stateSnapshotJSON: {
+            let payload = try stringPayloadData(hc_state_snapshot_json())
+            return String(decoding: payload, as: UTF8.self)
+        },
         sessionsList: {
             let payload = try stringPayloadData(hc_sessions_list_json())
             return try decodeSessionSummaries(from: payload)
@@ -209,6 +246,49 @@ struct CoreBridge: Sendable {
             guard result == 0 else {
                 throw CoreBridgeError.operationFailed("session_release_takeover_failed")
             }
+        },
+        resolveAttention: { attentionID in
+            let attention = try CStringBox(attentionID)
+            _ = try attention.withPointer { pointer in
+                try stringPayloadData(hc_attention_resolve_json(pointer))
+            }
+        },
+        dismissAttention: { attentionID in
+            let attention = try CStringBox(attentionID)
+            _ = try attention.withPointer { pointer in
+                try stringPayloadData(hc_attention_dismiss_json(pointer))
+            }
+        },
+        snoozeAttention: { attentionID in
+            let attention = try CStringBox(attentionID)
+            _ = try attention.withPointer { pointer in
+                try stringPayloadData(hc_attention_snooze_json(pointer))
+            }
+        },
+        dispatchSend: { targetSessionID, taskID, payload in
+            let session = try CStringBox(targetSessionID)
+            let payloadBox = try CStringBox(payload)
+            let task = try taskID.map(CStringBox.init)
+            _ = try session.withPointer { sessionPointer in
+                try payloadBox.withPointer { payloadPointer in
+                    if let task {
+                        return try task.withPointer { taskPointer in
+                            try stringPayloadData(
+                                hc_dispatch_send_json(sessionPointer, taskPointer, true, payloadPointer)
+                            )
+                        }
+                    }
+                    return try stringPayloadData(
+                        hc_dispatch_send_json(sessionPointer, nil, true, payloadPointer)
+                    )
+                }
+            }
+        },
+        startLocalControlServer: {
+            _ = try stringPayloadData(hc_api_server_start_json(nil))
+        },
+        reconcileAutomation: {
+            _ = try stringPayloadData(hc_reconcile_now_json())
         },
         workflowValidate: { projectRoot in
             let root = try CStringBox(projectRoot)
@@ -265,12 +345,21 @@ struct CoreBridge: Sendable {
             stateSnapshot: {
                 AppShellSnapshot.empty(activeRoute: .projectFocus)
             },
+            stateSnapshotJSON: {
+                "{}"
+            },
             sessionsList: {
                 []
             },
             focusSession: { _ in },
             takeoverSession: { _ in },
             releaseTakeoverSession: { _ in },
+            resolveAttention: { _ in },
+            dismissAttention: { _ in },
+            snoozeAttention: { _ in },
+            dispatchSend: { _, _, _ in },
+            startLocalControlServer: { },
+            reconcileAutomation: { },
             workflowValidate: { _ in Data("{}".utf8) },
             workflowReload: { _ in Data("{}".utf8) }
         )

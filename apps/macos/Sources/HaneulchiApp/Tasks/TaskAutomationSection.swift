@@ -15,6 +15,10 @@ struct TaskAutomationSection: View {
             }
             Text("claim: \(model.claimState.rawValue)")
                 .font(HaneulchiTypography.caption)
+            if let retryState = model.retryState {
+                Text("retry: \(retryState)")
+                    .font(HaneulchiTypography.caption)
+            }
             if let trackerBindingState = model.trackerBindingState {
                 Text("tracker: \(trackerBindingState)")
                     .font(HaneulchiTypography.caption)

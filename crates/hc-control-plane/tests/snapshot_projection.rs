@@ -1,8 +1,13 @@
-use hc_control_plane::{build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests, shared_attach_session, shared_create_task, shared_scheduler_tick, shared_set_automation_mode, shared_task_move, ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed};
+use hc_control_plane::{
+    ControlPlaneError, ControlPlaneState, SnapshotBuildError, SnapshotSeed,
+    build_authoritative_snapshot, project_snapshot, reset_task_board_for_tests,
+    shared_attach_session, shared_create_task, shared_scheduler_tick, shared_set_automation_mode,
+    shared_task_move,
+};
 use hc_domain::{
-    ClaimState, ProjectSummary, SessionFocusState, SessionRuntimeState, SessionSummary,
-    TaskAutomationMode, TaskColumn,
-    TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
+    ClaimState, ProjectSummary, RetryQueueEntry, RetryState, SessionFocusState, SessionRuntimeState,
+    SessionSummary, TaskAutomationMode, TaskColumn, TrackerStatus, WorkflowHealth,
+    WorkflowRuntimeStatus,
 };
 
 fn workflow_status(state: WorkflowHealth) -> WorkflowRuntimeStatus {
@@ -24,7 +29,7 @@ fn tracker_status() -> TrackerStatus {
 }
 
 #[test]
-fn session_projection_includes_workflow_and_waiting_input_attention() {
+fn session_projection_includes_workflow_review_ready_and_retry_due_attention() {
     let snapshot = project_snapshot(SnapshotSeed {
         workflow: workflow_status(WorkflowHealth::InvalidKeptLastGood),
         tracker: tracker_status(),
@@ -42,16 +47,39 @@ fn session_projection_includes_workflow_and_waiting_input_attention() {
                 .with_claim_state(ClaimState::Claimed)
                 .with_focus_state(SessionFocusState::Background)
                 .with_cwd("/tmp/demo"),
+            SessionSummary::new("ses_review", "proj_demo", "Review ready")
+                .with_runtime_state(SessionRuntimeState::ReviewReady)
+                .with_claim_state(ClaimState::Released)
+                .with_focus_state(SessionFocusState::Background)
+                .with_cwd("/tmp/demo"),
         ],
+        retry_queue: vec![RetryQueueEntry {
+            task_id: "task_retry".to_string(),
+            project_id: "proj_demo".to_string(),
+            attempt: 2,
+            reason_code: "adapter_timeout".to_string(),
+            due_at: Some("2026-03-23T10:00:00Z".to_string()),
+            backoff_ms: 30_000,
+            claim_state: ClaimState::Stale,
+            retry_state: RetryState::Due,
+        }],
     });
 
-    assert_eq!(snapshot.workflow.state, WorkflowHealth::InvalidKeptLastGood);
-    assert_eq!(snapshot.sessions.len(), 1);
-    assert_eq!(snapshot.attention.len(), 2);
+    assert_eq!(snapshot.ops.workflow.state, WorkflowHealth::InvalidKeptLastGood);
+    assert_eq!(snapshot.sessions.len(), 2);
+    assert_eq!(snapshot.attention.len(), 4);
     assert!(snapshot
         .attention
         .iter()
         .any(|item| item.kind == "waiting_input" && item.action_hint.as_deref() == Some("focus_session")));
+    assert!(snapshot
+        .attention
+        .iter()
+        .any(|item| item.kind == "review_ready" && item.action_hint.as_deref() == Some("open_review")));
+    assert!(snapshot
+        .attention
+        .iter()
+        .any(|item| item.kind == "retry_due" && item.action_hint.as_deref() == Some("open_retry_queue")));
     assert!(snapshot
         .attention
         .iter()
@@ -80,6 +108,7 @@ fn shared_commands_update_projection_state_consistently() {
                 .with_runtime_state(SessionRuntimeState::Running)
                 .with_focus_state(SessionFocusState::Background),
         ],
+        retry_queue: vec![],
     });
     let mut state = ControlPlaneState::from_snapshot(snapshot);
 
@@ -94,7 +123,7 @@ fn shared_commands_update_projection_state_consistently() {
     state.release_takeover_session("ses_02").expect("release succeeds");
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.app.focused_session_id.as_deref(), Some("ses_02"));
+    assert_eq!(snapshot.ops.app.focused_session_id.as_deref(), Some("ses_02"));
     assert_eq!(
         snapshot
             .sessions
@@ -140,14 +169,15 @@ fn snapshot_projection_carries_meta_and_ops_parity_fields() {
         tracker: tracker_status(),
         projects: vec![],
         sessions: vec![],
+        retry_queue: vec![],
     });
 
     assert_eq!(snapshot.meta.snapshot_rev, 1);
     assert_eq!(snapshot.meta.runtime_rev, 1);
     assert_eq!(snapshot.meta.projection_rev, 1);
-    assert_eq!(snapshot.ops.cadence_ms, 15_000);
-    assert_eq!(snapshot.ops.queued_claim_count, 0);
-    assert_eq!(snapshot.ops.tracker_health, "ok");
+    assert_eq!(snapshot.ops.automation.cadence_ms, 15_000);
+    assert_eq!(snapshot.ops.automation.queued_claim_count, 0);
+    assert_eq!(snapshot.ops.tracker.health, "ok");
 }
 
 #[test]
@@ -161,6 +191,7 @@ fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_project
         },
         projects: vec![],
         sessions: vec![],
+        retry_queue: vec![],
     });
 
     assert_eq!(result, Err(SnapshotBuildError::SnapshotUnavailable));
@@ -169,8 +200,8 @@ fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_project
 #[test]
 fn scheduler_respects_slot_capacity_and_reports_stale_targets() {
     reset_task_board_for_tests();
-    let extra = shared_create_task("proj_demo", "Overflow candidate").expect("extra task");
-    let extra_two = shared_create_task("proj_demo", "Second overflow").expect("second extra task");
+    let extra = shared_create_task("proj_demo", "Overflow candidate", None).expect("extra task");
+    let extra_two = shared_create_task("proj_demo", "Second overflow", None).expect("second extra task");
     shared_task_move(&extra.id, TaskColumn::Ready, "test_seed").expect("move extra task");
     shared_task_move(&extra_two.id, TaskColumn::Ready, "test_seed").expect("move second extra");
     shared_set_automation_mode("task_ready", TaskAutomationMode::AutoEligible)

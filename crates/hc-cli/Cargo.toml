@@ -11,3 +11,7 @@ path = "src/main.rs"
 hc-api = { path = "../hc-api" }
 hc-ffi = { path = "../hc-ffi" }
 serde_json = "1.0"
+
+[dev-dependencies]
+hc-control-plane = { path = "../hc-control-plane" }
+hc-domain = { path = "../hc-domain" }

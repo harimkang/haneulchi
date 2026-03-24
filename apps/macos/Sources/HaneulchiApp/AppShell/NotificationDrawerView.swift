@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct NotificationDrawerView: View {
-    let items: [Item]
+    let items: [NotificationDrawerModel.Item]
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
@@ -11,8 +11,14 @@ struct NotificationDrawerView: View {
                     onAction(item.action)
                 } label: {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(item.title)
-                            .font(.headline)
+                        HStack {
+                            Text(item.title)
+                                .font(.headline)
+                            Spacer()
+                            Text(item.stateLabel)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                        }
                         Text(item.summary)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -23,25 +29,5 @@ struct NotificationDrawerView: View {
         }
         .padding(16)
         .frame(minWidth: 320, alignment: .topLeading)
-    }
-}
-
-extension NotificationDrawerView {
-    struct Item: Equatable, Identifiable {
-        let id: String
-        let title: String
-        let summary: String
-        let action: AppShellAction
-    }
-
-    static func items(from snapshot: AppShellSnapshot) -> [Item] {
-        snapshot.attention.map { attention in
-            Item(
-                id: attention.attentionID,
-                title: attention.headline,
-                summary: attention.summary ?? attention.headline,
-                action: attention.targetSessionID.map(AppShellAction.jumpToSession) ?? .selectRoute(attention.targetRoute)
-            )
-        }
     }
 }

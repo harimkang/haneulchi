@@ -80,6 +80,8 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
     #expect(model?.baseRoot == "Sources")
     #expect(model?.workflowName == "Review Workflow")
     #expect(model?.automationMode == .assisted)
+    #expect(model?.dispatchState == .dispatchable)
+    #expect(model?.retryState == nil)
     #expect(model?.requireReview == true)
     #expect(model?.maxRuntimeMinutes == 45)
     #expect(model?.unsafeOverridePolicy == "explicit_only")
@@ -176,4 +178,75 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
     #expect(model?.lastBootstrapOutcome == "launch_succeeded")
     #expect(model?.trackerBindingState == "bound")
     #expect(model?.blockerReason == "manual_mode")
+}
+
+@Test("task drawer model surfaces retry state, due time, and degraded workflow badges")
+func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 5, runtimeRev: 5, projectionRev: 5, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 1, workflowHealth: .invalidKeptLastGood),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_03", degradedFlags: [.degraded]),
+        projects: [],
+        sessions: [
+            .init(
+                sessionID: "ses_03",
+                title: "Retry",
+                currentDirectory: "/tmp/demo",
+                mode: .structuredAdapter,
+                runtimeState: .waitingInput,
+                manualControlState: .none,
+                dispatchState: .dispatchFailed,
+                unreadCount: 1,
+                projectID: "proj_demo",
+                taskID: "task_retry",
+                automationMode: .autoEligible,
+                trackerBindingState: "degraded",
+                workspaceRoot: "/tmp/demo/worktrees/task_retry",
+                baseRoot: ".",
+                latestSummary: "Retry due",
+                dispatchReason: "stale_target_session",
+                focusState: .focused
+            )
+        ],
+        attention: [],
+        retryQueue: [
+            .init(
+                taskID: "task_retry",
+                projectID: "proj_demo",
+                attempt: 2,
+                reasonCode: "adapter_timeout",
+                dueAt: "2026-03-23T17:00:00Z",
+                backoffMs: 60000,
+                claimState: .claimed
+            )
+        ],
+        warnings: []
+    )
+    let workflow = WorkflowStatusPayload(
+        state: .invalidKeptLastGood,
+        path: "/tmp/demo/WORKFLOW.md",
+        lastGoodHash: "sha256:abc123",
+        lastReloadAt: "2026-03-23T16:55:00Z",
+        lastError: "parse error",
+        workflow: .init(
+            name: "Retry Workflow",
+            strategy: "worktree",
+            baseRoot: ".",
+            requireReview: false,
+            maxRuntimeMinutes: 30,
+            unsafeOverridePolicy: "explicit_only",
+            reviewChecklist: [],
+            allowedAgents: ["codex"],
+            hooks: [],
+            hookRuns: [:],
+            templateBody: nil
+        )
+    )
+
+    let model = TaskDrawerModel.resolve(from: snapshot, workflowStatus: workflow)
+
+    #expect(model?.retryState == "attempt 2 · due 2026-03-23T17:00:00Z")
+    #expect(model?.dispatchReason == "stale_target_session")
+    #expect(model?.trackerBindingState == "degraded")
+    #expect(model?.blockerReason == "workflow_invalid")
 }

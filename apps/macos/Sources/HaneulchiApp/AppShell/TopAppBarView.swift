@@ -33,6 +33,11 @@ struct TopAppBarView: View {
                 onAction(.toggleCommandPalette)
             }
             .buttonStyle(.bordered)
+
+            Button("Notifications") {
+                onAction(.toggleNotificationDrawer)
+            }
+            .buttonStyle(.bordered)
         }
         .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
         .padding(.vertical, 16)

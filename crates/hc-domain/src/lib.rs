@@ -4,10 +4,13 @@ pub mod task;
 pub mod timeline;
 
 use std::collections::BTreeMap;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
-pub use orchestrator::{PolicyPack, TaskAutomationDetails};
+pub use orchestrator::{
+    OrchestratorRuntime, PolicyPack, TaskAutomationDetails, TrackerBinding, WorkflowReloadEvent,
+};
 pub use review::{ReviewItem, ReviewStatus};
 pub use task::{
     Task, TaskAutomationMode, TaskBoardColumnProjection, TaskClaimLifecycleState, TaskColumn,
@@ -91,9 +94,10 @@ impl Default for WorkflowHealth {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ClaimState {
+    #[default]
     None,
     Claimed,
     Released,
@@ -117,6 +121,20 @@ impl ClaimState {
             Self::Released.as_str(),
             Self::Stale.as_str(),
         ]
+    }
+}
+
+impl FromStr for ClaimState {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.to_ascii_lowercase().as_str() {
+            "none" => Ok(Self::None),
+            "claimed" => Ok(Self::Claimed),
+            "released" => Ok(Self::Released),
+            "stale" => Ok(Self::Stale),
+            _ => Err(value.to_string()),
+        }
     }
 }
 
@@ -206,12 +224,18 @@ pub struct SessionSummary {
     pub dispatch_state: String,
     pub claim_state: ClaimState,
     pub adapter_kind: Option<String>,
+    pub provider_id: Option<String>,
+    pub model_id: Option<String>,
+    pub dispatch_reason: Option<String>,
     pub title: String,
     pub cwd: String,
     pub workspace_root: String,
     pub base_root: String,
     pub branch: Option<String>,
     pub latest_summary: Option<String>,
+    pub latest_commentary: Option<String>,
+    pub commentary_updated_at: Option<String>,
+    pub active_window_title: Option<String>,
     pub unread_count: u32,
     pub last_activity_at: Option<String>,
     pub focus_state: SessionFocusState,
@@ -236,12 +260,18 @@ impl SessionSummary {
             dispatch_state: "not_dispatchable".to_string(),
             claim_state: ClaimState::None,
             adapter_kind: None,
+            provider_id: None,
+            model_id: None,
+            dispatch_reason: None,
             title: title.into(),
             cwd: String::new(),
             workspace_root: String::new(),
             base_root: ".".to_string(),
             branch: None,
             latest_summary: None,
+            latest_commentary: None,
+            commentary_updated_at: None,
+            active_window_title: None,
             unread_count: 0,
             last_activity_at: None,
             focus_state: SessionFocusState::Background,
@@ -314,6 +344,43 @@ pub struct RetryQueueEntry {
     pub reason_code: String,
     pub due_at: Option<String>,
     pub backoff_ms: u64,
+    pub claim_state: ClaimState,
+    pub retry_state: RetryState,
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum RetryState {
+    #[default]
+    None,
+    Due,
+    BackingOff,
+    Exhausted,
+}
+
+impl RetryState {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::None => "none",
+            Self::Due => "due",
+            Self::BackingOff => "backing_off",
+            Self::Exhausted => "exhausted",
+        }
+    }
+}
+
+impl FromStr for RetryState {
+    type Err = String;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        match value.to_ascii_lowercase().as_str() {
+            "none" => Ok(Self::None),
+            "due" => Ok(Self::Due),
+            "backing_off" => Ok(Self::BackingOff),
+            "exhausted" => Ok(Self::Exhausted),
+            _ => Err(value.to_string()),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
@@ -333,18 +400,27 @@ pub struct AppSnapshotMeta {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
-pub struct OpsSummary {
+pub struct AutomationOpsSummary {
+    pub status: String,
     pub cadence_ms: u64,
     pub last_tick_at: Option<String>,
     pub last_reconcile_at: Option<String>,
     pub running_slots: u32,
     pub max_slots: u32,
-    pub retry_queue_count: u32,
+    pub retry_due_count: u32,
     pub queued_claim_count: u32,
-    pub workflow_health: WorkflowHealth,
-    pub tracker_health: String,
     pub paused: bool,
 }
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct OpsEnvelope {
+    pub automation: AutomationOpsSummary,
+    pub workflow: WorkflowRuntimeStatus,
+    pub tracker: TrackerStatus,
+    pub app: AppState,
+}
+
+pub type OpsSummary = AutomationOpsSummary;
 
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AppState {
@@ -356,10 +432,7 @@ pub struct AppState {
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AppSnapshot {
     pub meta: AppSnapshotMeta,
-    pub ops: OpsSummary,
-    pub workflow: WorkflowRuntimeStatus,
-    pub tracker: TrackerStatus,
-    pub app: AppState,
+    pub ops: OpsEnvelope,
     pub projects: Vec<ProjectSummary>,
     pub sessions: Vec<SessionSummary>,
     pub attention: Vec<AttentionSummary>,
@@ -376,24 +449,25 @@ impl AppSnapshot {
                 projection_rev: 1,
                 snapshot_at: None,
             },
-            ops: OpsSummary {
-                cadence_ms: 15_000,
-                last_tick_at: None,
-                last_reconcile_at: None,
-                running_slots: 0,
-                max_slots: 1,
-                retry_queue_count: 0,
-                queued_claim_count: 0,
-                workflow_health: workflow.state,
-                tracker_health: tracker.health.clone(),
-                paused: false,
-            },
-            workflow,
-            tracker,
-            app: AppState {
-                active_route: "project_focus".to_string(),
-                focused_session_id: None,
-                degraded_flags: Vec::new(),
+            ops: OpsEnvelope {
+                automation: AutomationOpsSummary {
+                    status: "running".to_string(),
+                    cadence_ms: 15_000,
+                    last_tick_at: None,
+                    last_reconcile_at: None,
+                    running_slots: 0,
+                    max_slots: 1,
+                    retry_due_count: 0,
+                    queued_claim_count: 0,
+                    paused: false,
+                },
+                workflow,
+                tracker,
+                app: AppState {
+                    active_route: "project_focus".to_string(),
+                    focused_session_id: None,
+                    degraded_flags: Vec::new(),
+                },
             },
             projects: Vec::new(),
             sessions: Vec::new(),
@@ -410,6 +484,21 @@ impl AppSnapshot {
 
     pub fn with_session(mut self, session: SessionSummary) -> Self {
         self.sessions.push(session);
+        self
+    }
+
+    pub fn with_automation(mut self, automation: AutomationOpsSummary) -> Self {
+        self.ops.automation = automation;
+        self
+    }
+
+    pub fn with_app_state(mut self, app: AppState) -> Self {
+        self.ops.app = app;
+        self
+    }
+
+    pub fn with_retry_entry(mut self, entry: RetryQueueEntry) -> Self {
+        self.retry_queue.push(entry);
         self
     }
 }

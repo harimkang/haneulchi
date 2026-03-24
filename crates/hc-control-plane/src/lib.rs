@@ -1,10 +1,15 @@
 //! Orchestrator and snapshot scaffold.
 
+mod adapter_watch;
 mod attention;
 mod commands;
+mod control_tower;
+mod dispatch;
 mod eligibility;
 mod orchestrator;
+mod reconcile;
 mod reviews;
+mod retry_queue;
 mod scheduler;
 mod session_projection;
 mod shared_store;
@@ -19,13 +24,21 @@ pub use commands::{
     reset_shared_control_plane_for_tests, reset_shared_control_plane_snapshot_for_tests,
     reload_workflow, validate_workflow,
 };
+pub use adapter_watch::{AdapterWatchSummary, adapter_watch_for_session};
+pub use control_tower::{
+    ControlTowerProjection, ProjectCardProjection, RecentArtifactProjection,
+    build_control_tower_projection,
+};
+pub use dispatch::{DispatchEvent, DispatchLifecycleState, dispatch_snapshot, dispatch_to_session};
 pub use eligibility::{EligibilityContext, evaluate_task_eligibility};
 pub use orchestrator::AutomationStatusSummary;
+pub use reconcile::{ReconcileReport, reconcile_snapshot};
 pub use reviews::{
-    ReviewDecision, ReviewDecisionResult, ReviewQueueError, ReviewQueueProjection,
-    ReviewQueueService, reset_review_queue_for_tests, shared_review_decision,
-    shared_review_ready_projection,
+    ReviewDecision, ReviewDecisionResult, ReviewQueueError, ReviewQueueItem,
+    ReviewQueueProjection, ReviewQueueService, reset_review_queue_for_tests,
+    shared_review_decision, shared_review_ready_projection,
 };
+pub use retry_queue::{DispatchFailureClass, classify_dispatch_failure};
 pub use scheduler::{BoundedScheduler, SchedulerIssue, SchedulerResult, SchedulerTask, shared_scheduler_tick};
 pub use snapshot::{SnapshotBuildError, SnapshotSeed, build_authoritative_snapshot, project_snapshot};
 pub use tasks::{

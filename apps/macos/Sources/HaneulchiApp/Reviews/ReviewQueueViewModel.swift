@@ -18,8 +18,13 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
         let diffSummary: String?
         let testsSummary: String?
         let commandSummary: String?
+        let hookSummary: String?
+        let evidenceSummary: String?
+        let checklistSummary: String?
         let warnings: [String]
         let evidenceManifestPath: String?
+        let ciRunURL: String?
+        let prURL: String?
         let timeline: [TaskTimelineEntry]
 
         enum CodingKeys: String, CodingKey {
@@ -31,8 +36,13 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             case diffSummary = "diff_summary"
             case testsSummary = "tests_summary"
             case commandSummary = "command_summary"
+            case hookSummary = "hook_summary"
+            case evidenceSummary = "evidence_summary"
+            case checklistSummary = "checklist_summary"
             case warnings
             case evidenceManifestPath = "evidence_manifest_path"
+            case ciRunURL = "ci_run_url"
+            case prURL = "pr_url"
             case timeline
         }
 
@@ -47,8 +57,13 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             diffSummary: String?,
             testsSummary: String?,
             commandSummary: String?,
+            hookSummary: String? = nil,
+            evidenceSummary: String? = nil,
+            checklistSummary: String? = nil,
             warnings: [String],
             evidenceManifestPath: String?,
+            ciRunURL: String? = nil,
+            prURL: String? = nil,
             timeline: [TaskTimelineEntry] = []
         ) {
             self.taskID = taskID
@@ -59,8 +74,13 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             self.diffSummary = diffSummary
             self.testsSummary = testsSummary
             self.commandSummary = commandSummary
+            self.hookSummary = hookSummary
+            self.evidenceSummary = evidenceSummary
+            self.checklistSummary = checklistSummary
             self.warnings = warnings
             self.evidenceManifestPath = evidenceManifestPath
+            self.ciRunURL = ciRunURL
+            self.prURL = prURL
             self.timeline = timeline
         }
     }
