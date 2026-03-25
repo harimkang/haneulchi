@@ -3,16 +3,10 @@
 /// Each test exercises a specific degraded issue code, verifies the correct
 /// recovery action, and guards against secret leakage in issue details.
 use hc_control_plane::{RecoveryContext, detect_degraded_issues, recovery_action_for_issue};
-use hc_domain::{WorkflowHealth, settings::{DegradedIssue, RecoveryAction}};
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-
-fn codes(context: &RecoveryContext) -> Vec<String> {
-    detect_degraded_issues(context)
-        .into_iter()
-        .map(|i| i.issue_code)
-        .collect()
-}
+use hc_domain::{
+    WorkflowHealth,
+    settings::{DegradedIssue, RecoveryAction},
+};
 
 fn find_issue<'a>(issues: &'a [DegradedIssue], code: &str) -> &'a DegradedIssue {
     issues
@@ -45,10 +39,7 @@ fn degraded_missing_project_path_code_and_action() {
     };
     let issues = detect_degraded_issues(&context);
     let issue = find_issue(&issues, "missing_project_path");
-    assert_eq!(
-        recovery_action_for_issue(issue),
-        RecoveryAction::ResetPath
-    );
+    assert_eq!(recovery_action_for_issue(issue), RecoveryAction::ResetPath);
 }
 
 #[test]

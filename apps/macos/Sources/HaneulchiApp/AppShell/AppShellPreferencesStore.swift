@@ -18,7 +18,7 @@ struct AppShellPreferencesStore: Sendable {
             },
             save: { preferences in
                 try storage.save(preferences)
-            }
+            },
         )
     }
 
@@ -37,10 +37,10 @@ struct AppShellPreferencesStore: Sendable {
                 let data = try encoder.encode(preferences)
                 try FileManager.default.createDirectory(
                     at: fileURL.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
+                    withIntermediateDirectories: true,
                 )
                 try data.write(to: fileURL, options: .atomic)
-            }
+            },
         )
     }
 
@@ -51,7 +51,8 @@ struct AppShellPreferencesStore: Sendable {
     private static var defaultFileURL: URL {
         let applicationSupport =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory())
+                .appendingPathComponent("Library/Application Support")
 
         return applicationSupport
             .appendingPathComponent("Haneulchi", isDirectory: true)

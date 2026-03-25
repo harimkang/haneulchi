@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("first-run empty state offers a demo entry point and onboarding copy")
 func welcomeReadinessViewModelShowsFirstRunStartState() {
@@ -9,11 +9,13 @@ func welcomeReadinessViewModelShowsFirstRunStartState() {
         selectedProject: nil,
         report: nil,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
 
     #expect(model.headerTitle == "Start a workspace")
-    #expect(model.helperText == "Open the demo workspace or add a folder. Generic shell remains available when presets are incomplete.")
+    #expect(model
+        .helperText ==
+        "Open the demo workspace or add a folder. Generic shell remains available when presets are incomplete.")
     #expect(model.showsDemoWorkspaceAction == true)
     #expect(model.canRetry == false)
 }
@@ -26,7 +28,7 @@ func welcomeReadinessViewModelKeepsDemoShortcutForNoProjectState() {
         selectedProject: nil,
         report: nil,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
 
     #expect(model.showsDemoWorkspaceAction == true)
@@ -38,7 +40,7 @@ func welcomeReadinessViewModelShowsRecoveryState() {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
 
     let model = WelcomeReadinessViewModel(
@@ -47,7 +49,7 @@ func welcomeReadinessViewModelShowsRecoveryState() {
         selectedProject: project,
         report: nil,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
 
     #expect(model.headerTitle == "Recover this workspace")
@@ -63,28 +65,45 @@ func welcomeReadinessViewModelCarriesLauncherNotice() {
         selectedProject: nil,
         report: nil,
         supportsDemoWorkspace: true,
-        launcherNotice: "Demo workspace could not be prepared. Add a folder or try again."
+        launcherNotice: "Demo workspace could not be prepared. Add a folder or try again.",
     )
 
-    #expect(model.launcherNotice == "Demo workspace could not be prepared. Add a folder or try again.")
+    #expect(model
+        .launcherNotice == "Demo workspace could not be prepared. Add a folder or try again.")
 }
 
 @Test("launcher enables continue only when a project is selected and shell probe is not blocked")
 func welcomeReadinessViewModelComputesPrimaryActionState() {
     let report = ReadinessReport(
-        project: .init(projectID: "proj_demo", name: "demo", rootPath: "/tmp/demo", lastOpenedAt: .now),
+        project: .init(
+            projectID: "proj_demo",
+            name: "demo",
+            rootPath: "/tmp/demo",
+            lastOpenedAt: .now,
+        ),
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "zsh available", nextAction: nil),
-        ]
+            .init(
+                name: .shell,
+                status: .ready,
+                headline: "Shell ready",
+                detail: "zsh available",
+                nextAction: nil,
+            ),
+        ],
     )
 
     let model = WelcomeReadinessViewModel(
         entryReason: .firstRun,
         recentProjectsCount: 1,
-        selectedProject: .init(projectID: "proj_demo", name: "demo", rootPath: "/tmp/demo", lastOpenedAt: .now),
+        selectedProject: .init(
+            projectID: "proj_demo",
+            name: "demo",
+            rootPath: "/tmp/demo",
+            lastOpenedAt: .now,
+        ),
         report: report,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
 
     #expect(model.canContinue == true)
@@ -97,15 +116,33 @@ func welcomeReadinessViewModelKeepsProjectSummaryForInformationalGaps() {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "/bin/zsh", nextAction: nil),
-            .init(name: .shellIntegration, status: .degraded, headline: "Shell integration not installed", detail: "Command markers are not configured yet.", nextAction: "Open Settings"),
-            .init(name: .workflow, status: .degraded, headline: "Workflow contract not found", detail: "Future launches can still use a generic shell.", nextAction: "Continue with Generic Shell"),
-        ]
+            .init(
+                name: .shell,
+                status: .ready,
+                headline: "Shell ready",
+                detail: "/bin/zsh",
+                nextAction: nil,
+            ),
+            .init(
+                name: .shellIntegration,
+                status: .degraded,
+                headline: "Shell integration not installed",
+                detail: "Command markers are not configured yet.",
+                nextAction: "Open Settings",
+            ),
+            .init(
+                name: .workflow,
+                status: .degraded,
+                headline: "Workflow contract not found",
+                detail: "Future launches can still use a generic shell.",
+                nextAction: "Continue with Generic Shell",
+            ),
+        ],
     )
 
     let model = WelcomeReadinessViewModel(
@@ -114,7 +151,7 @@ func welcomeReadinessViewModelKeepsProjectSummaryForInformationalGaps() {
         selectedProject: project,
         report: report,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
 
     #expect(model.headerTitle == "demo")
@@ -130,7 +167,7 @@ func welcomeReadinessViewModelOpensSettingsRoute() {
         selectedProject: nil,
         report: nil,
         supportsDemoWorkspace: true,
-        launcherNotice: nil
+        launcherNotice: nil,
     )
     #expect(model.settingsTargetRoute == .settings)
 }

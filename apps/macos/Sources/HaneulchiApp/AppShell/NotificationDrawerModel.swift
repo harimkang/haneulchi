@@ -38,12 +38,12 @@ struct NotificationDrawerModel: Equatable, Sendable {
                     stateLabel: "manual takeover",
                     summary: session.latestSummary ?? "Operator takeover active.",
                     severity: .failed,
-                    action: .jumpToSession(session.sessionID)
+                    action: .jumpToSession(session.sessionID),
                 )
             }
             if session.dispatchState == .dispatchFailed {
                 let summary = [session.latestSummary, session.dispatchReason]
-                    .compactMap { $0 }
+                    .compactMap(\.self)
                     .joined(separator: " · ")
                 return Item(
                     id: session.sessionID,
@@ -51,7 +51,7 @@ struct NotificationDrawerModel: Equatable, Sendable {
                     stateLabel: "dispatch_failed",
                     summary: summary.isEmpty ? "Dispatch failed." : summary,
                     severity: .failed,
-                    action: .jumpToSession(session.sessionID)
+                    action: .jumpToSession(session.sessionID),
                 )
             }
             return nil
@@ -65,7 +65,7 @@ struct NotificationDrawerModel: Equatable, Sendable {
                 summary: attention.summary ?? attention.headline,
                 severity: attention.severity,
                 action: attention.targetSessionID.map(AppShellAction.jumpToSession)
-                    ?? .selectRoute(attention.targetRoute)
+                    ?? .selectRoute(attention.targetRoute),
             )
         }
 

@@ -28,8 +28,7 @@ fn read_c_string(value: *const c_char) -> Result<String, String> {
 }
 
 pub fn degraded_issues_json(context_json: &str) -> Result<String, String> {
-    let context: RecoveryContext =
-        serde_json::from_str(context_json).map_err(|e| e.to_string())?;
+    let context: RecoveryContext = serde_json::from_str(context_json).map_err(|e| e.to_string())?;
     let issues = detect_degraded_issues(&context);
     serde_json::to_string(&issues).map_err(|e| e.to_string())
 }

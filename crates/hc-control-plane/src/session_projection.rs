@@ -2,7 +2,10 @@ use hc_domain::{AppSnapshot, SessionFocusState};
 
 use crate::commands::ControlPlaneError;
 
-pub fn focus_session(snapshot: &mut AppSnapshot, session_id: &str) -> Result<(), ControlPlaneError> {
+pub fn focus_session(
+    snapshot: &mut AppSnapshot,
+    session_id: &str,
+) -> Result<(), ControlPlaneError> {
     let mut found = false;
 
     for session in &mut snapshot.sessions {

@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("deck layout can split a focused pane horizontally")
 func deckSplitsFocusedPaneHorizontally() {
@@ -36,11 +36,11 @@ func deckMovesFocusBackwardInPresentationOrder() {
 }
 
 @Test("deck layout updates the root split ratio")
-func deckUpdatesRootSplitRatio() {
+func deckUpdatesRootSplitRatio() throws {
     var layout = TerminalDeckLayout.singleDemo
 
     layout.splitFocusedPane(axis: .vertical)
-    let rootSplitID = try! #require(layout.rootSplitID)
+    let rootSplitID = try #require(layout.rootSplitID)
 
     layout.setSplitRatio(0.7, for: rootSplitID)
 

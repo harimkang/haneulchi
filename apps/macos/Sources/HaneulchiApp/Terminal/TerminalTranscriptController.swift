@@ -9,7 +9,7 @@ struct TerminalTranscriptController {
 
     init(
         runtimeInfoProvider: @escaping RuntimeInfoProvider = CoreBridge.live.runtimeInfo,
-        fixtureLoader: @escaping FixtureLoader = TerminalTranscriptFixtures.load
+        fixtureLoader: @escaping FixtureLoader = TerminalTranscriptFixtures.load,
     ) {
         self.runtimeInfoProvider = runtimeInfoProvider
         self.fixtureLoader = fixtureLoader
@@ -33,25 +33,25 @@ struct TerminalTranscriptController {
             return .ready(
                 TerminalReplay(
                     backend: backend,
-                    transcript: transcript
-                )
+                    transcript: transcript,
+                ),
             )
         } catch TerminalTranscriptFixtureError.missing {
             return .degraded(
                 backend,
-                message: "Transcript fixture is missing: \(fixtureName)"
+                message: "Transcript fixture is missing: \(fixtureName)",
             )
         } catch {
             return .degraded(
                 backend,
-                message: "Transcript fixture failed to load: \(fixtureName)"
+                message: "Transcript fixture failed to load: \(fixtureName)",
             )
         }
     }
 
     func bootstrapLive() -> TerminalSurfaceState {
         do {
-            return .live(try runtimeInfoProvider())
+            return try .live(runtimeInfoProvider())
         } catch {
             return .failed(message: "Terminal bridge bootstrap failed.")
         }

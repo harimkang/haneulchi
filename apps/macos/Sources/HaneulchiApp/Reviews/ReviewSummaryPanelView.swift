@@ -6,7 +6,7 @@ struct ReviewSummaryPanelView: View {
 
     init(
         item: ReviewQueueProjectionPayload.Item?,
-        onDecision: ((ReviewDecisionCommand) -> Void)? = nil
+        onDecision: ((ReviewDecisionCommand) -> Void)? = nil,
     ) {
         self.item = item
         self.onDecision = onDecision
@@ -27,7 +27,8 @@ struct ReviewSummaryPanelView: View {
                                     .font(HaneulchiTypography.sectionHeading)
                                     .foregroundStyle(HaneulchiChrome.Label.primary)
                                 Spacer()
-                                let badgeState: HaneulchiStatusBadge.State = item.warnings.isEmpty ? .active : .blocked
+                                let badgeState: HaneulchiStatusBadge.State = item.warnings
+                                    .isEmpty ? .active : .blocked
                                 let badgeLabel = item.warnings.isEmpty ? "COMPLETE" : "\(item.warnings.count) WARNINGS"
                                 HaneulchiStatusBadge(state: badgeState, label: badgeLabel)
                             }
@@ -54,7 +55,8 @@ struct ReviewSummaryPanelView: View {
                                 }
                                 .padding(HaneulchiMetrics.Padding.compact)
                                 .background(HaneulchiChrome.State.errorSolid.opacity(0.10))
-                                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+                                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius
+                                        .medium))
                             }
                         }
                     }

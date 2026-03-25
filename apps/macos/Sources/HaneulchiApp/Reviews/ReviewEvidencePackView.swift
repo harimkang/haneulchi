@@ -44,7 +44,7 @@ struct ReviewEvidencePackView: View {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
                     HaneulchiSectionHeader(
                         title: "Touched Files",
-                        count: model.touchedFiles.count
+                        count: model.touchedFiles.count,
                     )
                     ForEach(model.touchedFiles, id: \.self) { file in
                         HaneulchiTableRow {
@@ -68,21 +68,21 @@ struct ReviewEvidencePackView: View {
                     HaneulchiMetricTile(
                         label: "CI",
                         value: ciRunURL,
-                        state: ciTileState(for: model)
+                        state: ciTileState(for: model),
                     )
                 }
                 if let prURL = model.prURL {
                     HaneulchiMetricTile(
                         label: "PR",
                         value: prURL,
-                        state: .active
+                        state: .active,
                     )
                 }
                 if let manifestPath = model.manifestPath {
                     HaneulchiMetricTile(
                         label: "Manifest",
                         value: manifestPath,
-                        state: .active
+                        state: .active,
                     )
                 }
             }

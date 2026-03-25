@@ -3,7 +3,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use hc_control_plane::{reset_task_board_for_tests, shared_inventory_for_project, shared_provision_task_workspace};
+use hc_control_plane::{
+    reset_task_board_for_tests, shared_inventory_for_project, shared_provision_task_workspace,
+};
 use hc_domain::inventory::InventoryDisposition;
 
 fn temp_dir(label: &str) -> PathBuf {
@@ -40,12 +42,9 @@ fn task_worktree_provisioning_creates_real_git_worktree_and_branch() {
     git(&repo, &["add", "README.md"]);
     git(&repo, &["commit", "-m", "init"]);
 
-    let workspace = shared_provision_task_workspace(
-        repo.to_str().expect("utf8"),
-        "task_ready",
-        Some("."),
-    )
-    .expect("workspace");
+    let workspace =
+        shared_provision_task_workspace(repo.to_str().expect("utf8"), "task_ready", Some("."))
+            .expect("workspace");
 
     assert!(Path::new(&workspace.workspace_root).join(".git").exists());
     let output = Command::new("git")
@@ -75,12 +74,9 @@ fn provisioned_worktree_starts_with_in_use_lifecycle() {
     git(&repo, &["add", "README.md"]);
     git(&repo, &["commit", "-m", "init"]);
 
-    let workspace = shared_provision_task_workspace(
-        repo.to_str().expect("utf8"),
-        "task_ready",
-        Some("."),
-    )
-    .expect("workspace");
+    let workspace =
+        shared_provision_task_workspace(repo.to_str().expect("utf8"), "task_ready", Some("."))
+            .expect("workspace");
 
     // The worktree record should have lifecycle_state = "in_use" (default on insert).
     // task_ready is seeded with project_id = "proj_demo" in the shared store.

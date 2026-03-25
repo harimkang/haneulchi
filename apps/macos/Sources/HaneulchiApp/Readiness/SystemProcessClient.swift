@@ -13,18 +13,22 @@ struct SystemProcessClient: Sendable {
         Self(
             detectedShellPath: { shellPath },
             run: { command, detectedShellPath in
-                if let detectedShellPath, let response = commands["\(command) [shell:\(detectedShellPath)]"] {
+                if let detectedShellPath,
+                   let response = commands["\(command) [shell:\(detectedShellPath)]"]
+                {
                     return response
                 }
 
                 return commands[command] ?? .failure("command_not_stubbed")
-            }
+            },
         )
     }
 
     static let live = Self(
         detectedShellPath: {
-            guard let shellPath = ProcessInfo.processInfo.environment["SHELL"], !shellPath.isEmpty else {
+            guard let shellPath = ProcessInfo.processInfo.environment["SHELL"],
+                  !shellPath.isEmpty
+            else {
                 return nil
             }
 
@@ -41,14 +45,21 @@ struct SystemProcessClient: Sendable {
             try process.run()
             process.waitUntilExit()
 
-            let stdout = String(decoding: output.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
-            let stderr = String(decoding: error.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            let stdout = String(
+                decoding: output.fileHandleForReading.readDataToEndOfFile(),
+                as: UTF8.self,
+            )
+            let stderr = String(
+                decoding: error.fileHandleForReading.readDataToEndOfFile(),
+                as: UTF8.self,
+            )
 
             if process.terminationStatus == 0 {
                 return .success(stdout)
             }
 
-            return .failure(stderr.isEmpty ? "command_failed" : stderr.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
+            return .failure(stderr.isEmpty ? "command_failed" : stderr
+                .trimmingCharacters(in: .whitespacesAndNewlines))
+        },
     )
 }

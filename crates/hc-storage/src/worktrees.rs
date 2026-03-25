@@ -97,10 +97,13 @@ impl<'connection> WorktreeRepository<'connection> {
                 kind: TimelineEventKind::WorktreeCreated,
                 actor: "worktree_repository".to_string(),
                 reason_code: Some("worktree_created".to_string()),
-                payload_json: Some(serde_json::json!({
-                    "workspace_root": input.workspace_root,
-                    "branch_name": input.branch_name
-                }).to_string()),
+                payload_json: Some(
+                    serde_json::json!({
+                        "workspace_root": input.workspace_root,
+                        "branch_name": input.branch_name
+                    })
+                    .to_string(),
+                ),
                 created_at: input.updated_at.clone(),
             },
         )?;
@@ -145,10 +148,10 @@ impl<'connection> WorktreeRepository<'connection> {
                     status: row.get("status")?,
                     created_at: row.get("created_at")?,
                     updated_at: row.get("updated_at")?,
-                    lifecycle_state: row.get::<_, Option<String>>("lifecycle_state")?
+                    lifecycle_state: row
+                        .get::<_, Option<String>>("lifecycle_state")?
                         .unwrap_or_else(|| "in_use".to_string()),
-                    size_bytes: row.get::<_, Option<i64>>("size_bytes")?
-                        .map(|v| v as u64),
+                    size_bytes: row.get::<_, Option<i64>>("size_bytes")?.map(|v| v as u64),
                     is_pinned: row.get::<_, i32>("is_pinned")? != 0,
                     last_accessed_at: row.get("last_accessed_at")?,
                 })
@@ -185,10 +188,7 @@ impl<'connection> WorktreeRepository<'connection> {
         Ok(())
     }
 
-    pub fn list_by_project(
-        &self,
-        project_id: &str,
-    ) -> Result<Vec<WorktreeRecord>, StorageError> {
+    pub fn list_by_project(&self, project_id: &str) -> Result<Vec<WorktreeRecord>, StorageError> {
         let mut statement = self.connection.prepare(
             r#"
             SELECT
@@ -225,10 +225,10 @@ impl<'connection> WorktreeRepository<'connection> {
                 status: row.get("status")?,
                 created_at: row.get("created_at")?,
                 updated_at: row.get("updated_at")?,
-                lifecycle_state: row.get::<_, Option<String>>("lifecycle_state")?
+                lifecycle_state: row
+                    .get::<_, Option<String>>("lifecycle_state")?
                     .unwrap_or_else(|| "in_use".to_string()),
-                size_bytes: row.get::<_, Option<i64>>("size_bytes")?
-                    .map(|v| v as u64),
+                size_bytes: row.get::<_, Option<i64>>("size_bytes")?.map(|v| v as u64),
                 is_pinned: row.get::<_, i32>("is_pinned")? != 0,
                 last_accessed_at: row.get("last_accessed_at")?,
             });
@@ -240,10 +240,7 @@ impl<'connection> WorktreeRepository<'connection> {
     /// Returns worktrees with `lifecycle_state = 'stale'` where
     /// `last_accessed_at < stale_before`. Rows with NULL `last_accessed_at`
     /// are excluded because NULL comparisons yield NULL (not true) in SQLite.
-    pub fn list_stale(
-        &self,
-        stale_before: &str,
-    ) -> Result<Vec<WorktreeRecord>, StorageError> {
+    pub fn list_stale(&self, stale_before: &str) -> Result<Vec<WorktreeRecord>, StorageError> {
         let mut statement = self.connection.prepare(
             r#"
             SELECT
@@ -282,10 +279,10 @@ impl<'connection> WorktreeRepository<'connection> {
                 status: row.get("status")?,
                 created_at: row.get("created_at")?,
                 updated_at: row.get("updated_at")?,
-                lifecycle_state: row.get::<_, Option<String>>("lifecycle_state")?
+                lifecycle_state: row
+                    .get::<_, Option<String>>("lifecycle_state")?
                     .unwrap_or_else(|| "in_use".to_string()),
-                size_bytes: row.get::<_, Option<i64>>("size_bytes")?
-                    .map(|v| v as u64),
+                size_bytes: row.get::<_, Option<i64>>("size_bytes")?.map(|v| v as u64),
                 is_pinned: row.get::<_, i32>("is_pinned")? != 0,
                 last_accessed_at: row.get("last_accessed_at")?,
             });

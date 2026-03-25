@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("notification drawer model orders attention rows and maps deep links deterministically")
 func notificationDrawerModelOrdersRowsAndTargets() {
@@ -22,7 +22,7 @@ func notificationDrawerModelOrdersRowsAndTargets() {
                 projectID: "proj_demo",
                 latestSummary: "Operator reviewing latest result.",
                 focusState: .background,
-                canTakeover: true
+                canTakeover: true,
             ),
             .init(
                 sessionID: "ses_failed",
@@ -36,7 +36,7 @@ func notificationDrawerModelOrdersRowsAndTargets() {
                 projectID: "proj_demo",
                 latestSummary: "Last dispatch failed.",
                 dispatchReason: "stale_target_session",
-                focusState: .background
+                focusState: .background,
             ),
         ],
         attention: [
@@ -46,7 +46,7 @@ func notificationDrawerModelOrdersRowsAndTargets() {
                 severity: .unread,
                 targetRoute: .projectFocus,
                 targetSessionID: "ses_unread",
-                summary: "New commentary arrived."
+                summary: "New commentary arrived.",
             ),
             .init(
                 attentionID: "att_failed",
@@ -54,7 +54,7 @@ func notificationDrawerModelOrdersRowsAndTargets() {
                 severity: .failed,
                 targetRoute: .reviewQueue,
                 targetSessionID: nil,
-                summary: "Target session is stale."
+                summary: "Target session is stale.",
             ),
             .init(
                 attentionID: "att_degraded",
@@ -62,16 +62,22 @@ func notificationDrawerModelOrdersRowsAndTargets() {
                 severity: .degraded,
                 targetRoute: .attentionCenter,
                 targetSessionID: nil,
-                summary: "Last known good was kept."
+                summary: "Last known good was kept.",
             ),
         ],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     let model = NotificationDrawerModel(snapshot: snapshot)
 
-    #expect(model.items.map(\.id) == ["ses_manual", "ses_failed", "att_failed", "att_degraded", "att_unread"])
+    #expect(model.items.map(\.id) == [
+        "ses_manual",
+        "ses_failed",
+        "att_failed",
+        "att_degraded",
+        "att_unread",
+    ])
     #expect(model.items.first?.stateLabel == "manual takeover")
     #expect(model.items[1].stateLabel == "dispatch_failed")
     #expect(model.items[1].summary.contains("stale_target_session") == true)

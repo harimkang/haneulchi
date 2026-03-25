@@ -36,7 +36,7 @@ struct InspectorPanelView: View {
             minWidth: HaneulchiMetrics.Panel.inspectorMin,
             maxWidth: HaneulchiMetrics.Panel.inspectorMax,
             maxHeight: .infinity,
-            alignment: .topLeading
+            alignment: .topLeading,
         )
         .background(HaneulchiChrome.Surface.base)
     }
@@ -46,7 +46,8 @@ struct InspectorPanelView: View {
         switch workspaceState.activeInspectorSection {
         case .commentary:
             if let focusedSession = Self.focusedSession(from: snapshot),
-               focusedSession.providerID != nil || focusedSession.latestCommentary != nil {
+               focusedSession.providerID != nil || focusedSession.latestCommentary != nil
+            {
                 HaneulchiPanel {
                     AdapterWatchSummaryView(session: focusedSession)
                 }
@@ -113,7 +114,9 @@ struct InspectorPanelView: View {
         }
     }
 
-    nonisolated static func focusedSession(from snapshot: AppShellSnapshot?) -> AppShellSnapshot.SessionSummary? {
+    nonisolated static func focusedSession(from snapshot: AppShellSnapshot?) -> AppShellSnapshot
+        .SessionSummary?
+    {
         guard let snapshot else {
             return nil
         }

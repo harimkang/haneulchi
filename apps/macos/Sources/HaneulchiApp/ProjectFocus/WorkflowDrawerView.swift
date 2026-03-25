@@ -79,13 +79,22 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             name = try container.decodeIfPresent(String.self, forKey: .name)
             strategy = try container.decodeIfPresent(String.self, forKey: .strategy)
             baseRoot = try container.decodeIfPresent(String.self, forKey: .baseRoot)
-            requireReview = try container.decodeIfPresent(Bool.self, forKey: .requireReview) ?? false
+            requireReview = try container
+                .decodeIfPresent(Bool.self, forKey: .requireReview) ?? false
             maxRuntimeMinutes = try container.decodeIfPresent(Int.self, forKey: .maxRuntimeMinutes)
-            unsafeOverridePolicy = try container.decodeIfPresent(String.self, forKey: .unsafeOverridePolicy)
-            reviewChecklist = try container.decodeIfPresent([String].self, forKey: .reviewChecklist) ?? []
-            allowedAgents = try container.decodeIfPresent([String].self, forKey: .allowedAgents) ?? []
+            unsafeOverridePolicy = try container.decodeIfPresent(
+                String.self,
+                forKey: .unsafeOverridePolicy,
+            )
+            reviewChecklist = try container.decodeIfPresent(
+                [String].self,
+                forKey: .reviewChecklist,
+            ) ?? []
+            allowedAgents = try container
+                .decodeIfPresent([String].self, forKey: .allowedAgents) ?? []
             hooks = try container.decodeIfPresent([String].self, forKey: .hooks) ?? []
-            hookRuns = try container.decodeIfPresent([String: String].self, forKey: .hookRuns) ?? [:]
+            hookRuns = try container
+                .decodeIfPresent([String: String].self, forKey: .hookRuns) ?? [:]
             templateBody = try container.decodeIfPresent(String.self, forKey: .templateBody)
         }
 
@@ -100,7 +109,7 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
             allowedAgents: [String],
             hooks: [String],
             hookRuns: [String: String],
-            templateBody: String?
+            templateBody: String?,
         ) {
             self.name = name
             self.strategy = strategy
@@ -141,7 +150,7 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
         lastReloadAt: String?,
         lastError: String?,
         lastBootstrap: BootstrapSummary? = nil,
-        workflow: Summary?
+        workflow: Summary?,
     ) {
         self.state = state
         self.path = path
@@ -180,7 +189,9 @@ struct WorkflowDrawerView: View {
                     Text(name)
                         .font(.subheadline.weight(.semibold))
                 }
-                if let strategy = status.workflow?.strategy, let baseRoot = status.workflow?.baseRoot {
+                if let strategy = status.workflow?.strategy,
+                   let baseRoot = status.workflow?.baseRoot
+                {
                     Text("strategy: \(strategy) · base root: \(baseRoot)")
                         .font(.caption)
                         .foregroundStyle(.secondary)
@@ -190,12 +201,16 @@ struct WorkflowDrawerView: View {
                         .font(.caption)
                 }
                 if !status.workflow.map(\.allowedAgents).unwrapOrDefault().isEmpty {
-                    Text("allowed agents: \(status.workflow?.allowedAgents.joined(separator: ", ") ?? "")")
-                        .font(.caption)
+                    Text(
+                        "allowed agents: \(status.workflow?.allowedAgents.joined(separator: ", ") ?? "")",
+                    )
+                    .font(.caption)
                 }
                 if !status.workflow.map(\.reviewChecklist).unwrapOrDefault().isEmpty {
-                    Text("review: \(status.workflow?.reviewChecklist.joined(separator: ", ") ?? "")")
-                        .font(.caption)
+                    Text(
+                        "review: \(status.workflow?.reviewChecklist.joined(separator: ", ") ?? "")",
+                    )
+                    .font(.caption)
                 }
                 if let lastError = status.lastError {
                     Text("last error: \(lastError)")
@@ -216,7 +231,7 @@ struct WorkflowDrawerView: View {
     }
 }
 
-private extension Optional where Wrapped == [String] {
+private extension [String]? {
     func unwrapOrDefault() -> [String] {
         self ?? []
     }

@@ -43,10 +43,11 @@ final class NewSessionSheetViewModel: ObservableObject {
         registry: PresetRegistry,
         workflowSummary: WorkflowLaunchSummary?,
         preferredPresetID: String? = nil,
-        provisionIsolatedWorkspace: @escaping @Sendable (String, String) throws -> ProvisionedTaskWorkspace = { _, _ in
-            throw NewSessionSheetError.isolatedProvisionUnavailable
-        },
-        resolveSecretEnv: @escaping @Sendable () throws -> [String: String] = { [:] }
+        provisionIsolatedWorkspace: @escaping @Sendable (String, String) throws
+            -> ProvisionedTaskWorkspace = { _, _ in
+                throw NewSessionSheetError.isolatedProvisionUnavailable
+            },
+        resolveSecretEnv: @escaping @Sendable () throws -> [String: String] = { [:] },
     ) {
         self.selectedProjectRoot = selectedProjectRoot
         self.selectedTaskID = selectedTaskID
@@ -54,9 +55,9 @@ final class NewSessionSheetViewModel: ObservableObject {
         self.workflowSummary = workflowSummary
         self.provisionIsolatedWorkspace = provisionIsolatedWorkspace
         self.resolveSecretEnv = resolveSecretEnv
-        self.selectedPresetID =
+        selectedPresetID =
             registry.preset(id: preferredPresetID)?.id
-            ?? registry.presets.first?.id
+                ?? registry.presets.first?.id
     }
 
     func makeGenericDescriptor() throws -> SessionLaunchDescriptor {
@@ -69,9 +70,9 @@ final class NewSessionSheetViewModel: ObservableObject {
                 args: bundle.launch.args,
                 currentDirectory: bundle.launch.currentDirectory,
                 geometry: bundle.launch.geometry,
-                environment: secretEnv
+                environment: secretEnv,
             ),
-            geometry: bundle.geometry
+            geometry: bundle.geometry,
         )
         return SessionLaunchDescriptor(
             mode: .generic,
@@ -79,7 +80,7 @@ final class NewSessionSheetViewModel: ObservableObject {
             presetID: nil,
             restoreBundle: bundle,
             workspaceRoot: root,
-            workflowSummary: workflowSummary
+            workflowSummary: workflowSummary,
         )
     }
 
@@ -98,7 +99,7 @@ final class NewSessionSheetViewModel: ObservableObject {
             args: preset.defaultArgs,
             currentDirectory: root,
             geometry: .defaultShell,
-            environment: secretEnv
+            environment: secretEnv,
         )
         return SessionLaunchDescriptor(
             mode: .preset,
@@ -106,7 +107,7 @@ final class NewSessionSheetViewModel: ObservableObject {
             presetID: preset.id,
             restoreBundle: .init(launch: launch, geometry: .defaultShell),
             workspaceRoot: root,
-            workflowSummary: workflowSummary
+            workflowSummary: workflowSummary,
         )
     }
 
@@ -135,9 +136,9 @@ final class NewSessionSheetViewModel: ObservableObject {
                 args: bundle.launch.args,
                 currentDirectory: bundle.launch.currentDirectory,
                 geometry: bundle.launch.geometry,
-                environment: secretEnv
+                environment: secretEnv,
             ),
-            geometry: bundle.geometry
+            geometry: bundle.geometry,
         )
         return SessionLaunchDescriptor(
             mode: .isolated,
@@ -145,7 +146,7 @@ final class NewSessionSheetViewModel: ObservableObject {
             presetID: nil,
             restoreBundle: bundle,
             workspaceRoot: provisionedWorkspace.workspaceRoot,
-            workflowSummary: workflowSummary
+            workflowSummary: workflowSummary,
         )
     }
 
@@ -155,7 +156,10 @@ final class NewSessionSheetViewModel: ObservableObject {
         do {
             return try resolveSecretEnv()
         } catch {
-            NSLog("[NewSessionSheetViewModel] resolveSecretEnv failed (continuing without secrets): %@", String(describing: error))
+            NSLog(
+                "[NewSessionSheetViewModel] resolveSecretEnv failed (continuing without secrets): %@",
+                String(describing: error),
+            )
             return [:]
         }
     }

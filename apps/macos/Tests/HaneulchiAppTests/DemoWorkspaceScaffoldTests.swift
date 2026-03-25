@@ -1,10 +1,11 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("demo workspace scaffold creates a stable project root with seed files")
 func demoWorkspaceScaffoldCreatesStableProjectRoot() throws {
-    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+    let root = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent(UUID().uuidString)
     let scaffold = DemoWorkspaceScaffold.fileBacked(baseDirectory: root)
 
     let project = try scaffold.materialize()
@@ -13,13 +14,16 @@ func demoWorkspaceScaffoldCreatesStableProjectRoot() throws {
     #expect(project.projectID == "proj_demo_workspace")
     #expect(project.name == "Demo Workspace")
     #expect(FileManager.default.fileExists(atPath: project.rootPath))
-    #expect(FileManager.default.fileExists(atPath: projectRoot.appendingPathComponent("README.md").path))
-    #expect(FileManager.default.fileExists(atPath: projectRoot.appendingPathComponent("WORKFLOW.md").path))
+    #expect(FileManager.default
+        .fileExists(atPath: projectRoot.appendingPathComponent("README.md").path))
+    #expect(FileManager.default
+        .fileExists(atPath: projectRoot.appendingPathComponent("WORKFLOW.md").path))
 }
 
 @Test("demo workspace scaffold is idempotent and preserves the same root path")
 func demoWorkspaceScaffoldIsIdempotent() throws {
-    let root = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+    let root = URL(fileURLWithPath: NSTemporaryDirectory())
+        .appendingPathComponent(UUID().uuidString)
     let scaffold = DemoWorkspaceScaffold.fileBacked(baseDirectory: root)
 
     let first = try scaffold.materialize()

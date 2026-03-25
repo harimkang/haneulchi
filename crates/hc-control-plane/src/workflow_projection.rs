@@ -1,7 +1,5 @@
 use hc_domain::{TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus};
 
-pub use crate::recovery::workflow_health_to_recovery_issue;
-
 pub fn sample_workflow_status() -> WorkflowRuntimeStatus {
     WorkflowRuntimeStatus {
         state: WorkflowHealth::Ok,

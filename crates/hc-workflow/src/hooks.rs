@@ -2,8 +2,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::process::Command;
 
-use crate::contract::{HookDefinition, HookPhase};
 use crate::bootstrap::HookPhaseResult;
+use crate::contract::{HookDefinition, HookPhase};
 
 const STDIO_CAPTURE_LIMIT: usize = 120;
 
@@ -45,10 +45,7 @@ pub(crate) fn truncate_capture(value: &str) -> String {
         return value.to_string();
     }
 
-    let prefix = value
-        .chars()
-        .take(STDIO_CAPTURE_LIMIT)
-        .collect::<String>();
+    let prefix = value.chars().take(STDIO_CAPTURE_LIMIT).collect::<String>();
     format!("{prefix}[truncated]")
 }
 

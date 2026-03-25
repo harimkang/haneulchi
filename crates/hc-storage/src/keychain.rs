@@ -18,10 +18,7 @@ impl KeychainBoundary {
     /// Returns `Ok(None)` when the item does not exist (`errSecItemNotFound`).
     /// The retrieved bytes are returned as an owned `Vec<u8>`; the value is
     /// never included in any error message.
-    pub fn retrieve(
-        service: &str,
-        account: &str,
-    ) -> Result<Option<Vec<u8>>, crate::StorageError> {
+    pub fn retrieve(service: &str, account: &str) -> Result<Option<Vec<u8>>, crate::StorageError> {
         // -25300 maps to errSecItemNotFound in Security/SecBase.h
         const ERR_SEC_ITEM_NOT_FOUND: i32 = -25300;
 
@@ -39,11 +36,7 @@ impl KeychainBoundary {
 #[cfg(not(target_os = "macos"))]
 impl KeychainBoundary {
     /// No-op on non-macOS platforms.
-    pub fn store(
-        _service: &str,
-        _account: &str,
-        _value: &[u8],
-    ) -> Result<(), crate::StorageError> {
+    pub fn store(_service: &str, _account: &str, _value: &[u8]) -> Result<(), crate::StorageError> {
         Ok(())
     }
 

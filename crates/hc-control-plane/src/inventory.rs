@@ -1,4 +1,6 @@
-use hc_domain::inventory::{InventoryDisposition, InventoryRow, InventorySummary, WorktreeLifecycleState};
+use hc_domain::inventory::{
+    InventoryDisposition, InventoryRow, InventorySummary, WorktreeLifecycleState,
+};
 use hc_storage::WorktreeRecord;
 
 /// Map a storage `WorktreeRecord` to an `InventoryRow`.
@@ -46,7 +48,10 @@ pub fn build_inventory_for_project(
     project_id: &str,
 ) -> Result<Vec<InventoryRow>, hc_storage::StorageError> {
     let records = store.worktrees().list_by_project(project_id)?;
-    Ok(records.iter().map(worktree_record_to_inventory_row).collect())
+    Ok(records
+        .iter()
+        .map(worktree_record_to_inventory_row)
+        .collect())
 }
 
 /// Set the lifecycle state of a worktree (pin, transition, etc.)
@@ -56,7 +61,9 @@ pub fn set_worktree_lifecycle(
     new_state: &str,
     updated_at: &str,
 ) -> Result<(), hc_storage::StorageError> {
-    store.worktrees().update_lifecycle(worktree_id, new_state, updated_at)
+    store
+        .worktrees()
+        .update_lifecycle(worktree_id, new_state, updated_at)
 }
 
 /// Check all cache roots for quota violations and return attention-style items.

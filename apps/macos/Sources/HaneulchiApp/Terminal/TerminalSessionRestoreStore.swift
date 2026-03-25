@@ -12,7 +12,7 @@ struct TerminalSessionRestoreStore: Sendable {
             },
             load: {
                 try storage.load()
-            }
+            },
         )
     }
 
@@ -23,7 +23,7 @@ struct TerminalSessionRestoreStore: Sendable {
                 let data = try encoder.encode(bundles)
                 try FileManager.default.createDirectory(
                     at: fileURL.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
+                    withIntermediateDirectories: true,
                 )
                 try data.write(to: fileURL, options: .atomic)
             },
@@ -34,7 +34,7 @@ struct TerminalSessionRestoreStore: Sendable {
 
                 let data = try Data(contentsOf: fileURL)
                 return try JSONDecoder().decode([TerminalRestoreBundle].self, from: data)
-            }
+            },
         )
     }
 
@@ -45,7 +45,8 @@ struct TerminalSessionRestoreStore: Sendable {
     private static var defaultFileURL: URL {
         let applicationSupport =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory())
+                .appendingPathComponent("Library/Application Support")
 
         return applicationSupport
             .appendingPathComponent("Haneulchi", isDirectory: true)

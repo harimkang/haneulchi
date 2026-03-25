@@ -11,7 +11,8 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
             }
-            let data: serde_json::Value = serde_json::from_str(&json).map_err(|error| error.to_string())?;
+            let data: serde_json::Value =
+                serde_json::from_str(&json).map_err(|error| error.to_string())?;
             Ok(format!(
                 "Workflow state: {}",
                 data["data"]["state"].as_str().unwrap_or("unknown")
@@ -25,7 +26,8 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
             }
-            let data: serde_json::Value = serde_json::from_str(&json).map_err(|error| error.to_string())?;
+            let data: serde_json::Value =
+                serde_json::from_str(&json).map_err(|error| error.to_string())?;
             Ok(format!(
                 "Workflow state: {}",
                 data["data"]["state"].as_str().unwrap_or("unknown")

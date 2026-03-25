@@ -28,7 +28,7 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
         args: defaultBootstrapArgs(for: "/bin/zsh"),
         currentDirectory: nil,
         geometry: .defaultShell,
-        environment: [:]
+        environment: [:],
     )
 
     static func genericShell(at rootPath: String?) -> Self {
@@ -37,7 +37,7 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
             args: defaultBootstrapArgs(for: "/bin/zsh"),
             currentDirectory: rootPath,
             geometry: .defaultShell,
-            environment: [:]
+            environment: [:],
         )
     }
 
@@ -52,7 +52,7 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
     private static func integrationScriptPath(for program: String) -> String {
         let scriptName = program.contains("bash") ? "haneulchi.bash" : "haneulchi.zsh"
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             url.deleteLastPathComponent()
         }
         return url
@@ -98,7 +98,8 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         let args: [String]
         let currentDirectory: String?
         let geometry: TerminalGridSize?
-        // `environment` excluded from deserialization — secrets re-injected from Keychain on restore
+        // `environment` excluded from deserialization — secrets re-injected from Keychain on
+        // restore
 
         enum CodingKeys: String, CodingKey {
             case program
@@ -122,9 +123,9 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         launch: TerminalSessionLaunchRequest,
         geometry: TerminalGridSize,
         running: Bool,
-        exitCode: Int?
-        ,
-        shellMetadata: ShellIntegrationMetadata? = nil
+        exitCode: Int?,
+
+        shellMetadata: ShellIntegrationMetadata? = nil,
     ) {
         self.sessionID = sessionID
         self.launch = launch
@@ -139,16 +140,19 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         let geometry = try container.decode(TerminalGridSize.self, forKey: .geometry)
         let launchPayload = try container.decode(LaunchPayload.self, forKey: .launch)
 
-        self.sessionID = try container.decode(String.self, forKey: .sessionID)
+        sessionID = try container.decode(String.self, forKey: .sessionID)
         self.geometry = geometry
-        self.running = try container.decode(Bool.self, forKey: .running)
-        self.exitCode = try container.decodeIfPresent(Int.self, forKey: .exitCode)
-        self.shellMetadata = try container.decodeIfPresent(ShellIntegrationMetadata.self, forKey: .shellMetadata)
-        self.launch = TerminalSessionLaunchRequest(
+        running = try container.decode(Bool.self, forKey: .running)
+        exitCode = try container.decodeIfPresent(Int.self, forKey: .exitCode)
+        shellMetadata = try container.decodeIfPresent(
+            ShellIntegrationMetadata.self,
+            forKey: .shellMetadata,
+        )
+        launch = TerminalSessionLaunchRequest(
             program: launchPayload.program,
             args: launchPayload.args,
             currentDirectory: launchPayload.currentDirectory,
-            geometry: launchPayload.geometry ?? geometry
+            geometry: launchPayload.geometry ?? geometry,
         )
     }
 }
@@ -299,7 +303,7 @@ final class TerminalSessionController: ObservableObject {
             }
 
             while !Task.isCancelled {
-                try? await self.refresh()
+                try? await refresh()
                 try? await Task.sleep(for: .milliseconds(33))
             }
         }

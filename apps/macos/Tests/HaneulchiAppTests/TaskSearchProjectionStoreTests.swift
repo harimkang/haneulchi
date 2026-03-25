@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("task search store returns real task-summary rows rather than a placeholder section")
 func taskSearchStoreReturnsPersistedRows() throws {
@@ -13,8 +13,8 @@ func taskSearchStoreReturnsPersistedRows() throws {
             title: "Wire app shell",
             state: .ready,
             automationMode: .manual,
-            linkedSessionID: nil
-        )
+            linkedSessionID: nil,
+        ),
     ])
 
     let rows = try store.search("wire")
@@ -22,9 +22,14 @@ func taskSearchStoreReturnsPersistedRows() throws {
     #expect(rows.map(\.taskID) == ["task_01"])
 }
 
-@Test("file-backed task search store falls back instead of crashing when the sqlite path is invalid")
+@Test(
+    "file-backed task search store falls back instead of crashing when the sqlite path is invalid",
+)
 func fileBackedTaskStoreFallsBackWhenPathIsInvalid() throws {
-    let invalidRoot = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let invalidRoot = FileManager.default.temporaryDirectory.appendingPathComponent(
+        UUID().uuidString,
+        isDirectory: true,
+    )
     try FileManager.default.createDirectory(at: invalidRoot, withIntermediateDirectories: true)
     defer {
         try? FileManager.default.removeItem(at: invalidRoot)
@@ -39,8 +44,8 @@ func fileBackedTaskStoreFallsBackWhenPathIsInvalid() throws {
             title: "Fallback task",
             state: .inbox,
             automationMode: .manual,
-            linkedSessionID: nil
-        )
+            linkedSessionID: nil,
+        ),
     ]
     try store.upsert(rowsToInsert)
 

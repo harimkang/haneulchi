@@ -14,7 +14,7 @@ struct ReadinessSettingsSection: View {
                         headline: row.headline,
                         detail: row.detail,
                         statusLabel: row.statusLabel,
-                        nextAction: row.nextAction
+                        nextAction: row.nextAction,
                     )
                     .padding(.vertical, 4)
                 }
@@ -28,7 +28,7 @@ struct ReadinessSettingsSection: View {
                     headline: shellIntegrationRow.headline,
                     detail: shellIntegrationRow.detail,
                     statusLabel: shellIntegrationRow.statusLabel,
-                    nextAction: shellIntegrationRow.nextAction
+                    nextAction: shellIntegrationRow.nextAction,
                 )
                 .padding(.top, 8)
             }
@@ -85,12 +85,11 @@ struct ReadinessSettingsSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    @ViewBuilder
     private func rowBlock(
         headline: String,
         detail: String,
         statusLabel: String,
-        nextAction: String?
+        nextAction: String?,
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline, spacing: 8) {

@@ -5,7 +5,9 @@ struct ProjectFileIndex: Sendable {
         let relativePath: String
         let absolutePath: String
 
-        var id: String { absolutePath }
+        var id: String {
+            absolutePath
+        }
     }
 
     private let ignoredDirectoryNames: Set<String> = [
@@ -26,13 +28,15 @@ struct ProjectFileIndex: Sendable {
             let enumerator = FileManager.default.enumerator(
                 at: rootURL,
                 includingPropertiesForKeys: [.isDirectoryKey],
-                options: [.skipsPackageDescendants]
+                options: [.skipsPackageDescendants],
             )
 
             var results: [Entry] = []
             while let next = enumerator?.nextObject() as? URL, results.count < limit {
                 let values = try next.resourceValues(forKeys: [.isDirectoryKey])
-                if ignoredDirectoryNames.contains(next.lastPathComponent), values.isDirectory == true {
+                if ignoredDirectoryNames.contains(next.lastPathComponent),
+                   values.isDirectory == true
+                {
                     enumerator?.skipDescendants()
                     continue
                 }
@@ -42,11 +46,10 @@ struct ProjectFileIndex: Sendable {
                 }
 
                 let canonicalPath = next.resolvingSymlinksInPath().path
-                let relativePath: String
-                if canonicalPath.hasPrefix(canonicalRootPath + "/") {
-                    relativePath = String(canonicalPath.dropFirst(canonicalRootPath.count + 1))
+                let relativePath: String = if canonicalPath.hasPrefix(canonicalRootPath + "/") {
+                    String(canonicalPath.dropFirst(canonicalRootPath.count + 1))
                 } else {
-                    relativePath = next.lastPathComponent
+                    next.lastPathComponent
                 }
                 guard !relativePath.isEmpty else {
                     continue
@@ -55,7 +58,11 @@ struct ProjectFileIndex: Sendable {
                 results.append(.init(relativePath: relativePath, absolutePath: next.path))
             }
 
-            return results.sorted { $0.relativePath.localizedCaseInsensitiveCompare($1.relativePath) == .orderedAscending }
+            return results
+                .sorted {
+                    $0.relativePath
+                        .localizedCaseInsensitiveCompare($1.relativePath) == .orderedAscending
+                }
         }.value
     }
 }

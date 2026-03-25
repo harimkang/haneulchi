@@ -7,7 +7,9 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         let statusLabel: String
         let nextAction: String?
 
-        var id: String { headline }
+        var id: String {
+            headline
+        }
     }
 
     struct PresetRow: Equatable, Sendable, Identifiable {
@@ -45,13 +47,15 @@ struct SettingsStatusViewModel: Equatable, Sendable {
     struct DegradedIssueRow: Equatable, Sendable, Identifiable {
         let issueCode: String
         let details: String
-        var id: String { issueCode }
+        var id: String {
+            issueCode
+        }
     }
 
     struct AutomationRow: Equatable, Sendable, Identifiable {
         enum RowID: String, Sendable {
             case localAPI = "local_api"
-            case cli = "cli"
+            case cli
             case workflowWatch = "workflow_watch"
             case workflowDefaults = "workflow_defaults"
         }
@@ -81,7 +85,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         snapshot: nil,
         terminalSettings: nil,
         runtimeInfoSummary: nil,
-        degradedIssues: []
+        degradedIssues: [],
     )
 
     init(
@@ -92,7 +96,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         snapshot: AppShellSnapshot?,
         terminalSettings: TerminalSettingsPayload? = nil,
         runtimeInfoSummary: RuntimeInfoSummaryPayload? = nil,
-        degradedIssues: [DegradedIssuePayload] = []
+        degradedIssues: [DegradedIssuePayload] = [],
     ) {
         let checks = report?.checks ?? []
         readinessRows = checks
@@ -106,7 +110,9 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         if let workflowStatus {
             let title = workflowStatus.workflow?.name ?? "Workflow Contract"
             var detailParts = [workflowStatus.path]
-            if let strategy = workflowStatus.workflow?.strategy, let baseRoot = workflowStatus.workflow?.baseRoot {
+            if let strategy = workflowStatus.workflow?.strategy,
+               let baseRoot = workflowStatus.workflow?.baseRoot
+            {
                 detailParts.append("strategy: \(strategy) · base root: \(baseRoot)")
             }
             if let lastGoodHash = workflowStatus.lastGoodHash {
@@ -117,7 +123,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 path: workflowStatus.path,
                 statusLabel: workflowStatus.state.rawValue,
                 detail: detailParts.joined(separator: "\n"),
-                lastError: workflowStatus.lastError
+                lastError: workflowStatus.lastError,
             )
         } else {
             workflowRow = nil
@@ -135,7 +141,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                     title: preset.title,
                     statusLabel: preset.installState.rawValue,
                     detail: capabilitySummary,
-                    requiresShellIntegration: preset.requiresShellIntegration
+                    requiresShellIntegration: preset.requiresShellIntegration,
                 )
             }
 
@@ -147,7 +153,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 detail: runtimeInfo.map {
                     "Rust core connected via \($0.transport). Local-only diagnostics remain the trust boundary."
                 } ?? "Local control API diagnostics are not surfaced in this build yet.",
-                nextAction: runtimeInfo == nil ? "Open Workflow Contract" : nil
+                nextAction: runtimeInfo == nil ? "Open Workflow Contract" : nil,
             ),
             AutomationRow(
                 id: .cli,
@@ -156,7 +162,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 detail: snapshot == nil
                     ? "CLI install path and version are not surfaced in this build yet."
                     : "CLI parity uses the same local snapshot contract as the Swift shell.",
-                nextAction: snapshot == nil ? "Open Workflow Contract" : nil
+                nextAction: snapshot == nil ? "Open Workflow Contract" : nil,
             ),
             AutomationRow(
                 id: .workflowWatch,
@@ -178,7 +184,8 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                         "Workflow contract loaded from \($0.path). Watch diagnostics will surface here once runtime watch state is exported."
                     }
                     ?? "Workflow watch state is not available until a repo workflow is loaded.",
-                nextAction: snapshot == nil && workflowStatus == nil ? "Open Workflow Contract" : nil
+                nextAction: snapshot == nil && workflowStatus == nil ? "Open Workflow Contract" :
+                    nil,
             ),
             AutomationRow(
                 id: .workflowDefaults,
@@ -186,11 +193,15 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 statusLabel: snapshot == nil ? "deferred" : "available",
                 detail: snapshot.map {
                     "\($0.ops.cadenceMs)ms cadence · \($0.ops.runningSlots)/\($0.ops.maxSlots) slots · \($0.ops.retryQueueCount) retry · workflow \($0.workflow?.state.rawValue ?? "none") · tracker \($0.tracker?.health ?? "unknown")"
-                } ?? "Workflow cadence, max slots, and retry-cap defaults are not surfaced in this build yet.",
-                nextAction: snapshot == nil ? "Open Workflow Contract" : nil
+                } ??
+                    "Workflow cadence, max slots, and retry-cap defaults are not surfaced in this build yet.",
+                nextAction: snapshot == nil ? "Open Workflow Contract" : nil,
             ),
         ]
-        controlPanel = snapshot.map { AutomationControlPanelViewModel(snapshot: $0, runtimeInfo: runtimeInfo) }
+        controlPanel = snapshot.map { AutomationControlPanelViewModel(
+            snapshot: $0,
+            runtimeInfo: runtimeInfo,
+        ) }
 
         terminalSettingsRow = terminalSettings.map {
             TerminalSettingsRow(
@@ -200,7 +211,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 scrollbackLines: $0.scrollbackLines,
                 fontName: $0.fontName,
                 theme: $0.theme,
-                cursorStyle: $0.cursorStyle
+                cursorStyle: $0.cursorStyle,
             )
         }
 
@@ -208,7 +219,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
             APIRuntimeInfoRow(
                 socketPath: $0.socketPath,
                 transport: $0.transport,
-                status: $0.status
+                status: $0.status,
             )
         }
 
@@ -222,7 +233,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
             headline: check.headline,
             detail: check.detail,
             statusLabel: check.status.label,
-            nextAction: check.nextAction
+            nextAction: check.nextAction,
         )
     }
 }

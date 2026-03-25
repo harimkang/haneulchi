@@ -36,7 +36,11 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         .iter()
         .find(|session| session.focus_state == SessionFocusState::Focused)
         .map(|session| session.session_id.clone())
-        .or_else(|| seed.sessions.first().map(|session| session.session_id.clone()));
+        .or_else(|| {
+            seed.sessions
+                .first()
+                .map(|session| session.session_id.clone())
+        });
     let attention = derive_attention(&seed.workflow, &seed.sessions, &seed.retry_queue);
     let queued_claim_count = seed
         .sessions

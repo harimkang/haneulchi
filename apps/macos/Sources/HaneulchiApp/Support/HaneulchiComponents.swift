@@ -44,30 +44,30 @@ private struct HaneulchiButtonBody: View {
         case .primary:
             HaneulchiChrome.Gradient.primaryLinear
         case .secondary:
-            (isHovered
+            isHovered
                 ? HaneulchiChrome.Surface.raised
-                : HaneulchiChrome.Surface.base)
+                : HaneulchiChrome.Surface.base
         case .tertiary:
             Color.clear
         case .danger:
-            (isHovered
+            isHovered
                 ? HaneulchiChrome.State.errorSolid.opacity(0.25)
-                : HaneulchiChrome.State.errorSolid.opacity(0.12))
+                : HaneulchiChrome.State.errorSolid.opacity(0.12)
         }
     }
 
     private var labelColor: Color {
         switch variant {
         case .primary:
-            return HaneulchiChrome.Surface.foundation
+            HaneulchiChrome.Surface.foundation
         case .secondary:
-            return HaneulchiChrome.Label.primary
+            HaneulchiChrome.Label.primary
         case .tertiary:
-            return isHovered
+            isHovered
                 ? HaneulchiChrome.Gradient.primaryEnd
                 : HaneulchiChrome.Label.secondary
         case .danger:
-            return HaneulchiChrome.State.error
+            HaneulchiChrome.State.error
         }
     }
 }
@@ -104,18 +104,18 @@ struct HaneulchiIconButton: View {
     private var foregroundColor: Color {
         switch tone {
         case .secondary:
-            return HaneulchiChrome.Label.secondary
+            HaneulchiChrome.Label.secondary
         case .tertiary:
-            return isHovered ? HaneulchiChrome.Label.primary : HaneulchiChrome.Label.muted
+            isHovered ? HaneulchiChrome.Label.primary : HaneulchiChrome.Label.muted
         }
     }
 
     private var backgroundColor: Color {
         switch tone {
         case .secondary:
-            return isHovered ? HaneulchiChrome.Surface.raised : HaneulchiChrome.Surface.base
+            isHovered ? HaneulchiChrome.Surface.raised : HaneulchiChrome.Surface.base
         case .tertiary:
-            return isHovered ? HaneulchiChrome.Surface.base.opacity(0.55) : Color.clear
+            isHovered ? HaneulchiChrome.Surface.base.opacity(0.55) : Color.clear
         }
     }
 }
@@ -152,46 +152,46 @@ struct HaneulchiStatusBadge: View {
     private var fillColor: Color {
         switch state {
         case .active:
-            return HaneulchiChrome.State.successSolid
+            HaneulchiChrome.State.successSolid
         case .reviewReady:
-            return HaneulchiChrome.Gradient.primaryEnd
+            HaneulchiChrome.Gradient.primaryEnd
         case .waitingInput:
-            return HaneulchiChrome.State.warningSolid
+            HaneulchiChrome.State.warningSolid
         case .retryDue:
-            return HaneulchiChrome.State.warningSolid.opacity(0.7)
+            HaneulchiChrome.State.warningSolid.opacity(0.7)
         case .manualTakeover:
-            return HaneulchiChrome.Gradient.primaryStart.opacity(0.18)
+            HaneulchiChrome.Gradient.primaryStart.opacity(0.18)
         case .degraded:
-            return HaneulchiChrome.State.warningSolid.opacity(0.18)
+            HaneulchiChrome.State.warningSolid.opacity(0.18)
         case .blocked:
-            return HaneulchiChrome.State.errorSolid
+            HaneulchiChrome.State.errorSolid
         case .idle:
-            return HaneulchiChrome.Surface.base
+            HaneulchiChrome.Surface.base
         case .done:
-            return HaneulchiChrome.Surface.base.opacity(0.6)
+            HaneulchiChrome.Surface.base.opacity(0.6)
         }
     }
 
     private var textColor: Color {
         switch state {
         case .active:
-            return HaneulchiChrome.State.success
+            HaneulchiChrome.State.success
         case .reviewReady:
-            return HaneulchiChrome.Label.primary
+            HaneulchiChrome.Label.primary
         case .waitingInput:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .retryDue:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .manualTakeover:
-            return HaneulchiChrome.Gradient.primaryStart
+            HaneulchiChrome.Gradient.primaryStart
         case .degraded:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .blocked:
-            return HaneulchiChrome.State.error
+            HaneulchiChrome.State.error
         case .idle:
-            return HaneulchiChrome.Label.muted
+            HaneulchiChrome.Label.muted
         case .done:
-            return HaneulchiChrome.Label.muted
+            HaneulchiChrome.Label.muted
         }
     }
 }
@@ -226,21 +226,24 @@ struct HaneulchiCard<Content: View>: View {
                 RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium)
                     .strokeBorder(
                         isSelected ? HaneulchiChrome.Stroke.ghost : Color.clear,
-                        lineWidth: 1
-                    )
+                        lineWidth: 1,
+                    ),
             )
             .onHover { isHovered = $0 }
             .animation(.easeInOut(duration: HaneulchiMetrics.Motion.hoverShift), value: isHovered)
-            .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isSelected)
+            .animation(
+                .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+                value: isSelected,
+            )
     }
 
     private var backgroundColor: Color {
         if isSelected {
-            return HaneulchiChrome.Surface.raised
+            HaneulchiChrome.Surface.raised
         } else if isHovered {
-            return HaneulchiChrome.Surface.raised
+            HaneulchiChrome.Surface.raised
         } else {
-            return HaneulchiChrome.Surface.base
+            HaneulchiChrome.Surface.base
         }
     }
 }
@@ -249,7 +252,7 @@ struct HaneulchiCard<Content: View>: View {
 
 struct HaneulchiSectionHeader: View {
     var title: String
-    var count: Int? = nil
+    var count: Int?
 
     var body: some View {
         HStack(spacing: HaneulchiMetrics.Spacing.xs) {
@@ -257,7 +260,7 @@ struct HaneulchiSectionHeader: View {
                 .font(HaneulchiTypography.sectionHeading)
                 .foregroundColor(HaneulchiChrome.Label.primary)
 
-            if let count = count {
+            if let count {
                 Text("\(count)")
                     .font(HaneulchiTypography.compactMeta)
                     .tracking(HaneulchiTypography.Tracking.metaModerate)
@@ -293,21 +296,24 @@ struct HaneulchiTableRow<Content: View>: View {
                 RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.small)
                     .strokeBorder(
                         isSelected ? HaneulchiChrome.Stroke.ghost : Color.clear,
-                        lineWidth: 1
-                    )
+                        lineWidth: 1,
+                    ),
             )
             .onHover { isHovered = $0 }
             .animation(.easeInOut(duration: HaneulchiMetrics.Motion.hoverShift), value: isHovered)
-            .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isSelected)
+            .animation(
+                .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+                value: isSelected,
+            )
     }
 
     private var backgroundColor: Color {
         if isSelected {
-            return HaneulchiChrome.Surface.raised
+            HaneulchiChrome.Surface.raised
         } else if isHovered {
-            return HaneulchiChrome.Surface.raised
+            HaneulchiChrome.Surface.raised
         } else {
-            return Color.clear
+            Color.clear
         }
     }
 }
@@ -340,23 +346,23 @@ struct HaneulchiMetricTile: View {
     private var valueColor: Color {
         switch state {
         case .active:
-            return HaneulchiChrome.State.success
+            HaneulchiChrome.State.success
         case .reviewReady:
-            return HaneulchiChrome.Gradient.primaryEnd
+            HaneulchiChrome.Gradient.primaryEnd
         case .waitingInput:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .retryDue:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .manualTakeover:
-            return HaneulchiChrome.Gradient.primaryStart
+            HaneulchiChrome.Gradient.primaryStart
         case .degraded:
-            return HaneulchiChrome.State.warning
+            HaneulchiChrome.State.warning
         case .blocked:
-            return HaneulchiChrome.State.error
+            HaneulchiChrome.State.error
         case .idle:
-            return HaneulchiChrome.Label.secondary
+            HaneulchiChrome.Label.secondary
         case .done:
-            return HaneulchiChrome.Label.muted
+            HaneulchiChrome.Label.muted
         }
     }
 }

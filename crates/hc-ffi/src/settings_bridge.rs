@@ -32,8 +32,7 @@ pub fn terminal_settings_json() -> Result<String, String> {
 }
 
 pub fn upsert_terminal_settings_json(json: &str) -> Result<String, String> {
-    let settings: TerminalSettings =
-        serde_json::from_str(json).map_err(|e| e.to_string())?;
+    let settings: TerminalSettings = serde_json::from_str(json).map_err(|e| e.to_string())?;
     hc_control_plane::shared_upsert_terminal_settings(settings).map_err(|e| e.to_string())?;
     Ok(r#"{"ok":true}"#.to_string())
 }

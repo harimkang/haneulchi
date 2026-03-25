@@ -8,7 +8,7 @@ struct TaskContextDrawerView: View {
     init(
         model: TaskDrawerModel?,
         onPrimaryAction: ((TaskDrawerModel) -> Void)? = nil,
-        onQuickDispatch: (() -> Void)? = nil
+        onQuickDispatch: (() -> Void)? = nil,
     ) {
         self.model = model
         self.onPrimaryAction = onPrimaryAction

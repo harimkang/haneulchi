@@ -3,7 +3,7 @@ import PackagePlugin
 
 @main
 struct HCCoreFFIBuildPlugin: BuildToolPlugin {
-    func createBuildCommands(context: PluginContext, target: Target) throws -> [Command] {
+    func createBuildCommands(context: PluginContext, target _: Target) throws -> [Command] {
         let packageDirectory = context.package.directoryURL
         let workspaceRoot = packageDirectory
             .deletingLastPathComponent()
@@ -23,8 +23,8 @@ struct HCCoreFFIBuildPlugin: BuildToolPlugin {
                     workspaceRoot.path(percentEncoded: false),
                     outputDirectory.path(percentEncoded: false),
                 ],
-                outputFilesDirectory: outputDirectory
-            )
+                outputFilesDirectory: outputDirectory,
+            ),
         ]
     }
 }

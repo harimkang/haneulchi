@@ -13,14 +13,17 @@ struct CommandPaletteOverlay: View {
                 .onTapGesture(perform: onClose)
 
             VStack(spacing: 0) {
-                TextField("Search commands, files, sessions, tasks, inventory", text: $viewModel.query)
-                    .textFieldStyle(.plain)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                    .padding(HaneulchiMetrics.Spacing.md)
-                    .background(HaneulchiChrome.Surface.base)
-                    .focused($isSearchFocused)
-                    .onSubmit(executeSelection)
+                TextField(
+                    "Search commands, files, sessions, tasks, inventory",
+                    text: $viewModel.query,
+                )
+                .textFieldStyle(.plain)
+                .font(HaneulchiTypography.body)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
+                .padding(HaneulchiMetrics.Spacing.md)
+                .background(HaneulchiChrome.Surface.base)
+                .focused($isSearchFocused)
+                .onSubmit(executeSelection)
 
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
@@ -33,16 +36,22 @@ struct CommandPaletteOverlay: View {
                                         viewModel.select(item)
                                         executeSelection()
                                     } label: {
-                                        HaneulchiTableRow(isSelected: viewModel.selection?.id == item.id) {
+                                        HaneulchiTableRow(isSelected: viewModel.selection?
+                                            .id == item.id)
+                                        {
                                             HStack {
                                                 VStack(alignment: .leading, spacing: 2) {
                                                     Text(item.title)
                                                         .font(HaneulchiTypography.body)
-                                                        .foregroundStyle(HaneulchiChrome.Label.primary)
+                                                        .foregroundStyle(HaneulchiChrome.Label
+                                                            .primary)
                                                     if let subtitle = item.subtitle {
                                                         Text(subtitle)
-                                                            .font(HaneulchiTypography.compactMeta)
-                                                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                                                            .font(HaneulchiTypography
+                                                                .compactMeta)
+                                                            .foregroundStyle(HaneulchiChrome
+                                                                .Label
+                                                                .muted)
                                                     }
                                                 }
                                                 Spacer()
@@ -60,7 +69,7 @@ struct CommandPaletteOverlay: View {
             .frame(
                 minWidth: HaneulchiMetrics.Panel.commandPaletteMin,
                 maxWidth: HaneulchiMetrics.Panel.commandPaletteMax,
-                maxHeight: 520
+                maxHeight: 520,
             )
             .glassPanel()
             .ambientShadow()

@@ -1,4 +1,4 @@
-use hc_storage::{CacheEntryRecord, CacheRootRecord, QuotaRecord, SqliteStore};
+use hc_storage::{CacheEntryRecord, QuotaRecord, SqliteStore};
 
 #[test]
 fn cache_root_can_be_created_and_retrieved() {
@@ -145,7 +145,10 @@ fn check_quota_under_limit_is_not_over() {
     })
     .expect("upsert quota");
 
-    let status = repo.check_quota("root_q2").expect("check quota").expect("some status");
+    let status = repo
+        .check_quota("root_q2")
+        .expect("check quota")
+        .expect("some status");
     assert_eq!(status.max_bytes, 1000);
     assert_eq!(status.current_bytes, 400);
     assert!(!status.is_over);
@@ -177,7 +180,10 @@ fn check_quota_at_limit_is_over() {
     })
     .expect("upsert quota");
 
-    let status = repo.check_quota("root_q3").expect("check quota").expect("some status");
+    let status = repo
+        .check_quota("root_q3")
+        .expect("check quota")
+        .expect("some status");
     assert_eq!(status.max_bytes, 1000);
     assert_eq!(status.current_bytes, 1000);
     assert!(status.is_over);
@@ -219,7 +225,10 @@ fn check_quota_over_limit_is_over() {
     })
     .expect("upsert quota");
 
-    let status = repo.check_quota("root_q4").expect("check quota").expect("some status");
+    let status = repo
+        .check_quota("root_q4")
+        .expect("check quota")
+        .expect("some status");
     assert_eq!(status.max_bytes, 1000);
     assert_eq!(status.current_bytes, 1300);
     assert!(status.is_over);
@@ -244,7 +253,10 @@ fn check_quota_zero_max_bytes_with_empty_cache_is_over() {
     .expect("upsert quota");
 
     // No entries inserted — current_bytes is 0, max_bytes is 0, so 0 >= 0 → is_over = true.
-    let status = repo.check_quota("root_q5").expect("check quota").expect("some status");
+    let status = repo
+        .check_quota("root_q5")
+        .expect("check quota")
+        .expect("some status");
     assert_eq!(status.max_bytes, 0);
     assert_eq!(status.current_bytes, 0);
     assert!(status.is_over, "quota of 0 bytes must always be over");

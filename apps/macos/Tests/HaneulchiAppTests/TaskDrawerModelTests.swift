@@ -1,8 +1,10 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("task drawer model resolves linked session, workspace, and workflow details from the authoritative snapshot")
+@Test(
+    "task drawer model resolves linked session, workspace, and workflow details from the authoritative snapshot",
+)
 func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 3, runtimeRev: 3, projectionRev: 3, snapshotAt: .now),
@@ -24,7 +26,7 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
                 workspaceRoot: "/tmp/demo/.haneulchi/task_01",
                 baseRoot: ".",
                 latestSummary: "Running tests",
-                focusState: .background
+                focusState: .background,
             ),
             .init(
                 sessionID: "ses_02",
@@ -42,12 +44,12 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
                 workspaceRoot: "/tmp/demo/worktrees/task_ready",
                 baseRoot: "Sources",
                 latestSummary: "Review evidence",
-                focusState: .focused
+                focusState: .focused,
             ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
     let workflow = WorkflowStatusPayload(
         state: .ok,
@@ -67,8 +69,8 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
             allowedAgents: ["codex"],
             hooks: [],
             hookRuns: [:],
-            templateBody: nil
-        )
+            templateBody: nil,
+        ),
     )
 
     let model = TaskDrawerModel.resolve(from: snapshot, workflowStatus: workflow)
@@ -112,12 +114,12 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
                 workspaceRoot: "/tmp/demo/worktrees/task_review",
                 baseRoot: ".",
                 latestSummary: "Review ready",
-                focusState: .focused
-            )
+                focusState: .focused,
+            ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
     let workflow = WorkflowStatusPayload(
         state: .ok,
@@ -136,7 +138,7 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
             warningCodes: [],
             claimReleased: false,
             launchExitCode: 0,
-            lastKnownGoodHash: "sha256:abc123"
+            lastKnownGoodHash: "sha256:abc123",
         ),
         workflow: .init(
             name: "Review Workflow",
@@ -149,8 +151,8 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
             allowedAgents: ["gemini"],
             hooks: [],
             hookRuns: [:],
-            templateBody: nil
-        )
+            templateBody: nil,
+        ),
     )
     let timeline = [
         TaskTimelineEntry(
@@ -159,7 +161,7 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
             actor: "workflow",
             summary: "Review evidence captured",
             warningReason: nil,
-            createdAt: "2026-03-23T07:12:00Z"
+            createdAt: "2026-03-23T07:12:00Z",
         ),
         TaskTimelineEntry(
             id: "evt_02",
@@ -167,11 +169,15 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
             actor: "timeline",
             summary: "Missing review item reference",
             warningReason: "broken_link",
-            createdAt: "2026-03-23T07:13:00Z"
+            createdAt: "2026-03-23T07:13:00Z",
         ),
     ]
 
-    let model = TaskDrawerModel.resolve(from: snapshot, workflowStatus: workflow, timeline: timeline)
+    let model = TaskDrawerModel.resolve(
+        from: snapshot,
+        workflowStatus: workflow,
+        timeline: timeline,
+    )
 
     #expect(model?.timeline.count == 2)
     #expect(model?.timeline.last?.warningReason == "broken_link")
@@ -184,8 +190,17 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
 func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 5, runtimeRev: 5, projectionRev: 5, snapshotAt: .now),
-        ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 1, workflowHealth: .invalidKeptLastGood),
-        app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_03", degradedFlags: [.degraded]),
+        ops: .init(
+            runningSlots: 1,
+            maxSlots: 2,
+            retryQueueCount: 1,
+            workflowHealth: .invalidKeptLastGood,
+        ),
+        app: .init(
+            activeRoute: .projectFocus,
+            focusedSessionID: "ses_03",
+            degradedFlags: [.degraded],
+        ),
         projects: [],
         sessions: [
             .init(
@@ -205,8 +220,8 @@ func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
                 baseRoot: ".",
                 latestSummary: "Retry due",
                 dispatchReason: "stale_target_session",
-                focusState: .focused
-            )
+                focusState: .focused,
+            ),
         ],
         attention: [],
         retryQueue: [
@@ -217,10 +232,10 @@ func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
                 reasonCode: "adapter_timeout",
                 dueAt: "2026-03-23T17:00:00Z",
                 backoffMs: 60000,
-                claimState: .claimed
-            )
+                claimState: .claimed,
+            ),
         ],
-        warnings: []
+        warnings: [],
     )
     let workflow = WorkflowStatusPayload(
         state: .invalidKeptLastGood,
@@ -239,8 +254,8 @@ func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
             allowedAgents: ["codex"],
             hooks: [],
             hookRuns: [:],
-            templateBody: nil
-        )
+            templateBody: nil,
+        ),
     )
 
     let model = TaskDrawerModel.resolve(from: snapshot, workflowStatus: workflow)

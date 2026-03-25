@@ -12,7 +12,7 @@ struct SessionSignalPresentation: Equatable, Sendable {
 
     static func from(
         session: AppShellSnapshot.SessionSummary,
-        isFocused: Bool
+        isFocused: Bool,
     ) -> SessionSignalPresentation? {
         if session.canTakeover || session.manualControlState == .takeover {
             return .init(tone: .strong, label: "manual takeover", badgeState: .manualTakeover)
@@ -27,14 +27,18 @@ struct SessionSignalPresentation: Equatable, Sendable {
             return .init(
                 tone: .strong,
                 label: session.runtimeState.rawValue.replacingOccurrences(of: "_", with: " "),
-                badgeState: .blocked
+                badgeState: .blocked,
             )
         default:
             break
         }
 
         if session.unreadCount > 0 {
-            return .init(tone: .weak, label: "\(session.unreadCount) unread", badgeState: .waitingInput)
+            return .init(
+                tone: .weak,
+                label: "\(session.unreadCount) unread",
+                badgeState: .waitingInput,
+            )
         }
 
         if isFocused, session.dispatchState == .dispatchable {

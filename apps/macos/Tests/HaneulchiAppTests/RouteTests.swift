@@ -1,10 +1,16 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("app shell exposes the documented primary routes")
 func primaryRoutes() {
     #expect(Route.allCases.count == 6)
-    #expect(Route.primaryCases == [.projectFocus, .controlTower, .taskBoard, .reviewQueue, .attentionCenter])
+    #expect(Route.primaryCases == [
+        .projectFocus,
+        .controlTower,
+        .taskBoard,
+        .reviewQueue,
+        .attentionCenter,
+    ])
     #expect(Route.projectFocus.rawValue == "project_focus")
     #expect(Route.projectFocus.title == "Project Focus")
     #expect(Route.controlTower.title == "Control Tower")

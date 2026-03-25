@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 private final class SendableBox<T>: @unchecked Sendable {
     var value: T
@@ -42,7 +42,7 @@ func liveSessionControllerInjectsResolvedSecretEnvironment() async throws {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: false
+                demoMode: false,
             )
         },
         spawnSession: { request in
@@ -52,7 +52,7 @@ func liveSessionControllerInjectsResolvedSecretEnvironment() async throws {
                 launch: request,
                 geometry: request.geometry,
                 running: true,
-                exitCode: nil
+                exitCode: nil,
             )
         },
         drainSession: { _ in Data() },
@@ -65,7 +65,7 @@ func liveSessionControllerInjectsResolvedSecretEnvironment() async throws {
                 launch: .defaultShell,
                 geometry: .defaultShell,
                 running: true,
-                exitCode: nil
+                exitCode: nil,
             )
         },
         resolveLaunchEnvironment: {
@@ -73,7 +73,7 @@ func liveSessionControllerInjectsResolvedSecretEnvironment() async throws {
                 "OPENAI_API_KEY": "sk-live-test",
                 "GITHUB_TOKEN": "gh-live-test",
             ]
-        }
+        },
     )
     let controller = TerminalSessionController(bridge: bridge)
 
@@ -91,7 +91,7 @@ func liveSessionControllerPreservesShellMetadata() async throws {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: false
+                demoMode: false,
             )
         },
         spawnSession: { request in
@@ -100,7 +100,7 @@ func liveSessionControllerPreservesShellMetadata() async throws {
                 launch: request,
                 geometry: request.geometry,
                 running: true,
-                exitCode: nil
+                exitCode: nil,
             )
         },
         drainSession: { _ in Data() },
@@ -119,10 +119,10 @@ func liveSessionControllerPreservesShellMetadata() async throws {
                     currentDirectory: "/tmp/demo",
                     lastCommand: "npm test",
                     lastExitCode: 17,
-                    branch: "main"
-                )
+                    branch: "main",
+                ),
             )
-        }
+        },
     )
     let controller = TerminalSessionController(bridge: bridge)
 
@@ -141,7 +141,7 @@ func liveSessionControllerExposesRestoreFailure() async {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: false
+                demoMode: false,
             )
         },
         spawnSession: { _ in
@@ -153,7 +153,7 @@ func liveSessionControllerExposesRestoreFailure() async {
         terminateSession: { _ in },
         snapshotSession: { _ in
             throw CoreBridgeError.operationFailed("session_not_found")
-        }
+        },
     )
     let controller = TerminalSessionController(bridge: bridge)
 
@@ -175,7 +175,7 @@ func liveSessionControllerTerminatesSpawnedSessionWhenBootstrapRefreshFails() as
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: false
+                demoMode: false,
             )
         },
         spawnSession: { request in
@@ -184,7 +184,7 @@ func liveSessionControllerTerminatesSpawnedSessionWhenBootstrapRefreshFails() as
                 launch: request,
                 geometry: request.geometry,
                 running: true,
-                exitCode: nil
+                exitCode: nil,
             )
         },
         drainSession: { _ in Data() },
@@ -195,7 +195,7 @@ func liveSessionControllerTerminatesSpawnedSessionWhenBootstrapRefreshFails() as
         },
         snapshotSession: { _ in
             throw CoreBridgeError.operationFailed("snapshot_failed")
-        }
+        },
     )
     let controller = TerminalSessionController(bridge: bridge)
 
@@ -216,7 +216,7 @@ func failedRestoreDoesNotOverwriteRestorePoint() async throws {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: false
+                demoMode: false,
             )
         },
         spawnSession: { request in
@@ -225,7 +225,7 @@ func failedRestoreDoesNotOverwriteRestorePoint() async throws {
                 launch: request,
                 geometry: request.geometry,
                 running: true,
-                exitCode: nil
+                exitCode: nil,
             )
         },
         drainSession: { _ in Data() },
@@ -234,7 +234,7 @@ func failedRestoreDoesNotOverwriteRestorePoint() async throws {
         terminateSession: { _ in },
         snapshotSession: { _ in
             throw CoreBridgeError.operationFailed("snapshot_failed")
-        }
+        },
     )
     let controller = TerminalSessionController(bridge: bridge)
 

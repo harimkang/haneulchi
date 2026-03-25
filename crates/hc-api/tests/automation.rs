@@ -68,6 +68,9 @@ fn reconcile_now_uses_current_shared_snapshot_slot_state() {
         value["result"]["queued"][0]["reason_code"],
         "slot_capacity_exhausted"
     );
-    assert_eq!(value["reconcile"]["released_session_ids"], serde_json::json!([]));
+    assert_eq!(
+        value["reconcile"]["released_session_ids"],
+        serde_json::json!([])
+    );
     assert_eq!(value["snapshot"]["attention"][0]["kind"], "retry_due");
 }

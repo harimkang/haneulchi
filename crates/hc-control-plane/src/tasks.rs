@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
-use std::path::Path;
 use hc_domain::{
     ClaimState, PolicyPack, Task, TaskAutomationDetails, TaskAutomationMode,
     TaskBoardColumnProjection, TaskColumn, TaskDrawerProjection, WorkflowHealth,
 };
 use hc_storage::{NewTaskRecord, NewWorktreeRecord, SqliteStore};
 use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::path::Path;
 
 use crate::eligibility::{EligibilityContext, evaluate_task_eligibility};
 use crate::shared_store::{lock_shared_store, reset_shared_store};
@@ -143,7 +143,13 @@ impl TaskBoardService {
         workspace_root: &str,
         base_root: &str,
     ) -> Result<ProvisionedTaskWorkspace, TaskBoardError> {
-        provision_task_workspace_for_store(&self.store, task_id, project_root, workspace_root, base_root)
+        provision_task_workspace_for_store(
+            &self.store,
+            task_id,
+            project_root,
+            workspace_root,
+            base_root,
+        )
     }
 }
 
@@ -193,7 +199,14 @@ pub fn shared_automation_details(
     claim_state: ClaimState,
 ) -> Result<TaskAutomationDetails, TaskBoardError> {
     let store = lock_shared_store()?;
-    automation_details_for_store(&store, task_id, workflow_health, selected_agent, policy_pack, claim_state)
+    automation_details_for_store(
+        &store,
+        task_id,
+        workflow_health,
+        selected_agent,
+        policy_pack,
+        claim_state,
+    )
 }
 
 pub fn shared_task_drawer(task_id: &str) -> Result<Option<TaskDrawerProjection>, TaskBoardError> {
@@ -228,7 +241,9 @@ pub(crate) fn board_projection_for_store(
 
     for column in &all_columns {
         for task in &column.tasks {
-            *project_counts.entry(task.project_id.clone()).or_insert(0usize) += 1;
+            *project_counts
+                .entry(task.project_id.clone())
+                .or_insert(0usize) += 1;
         }
     }
 
@@ -250,7 +265,9 @@ pub(crate) fn move_task_for_store(
     column: TaskColumn,
     actor: &str,
 ) -> Result<TaskBoardMutationResult, TaskBoardError> {
-    let task = store.tasks().move_to(task_id, column, actor, MOVE_UPDATED_AT)?;
+    let task = store
+        .tasks()
+        .move_to(task_id, column, actor, MOVE_UPDATED_AT)?;
     Ok(TaskBoardMutationResult { task })
 }
 
@@ -338,7 +355,9 @@ pub(crate) fn attach_session_for_store(
     task_id: &str,
     session_id: &str,
 ) -> Result<TaskBoardMutationResult, TaskBoardError> {
-    let task = store.tasks().attach_session(task_id, session_id, ATTACH_UPDATED_AT)?;
+    let task = store
+        .tasks()
+        .attach_session(task_id, session_id, ATTACH_UPDATED_AT)?;
     Ok(TaskBoardMutationResult { task })
 }
 
@@ -372,19 +391,17 @@ pub(crate) fn provision_task_workspace_for_store(
     let worktree_id = format!("wt_{sanitized_task}");
     let branch_name = format!("hc/{sanitized_task}");
 
-    let worktree = store
-        .worktrees()
-        .create_or_replace(NewWorktreeRecord {
-            id: worktree_id.clone(),
-            task_id: task_id.to_string(),
-            project_id,
-            workspace_root: workspace_root.to_string(),
-            base_root: base_root.to_string(),
-            branch_name: branch_name.clone(),
-            status: "ready".to_string(),
-            created_at: WORKTREE_UPDATED_AT.to_string(),
-            updated_at: WORKTREE_UPDATED_AT.to_string(),
-        })?;
+    let worktree = store.worktrees().create_or_replace(NewWorktreeRecord {
+        id: worktree_id.clone(),
+        task_id: task_id.to_string(),
+        project_id,
+        workspace_root: workspace_root.to_string(),
+        base_root: base_root.to_string(),
+        branch_name: branch_name.clone(),
+        status: "ready".to_string(),
+        created_at: WORKTREE_UPDATED_AT.to_string(),
+        updated_at: WORKTREE_UPDATED_AT.to_string(),
+    })?;
 
     Ok(ProvisionedTaskWorkspace {
         task_id: worktree.task_id,

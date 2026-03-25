@@ -7,7 +7,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
         snapshot: AppShellSnapshot,
         files: [ProjectFileIndex.Entry],
         tasks: [TaskSearchProjectionStore.Row],
-        inventory: [InventorySearchProjectionStore.Row]
+        inventory: [InventorySearchProjectionStore.Row],
     ) -> Self {
         let commandItems = buildCommandItems(snapshot: snapshot)
         let fileItems = files.map {
@@ -17,7 +17,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: $0.relativePath,
                 subtitle: $0.absolutePath,
                 tokens: [$0.relativePath.lowercased(), $0.absolutePath.lowercased()],
-                action: .queueFileSelection($0.absolutePath)
+                action: .queueFileSelection($0.absolutePath),
             )
         }
         let sessionItems = snapshot.sessions.map {
@@ -26,8 +26,12 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 section: .sessions,
                 title: $0.title,
                 subtitle: $0.currentDirectory,
-                tokens: [$0.title.lowercased(), ($0.currentDirectory ?? "").lowercased(), $0.sessionID.lowercased()],
-                action: .jumpToSession($0.sessionID)
+                tokens: [
+                    $0.title.lowercased(),
+                    ($0.currentDirectory ?? "").lowercased(),
+                    $0.sessionID.lowercased(),
+                ],
+                action: .jumpToSession($0.sessionID),
             )
         }
         let taskItems = tasks.map {
@@ -37,7 +41,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: $0.title,
                 subtitle: "\($0.state.rawValue) · \($0.automationMode.rawValue)",
                 tokens: [$0.title.lowercased(), $0.taskID.lowercased(), $0.projectID.lowercased()],
-                action: .selectRoute(.taskBoard)
+                action: .selectRoute(.taskBoard),
             )
         }
         let inventoryItems = inventory.map {
@@ -47,7 +51,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: $0.title,
                 subtitle: $0.rootPath,
                 tokens: [$0.title.lowercased(), $0.rootPath.lowercased(), $0.disposition],
-                action: .selectRoute(.projectFocus)
+                action: .selectRoute(.projectFocus),
             )
         }
 
@@ -68,7 +72,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: route.title,
                 subtitle: route.shortcutLabel,
                 tokens: [route.title.lowercased(), route.rawValue],
-                action: .selectRoute(route)
+                action: .selectRoute(route),
             )
         }
 
@@ -79,8 +83,8 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: "Settings",
                 subtitle: "Cmd+,",
                 tokens: ["settings"],
-                action: .openSettings
-            )
+                action: .openSettings,
+            ),
         )
 
         items.append(
@@ -90,8 +94,8 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 title: "Create Task Draft",
                 subtitle: "Task Board",
                 tokens: ["create task", "task draft", "task board"],
-                action: .createTaskDraft("New Task")
-            )
+                action: .createTaskDraft("New Task"),
+            ),
         )
 
         if !snapshot.attention.isEmpty {
@@ -102,8 +106,8 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                     title: "Latest Unread",
                     subtitle: "Cmd+Shift+U",
                     tokens: ["latest unread", "attention", "unread"],
-                    action: .jumpToLatestUnread
-                )
+                    action: .jumpToLatestUnread,
+                ),
             )
         }
 

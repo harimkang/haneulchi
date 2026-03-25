@@ -40,14 +40,16 @@ struct TaskBoardProjectionPayload: Decodable, Equatable, Sendable {
         let projectID: String
         let taskCount: Int
 
-        var title: String { projectID }
+        var title: String {
+            projectID
+        }
 
         enum CodingKeys: String, CodingKey {
             case projectID = "project_id"
             case taskCount = "task_count"
         }
 
-        init(projectID: String, title: String, taskCount: Int) {
+        init(projectID: String, title _: String, taskCount: Int) {
             self.projectID = projectID
             self.taskCount = taskCount
         }
@@ -85,7 +87,7 @@ struct TaskBoardProjectionPayload: Decodable, Equatable, Sendable {
             priority: String,
             automationMode: TaskBoardAutomationModePayload,
             linkedSessionID: String?,
-            column: TaskBoardColumnID
+            column: TaskBoardColumnID,
         ) {
             self.id = id
             self.projectID = projectID
@@ -105,17 +107,17 @@ struct TaskBoardProjectionPayload: Decodable, Equatable, Sendable {
         var nextActionLabel: String {
             switch column {
             case .inbox:
-                return "triage task"
+                "triage task"
             case .ready:
-                return linkedSessionID == nil ? "claim or start session" : "open linked session"
+                linkedSessionID == nil ? "claim or start session" : "open linked session"
             case .running:
-                return "follow active session"
+                "follow active session"
             case .review:
-                return "open review queue"
+                "open review queue"
             case .blocked:
-                return "resolve blocker"
+                "resolve blocker"
             case .done:
-                return "archive when safe"
+                "archive when safe"
             }
         }
 
@@ -154,9 +156,17 @@ final class TaskBoardViewModel: ObservableObject {
         let column: TaskBoardColumnID
         let tasks: [TaskBoardProjectionPayload.TaskCard]
 
-        var id: String { column.rawValue }
-        var title: String { column.title }
-        var taskCount: Int { tasks.count }
+        var id: String {
+            column.rawValue
+        }
+
+        var title: String {
+            column.title
+        }
+
+        var taskCount: Int {
+            tasks.count
+        }
     }
 
     @Published private(set) var columns: [ColumnModel]
@@ -165,22 +175,25 @@ final class TaskBoardViewModel: ObservableObject {
     @Published private(set) var errorMessage: String?
 
     private let loadProjection: @Sendable (String?) throws -> TaskBoardProjectionPayload
-    private let moveTaskBridge: @Sendable (String, TaskBoardColumnID) throws -> TaskBoardProjectionPayload
+    private let moveTaskBridge: @Sendable (String, TaskBoardColumnID) throws
+        -> TaskBoardProjectionPayload
 
     init(
-        loadProjection: @escaping @Sendable (String?) throws -> TaskBoardProjectionPayload = liveLoadProjection,
-        moveTask: @escaping @Sendable (String, TaskBoardColumnID) throws -> TaskBoardProjectionPayload = liveMoveTask
+        loadProjection: @escaping @Sendable (String?) throws
+            -> TaskBoardProjectionPayload = liveLoadProjection,
+        moveTask: @escaping @Sendable (String, TaskBoardColumnID) throws
+            -> TaskBoardProjectionPayload = liveMoveTask,
     ) {
         self.loadProjection = loadProjection
-        self.moveTaskBridge = moveTask
-        self.columns = TaskBoardColumnID.allCases.map { ColumnModel(column: $0, tasks: []) }
-        self.projectOptions = []
-        self.selectedProjectID = nil
-        self.errorMessage = nil
+        moveTaskBridge = moveTask
+        columns = TaskBoardColumnID.allCases.map { ColumnModel(column: $0, tasks: []) }
+        projectOptions = []
+        selectedProjectID = nil
+        errorMessage = nil
     }
 
     func reload() throws {
-        apply(try loadProjection(selectedProjectID))
+        try apply(loadProjection(selectedProjectID))
     }
 
     func selectProject(_ projectID: String?) throws {
@@ -190,7 +203,7 @@ final class TaskBoardViewModel: ObservableObject {
 
     func moveTask(taskID: String, to column: TaskBoardColumnID) throws {
         let currentSelection = selectedProjectID
-        apply(try moveTaskBridge(taskID, column))
+        try apply(moveTaskBridge(taskID, column))
         if currentSelection != selectedProjectID {
             selectedProjectID = currentSelection
             try reload()
@@ -259,7 +272,8 @@ private func taskBoardStringPayloadData(_ payload: HcString) throws -> Data {
 }
 
 private func decodeTaskBoardProjection(from data: Data) throws -> TaskBoardProjectionPayload {
-    guard let projection = try? JSONDecoder().decode(TaskBoardProjectionPayload.self, from: data) else {
+    guard let projection = try? JSONDecoder().decode(TaskBoardProjectionPayload.self, from: data)
+    else {
         throw TaskBoardBridgeError.invalidProjection
     }
 
@@ -267,19 +281,20 @@ private func decodeTaskBoardProjection(from data: Data) throws -> TaskBoardProje
 }
 
 private func liveLoadProjection(projectID: String?) throws -> TaskBoardProjectionPayload {
-    let payload: Data
-    if let projectID, !projectID.isEmpty {
-        payload = try TaskBoardCStringBox(projectID).withPointer { pointer in
+    let payload: Data = if let projectID, !projectID.isEmpty {
+        try TaskBoardCStringBox(projectID).withPointer { pointer in
             try taskBoardStringPayloadData(hc_task_board_json(pointer))
         }
     } else {
-        payload = try taskBoardStringPayloadData(hc_task_board_json(nil))
+        try taskBoardStringPayloadData(hc_task_board_json(nil))
     }
 
     return try decodeTaskBoardProjection(from: payload)
 }
 
-private func liveMoveTask(taskID: String, column: TaskBoardColumnID) throws -> TaskBoardProjectionPayload {
+private func liveMoveTask(taskID: String,
+                          column: TaskBoardColumnID) throws -> TaskBoardProjectionPayload
+{
     let task = TaskBoardCStringBox(taskID)
     let targetColumn = TaskBoardCStringBox(column.rawValue)
     let movedData = try task.withPointer { taskPointer in

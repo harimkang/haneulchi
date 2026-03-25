@@ -11,6 +11,7 @@ mkdir -p "$output_dir"
 cd "$workspace_root"
 
 export CARGO_TARGET_DIR="$cargo_target_dir"
+export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-15.0}"
 cargo build -p hc-ffi
 cp "$cargo_target_dir/debug/libhc_ffi.a" "$output_dir/libhc_ffi.a"
 

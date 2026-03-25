@@ -12,9 +12,8 @@ pub use bootstrap::{
     BootstrapRequest, BootstrapResult, BootstrapStatusSummary, HookPhaseResult, run_bootstrap,
 };
 pub use contract::{
-    EffectiveWorkflowConfig, HookDefinition, HookPhase, HooksConfig, LoadedWorkflow,
-    PolicyConfig, ResolvedPaths, ReviewConfig, WorkspaceConfig, WorkspaceStrategy,
-    WorkflowConfig,
+    EffectiveWorkflowConfig, HookDefinition, HookPhase, HooksConfig, LoadedWorkflow, PolicyConfig,
+    ResolvedPaths, ReviewConfig, WorkflowConfig, WorkspaceConfig, WorkspaceStrategy,
 };
 pub use loader::{LoadWorkflowRequest, WorkflowLoader};
 pub use runtime::{WorkflowLaunchBinding, WorkflowRuntime, WorkflowState};

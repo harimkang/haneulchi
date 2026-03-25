@@ -5,7 +5,9 @@ struct AppShellChromeState: Equatable {
         let title: String
         let tone: WarningFlag?
 
-        var id: String { title }
+        var id: String {
+            title
+        }
     }
 
     struct RailItem: Equatable, Identifiable {
@@ -14,14 +16,18 @@ struct AppShellChromeState: Equatable {
         let badgeText: String?
         let shortcutLabel: String?
 
-        var id: Route { route }
+        var id: Route {
+            route
+        }
     }
 
     struct StripItem: Equatable, Identifiable {
         let title: String
         let detail: String?
 
-        var id: String { title }
+        var id: String {
+            title
+        }
     }
 
     let topBarTitle: String
@@ -33,12 +39,12 @@ struct AppShellChromeState: Equatable {
     init(
         snapshot: AppShellSnapshot,
         selectedProjectName: String?,
-        transientNotice: String? = nil
+        transientNotice: String? = nil,
     ) {
-        self.topBarTitle = selectedProjectName ?? snapshot.projects.first?.name ?? "Haneulchi"
-        self.topBarChips = Self.makeTopBarChips(from: snapshot)
-        self.leftRailItems = Self.makeLeftRailItems(from: snapshot)
-        self.bottomStripItems = Self.makeBottomStripItems(from: snapshot)
+        topBarTitle = selectedProjectName ?? snapshot.projects.first?.name ?? "Haneulchi"
+        topBarChips = Self.makeTopBarChips(from: snapshot)
+        leftRailItems = Self.makeLeftRailItems(from: snapshot)
+        bottomStripItems = Self.makeBottomStripItems(from: snapshot)
         self.transientNotice = transientNotice
     }
 
@@ -62,22 +68,20 @@ struct AppShellChromeState: Equatable {
 
     private static func makeLeftRailItems(from snapshot: AppShellSnapshot) -> [RailItem] {
         Route.primaryCases.map { route in
-            let badgeText: String?
-
-            switch route {
+            let badgeText: String? = switch route {
             case .projectFocus:
-                badgeText = snapshot.sessions.isEmpty ? nil : "\(snapshot.sessions.count)"
+                snapshot.sessions.isEmpty ? nil : "\(snapshot.sessions.count)"
             case .attentionCenter:
-                badgeText = snapshot.attention.isEmpty ? nil : "\(snapshot.attention.count)"
+                snapshot.attention.isEmpty ? nil : "\(snapshot.attention.count)"
             default:
-                badgeText = nil
+                nil
             }
 
             return .init(
                 route: route,
                 title: route.title,
                 badgeText: badgeText,
-                shortcutLabel: route.shortcutLabel
+                shortcutLabel: route.shortcutLabel,
             )
         }
     }
@@ -86,19 +90,20 @@ struct AppShellChromeState: Equatable {
         [
             .init(
                 title: "logs",
-                detail: snapshot.warnings.isEmpty ? "clear" : "\(snapshot.warnings.count) warnings"
+                detail: snapshot.warnings.isEmpty ? "clear" : "\(snapshot.warnings.count) warnings",
             ),
             .init(
                 title: "problems",
-                detail: snapshot.attention.isEmpty ? "none" : "\(snapshot.attention.count) attention"
+                detail: snapshot.attention
+                    .isEmpty ? "none" : "\(snapshot.attention.count) attention",
             ),
             .init(
                 title: "terminal",
-                detail: "\(snapshot.sessions.count) sessions"
+                detail: "\(snapshot.sessions.count) sessions",
             ),
             .init(
                 title: "runtime hint",
-                detail: snapshot.ops.workflowHealth.rawValue
+                detail: snapshot.ops.workflowHealth.rawValue,
             ),
         ]
     }

@@ -129,11 +129,15 @@ fn map_control_plane_error(error: hc_control_plane::ControlPlaneError) -> String
     match error {
         hc_control_plane::ControlPlaneError::SessionNotFound(_) => "session_not_found".to_string(),
         hc_control_plane::ControlPlaneError::TaskNotFound(_) => "task_not_found".to_string(),
-        hc_control_plane::ControlPlaneError::TaskClaimConflict(_) => "task_claim_conflict".to_string(),
+        hc_control_plane::ControlPlaneError::TaskClaimConflict(_) => {
+            "task_claim_conflict".to_string()
+        }
         hc_control_plane::ControlPlaneError::TaskProjectMismatch { .. } => {
             "invalid_transition".to_string()
         }
-        hc_control_plane::ControlPlaneError::AttentionNotFound(_) => "invalid_transition".to_string(),
+        hc_control_plane::ControlPlaneError::AttentionNotFound(_) => {
+            "invalid_transition".to_string()
+        }
         hc_control_plane::ControlPlaneError::Storage(_) => "storage_error".to_string(),
         hc_control_plane::ControlPlaneError::Worktree(_) => "worktree_error".to_string(),
     }

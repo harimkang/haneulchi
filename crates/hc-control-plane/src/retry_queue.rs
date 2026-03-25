@@ -1,4 +1,3 @@
-use hc_domain::time::now_iso8601;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -19,7 +18,8 @@ pub fn classify_dispatch_failure(reason_code: &str) -> DispatchFailureClass {
 /// Compute exponential backoff delay for a given attempt number.
 ///
 /// Uses a 30 s base with power-of-two multiplier capped at ~8 minutes.
-pub fn backoff_delay_ms(attempt: u32) -> u64 {
+#[allow(dead_code)]
+fn backoff_delay_ms(attempt: u32) -> u64 {
     let base_ms: u64 = 30_000;
     let multiplier = 2_u64.saturating_pow(attempt.saturating_sub(1));
     base_ms.saturating_mul(multiplier).min(480_000)
@@ -27,7 +27,8 @@ pub fn backoff_delay_ms(attempt: u32) -> u64 {
 
 /// Compute the ISO 8601 due-at timestamp for the next retry attempt given the
 /// current epoch-millis and attempt number.
-pub fn compute_due_at(now_epoch_ms: u64, attempt: u32) -> String {
+#[allow(dead_code)]
+fn compute_due_at(now_epoch_ms: u64, attempt: u32) -> String {
     let delay = backoff_delay_ms(attempt);
     let due_ms = now_epoch_ms.saturating_add(delay);
     // Store as epoch millis string (consistent with hc-storage schedule_retry_entry).
@@ -37,7 +38,8 @@ pub fn compute_due_at(now_epoch_ms: u64, attempt: u32) -> String {
 /// Determine whether a retry entry should transition from `BackingOff` to
 /// `Due` based on the current time, or to `Exhausted` if the stall timeout
 /// has been reached.
-pub fn should_promote_retry(
+#[allow(dead_code)]
+fn should_promote_retry(
     due_at_ms_str: Option<&str>,
     now_ms: u64,
     max_attempts: u32,
@@ -53,7 +55,8 @@ pub fn should_promote_retry(
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum RetryPromotion {
+#[allow(dead_code)]
+enum RetryPromotion {
     Due,
     StillBackingOff,
     Exhausted,

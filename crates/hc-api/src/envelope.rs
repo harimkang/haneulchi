@@ -54,15 +54,13 @@ pub fn error_json(
     message: &str,
     snapshot: Option<&AppSnapshot>,
 ) -> Result<String, String> {
-    let meta = snapshot
-        .map(meta_from_snapshot)
-        .unwrap_or(ApiMeta {
-            api_version: "1",
-            snapshot_rev: 0,
-            runtime_rev: 0,
-            projection_rev: 0,
-            snapshot_at: None,
-        });
+    let meta = snapshot.map(meta_from_snapshot).unwrap_or(ApiMeta {
+        api_version: "1",
+        snapshot_rev: 0,
+        runtime_rev: 0,
+        projection_rev: 0,
+        snapshot_at: None,
+    });
     serde_json::to_string(&ErrorEnvelope {
         ok: false,
         error: ErrorBody {

@@ -49,8 +49,14 @@ pub extern "C" fn hc_dispatch_send_json(
         } else {
             read_c_string(task_id).map(Some)
         }?;
-        read_c_string(payload)
-            .and_then(|payload| dispatch_send_json(&target_session_id, task_id.as_deref(), target_live, &payload))
+        read_c_string(payload).and_then(|payload| {
+            dispatch_send_json(
+                &target_session_id,
+                task_id.as_deref(),
+                target_live,
+                &payload,
+            )
+        })
     });
     string_to_hcstring(result)
 }

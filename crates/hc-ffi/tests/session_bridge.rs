@@ -31,7 +31,7 @@ fn c_abi_can_spawn_write_resize_drain_and_terminate_session() {
 
     let session_id_c = CString::new(session_id.clone()).unwrap();
     assert_eq!(
-        hc_terminal_session_write(session_id_c.as_ptr(), b"ffi\n".as_ptr(), 4),
+        unsafe { hc_terminal_session_write(session_id_c.as_ptr(), b"ffi\n".as_ptr(), 4) },
         0
     );
 
@@ -54,7 +54,10 @@ fn c_abi_can_spawn_write_resize_drain_and_terminate_session() {
     }
 
     assert!(String::from_utf8_lossy(&captured).contains("ffi"));
-    assert_eq!(hc_terminal_session_resize(session_id_c.as_ptr(), 100, 40), 0);
+    assert_eq!(
+        hc_terminal_session_resize(session_id_c.as_ptr(), 100, 40),
+        0
+    );
 
     let snapshot = hc_terminal_session_snapshot_json(session_id_c.as_ptr());
     let snapshot_json = unsafe { CStr::from_ptr(snapshot.ptr) }

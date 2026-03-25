@@ -105,29 +105,32 @@ pub(crate) fn review_ready_projection_for_store(
     let board = store.tasks().board(None)?;
     let mut items = Vec::new();
 
-    if let Some(review_column) = board.iter().find(|column| column.column == TaskColumn::Review) {
+    if let Some(review_column) = board
+        .iter()
+        .find(|column| column.column == TaskColumn::Review)
+    {
         for task in &review_column.tasks {
-            if let Some(review) = store.reviews().latest_for_task(&task.id)? {
-                if review.status == hc_domain::ReviewStatus::Pending {
-                    items.push(ReviewQueueItem {
-                        task_id: task.id.clone(),
-                        project_id: task.project_id.clone(),
-                        title: task.title.clone(),
-                        summary: review.summary,
-                        touched_files: review.touched_files,
-                        diff_summary: review.diff_summary,
-                        tests_summary: review.tests_summary,
-                        command_summary: review.command_summary,
-                        hook_summary: review.hook_summary,
-                        evidence_summary: review.evidence_summary,
-                        checklist_summary: review.checklist_summary,
-                        warnings: review.warnings,
-                        evidence_manifest_path: review.evidence_manifest_path,
-                        ci_run_url: None,
-                        pr_url: None,
-                        timeline: project_task_timeline(store, &task.id)?,
-                    });
-                }
+            if let Some(review) = store.reviews().latest_for_task(&task.id)?
+                && review.status == hc_domain::ReviewStatus::Pending
+            {
+                items.push(ReviewQueueItem {
+                    task_id: task.id.clone(),
+                    project_id: task.project_id.clone(),
+                    title: task.title.clone(),
+                    summary: review.summary,
+                    touched_files: review.touched_files,
+                    diff_summary: review.diff_summary,
+                    tests_summary: review.tests_summary,
+                    command_summary: review.command_summary,
+                    hook_summary: review.hook_summary,
+                    evidence_summary: review.evidence_summary,
+                    checklist_summary: review.checklist_summary,
+                    warnings: review.warnings,
+                    evidence_manifest_path: review.evidence_manifest_path,
+                    ci_run_url: None,
+                    pr_url: None,
+                    timeline: project_task_timeline(store, &task.id)?,
+                });
             }
         }
     }
@@ -152,16 +155,28 @@ pub(crate) fn apply_decision_for_store(
 
     let follow_up_task = match decision {
         ReviewDecision::Accept => {
-            if store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
+            if store
+                .tasks()
+                .get(task_id)?
+                .and_then(|task| task.linked_session_id)
+                .is_some()
+            {
                 let _ = store.tasks().detach_session(task_id, now)?;
             }
             update_review_status(store.connection(), &review.id, ReviewStatus::Accepted, now)?;
             append_review_event(store, task_id, &review.id, "accepted", None, now)?;
-            store.tasks().move_to(task_id, TaskColumn::Done, "review_accept", now)?;
+            store
+                .tasks()
+                .move_to(task_id, TaskColumn::Done, "review_accept", now)?;
             None
         }
         ReviewDecision::RequestChanges => {
-            if store.tasks().get(task_id)?.and_then(|task| task.linked_session_id).is_some() {
+            if store
+                .tasks()
+                .get(task_id)?
+                .and_then(|task| task.linked_session_id)
+                .is_some()
+            {
                 let _ = store.tasks().detach_session(task_id, now)?;
             }
             update_review_status(
@@ -171,7 +186,9 @@ pub(crate) fn apply_decision_for_store(
                 now,
             )?;
             append_review_event(store, task_id, &review.id, "changes_requested", None, now)?;
-            store.tasks().move_to(task_id, TaskColumn::Ready, "review_changes", now)?;
+            store
+                .tasks()
+                .move_to(task_id, TaskColumn::Ready, "review_changes", now)?;
             None
         }
         ReviewDecision::ManualContinue => {
@@ -187,7 +204,9 @@ pub(crate) fn apply_decision_for_store(
                 now,
             )?;
             append_review_event(store, task_id, &review.id, "manual_continue", None, now)?;
-            store.tasks().move_to(task_id, TaskColumn::Running, "manual_continue", now)?;
+            store
+                .tasks()
+                .move_to(task_id, TaskColumn::Running, "manual_continue", now)?;
             None
         }
         ReviewDecision::FollowUp => {
@@ -200,11 +219,7 @@ pub(crate) fn apply_decision_for_store(
             append_review_event(store, task_id, &review.id, "follow_up", None, now)?;
             let follow_up_task = store.tasks().create(NewTaskRecord {
                 id: format!("{task_id}_follow_up"),
-                project_id: store
-                    .tasks()
-                    .get(task_id)?
-                    .expect("source task")
-                    .project_id,
+                project_id: store.tasks().get(task_id)?.expect("source task").project_id,
                 display_key: format!("{}-FOLLOW-UP", task_id.to_ascii_uppercase()),
                 title: "Follow-up".to_string(),
                 description: format!("Follow-up for {task_id}"),
@@ -250,9 +265,12 @@ fn seed_review_demo(store: &SqliteStore) -> Result<(), ReviewQueueError> {
         created_at: "2026-03-23T09:00:00Z".to_string(),
         updated_at: "2026-03-23T09:00:00Z".to_string(),
     })?;
-    store
-        .tasks()
-        .move_to("task_review", TaskColumn::Review, "seed_review", "2026-03-23T09:01:00Z")?;
+    store.tasks().move_to(
+        "task_review",
+        TaskColumn::Review,
+        "seed_review",
+        "2026-03-23T09:01:00Z",
+    )?;
     store.reviews().create_pending(NewReviewItem {
         id: "review_01".to_string(),
         task_id: "task_review".to_string(),
@@ -312,9 +330,12 @@ fn seed_review_demo(store: &SqliteStore) -> Result<(), ReviewQueueError> {
         created_at: "2026-03-23T09:03:00Z".to_string(),
         updated_at: "2026-03-23T09:03:00Z".to_string(),
     })?;
-    store
-        .tasks()
-        .move_to("task_running", TaskColumn::Running, "seed_review", "2026-03-23T09:04:00Z")?;
+    store.tasks().move_to(
+        "task_running",
+        TaskColumn::Running,
+        "seed_review",
+        "2026-03-23T09:04:00Z",
+    )?;
 
     Ok(())
 }

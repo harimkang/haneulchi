@@ -1,13 +1,15 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("control tower view model groups project cards, attention targets, recent artifacts, and ops strip labels")
+@Test(
+    "control tower view model groups project cards, attention targets, recent artifacts, and ops strip labels",
+)
 func controlTowerViewModelUsesProjectionDrivenSnapshot() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 11, runtimeRev: 8, projectionRev: 14, snapshotAt: .now),
         ops: .init(
-            cadenceMs: 15_000,
+            cadenceMs: 15000,
             lastTickAt: "2026-03-23T12:00:00Z",
             lastReconcileAt: "2026-03-23T12:00:30Z",
             runningSlots: 2,
@@ -16,9 +18,13 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
             queuedClaimCount: 1,
             workflowHealth: .invalidKeptLastGood,
             trackerHealth: "degraded",
-            paused: false
+            paused: false,
         ),
-        app: .init(activeRoute: .controlTower, focusedSessionID: "ses_waiting", degradedFlags: [.degraded]),
+        app: .init(
+            activeRoute: .controlTower,
+            focusedSessionID: "ses_waiting",
+            degradedFlags: [.degraded],
+        ),
         projects: [
             .init(
                 projectID: "proj_demo",
@@ -28,8 +34,8 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 workflowState: .invalidKeptLastGood,
                 sessionCount: 2,
                 attentionCount: 2,
-                taskCounts: ["Ready": 2]
-            )
+                taskCounts: ["Ready": 2],
+            ),
         ],
         sessions: [
             .init(
@@ -52,7 +58,7 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 focusState: .focused,
                 canFocus: true,
                 canTakeover: true,
-                canReleaseTakeover: false
+                canReleaseTakeover: false,
             ),
             .init(
                 sessionID: "ses_running",
@@ -69,8 +75,8 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 focusState: .background,
                 canFocus: true,
                 canTakeover: false,
-                canReleaseTakeover: false
-            )
+                canReleaseTakeover: false,
+            ),
         ],
         attention: [
             .init(
@@ -81,7 +87,7 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 targetSessionID: "ses_waiting",
                 projectID: "proj_demo",
                 summary: "Operator answer required.",
-                actionHint: "focus_session"
+                actionHint: "focus_session",
             ),
             .init(
                 attentionID: "att_review",
@@ -92,8 +98,8 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 projectID: "proj_demo",
                 taskID: "task_review",
                 summary: "Evidence pack available.",
-                actionHint: "open_review"
-            )
+                actionHint: "open_review",
+            ),
         ],
         retryQueue: [
             .init(
@@ -102,9 +108,9 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 attempt: 2,
                 reasonCode: "adapter_timeout",
                 dueAt: "2026-03-23T12:01:00Z",
-                backoffMs: 45_000,
-                claimState: .claimed
-            )
+                backoffMs: 45000,
+                claimState: .claimed,
+            ),
         ],
         warnings: [],
         workflow: .init(
@@ -112,7 +118,7 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
             path: "/tmp/demo/WORKFLOW.md",
             lastGoodHash: "sha256:abc123",
             lastReloadAt: "2026-03-23T11:59:58Z",
-            lastError: "front matter parse error"
+            lastError: "front matter parse error",
         ),
         tracker: .init(state: "local_only", lastSyncAt: nil, health: "degraded"),
         recentArtifacts: [
@@ -121,9 +127,9 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
                 projectID: "proj_demo",
                 summary: "Review ready",
                 jumpTarget: "review_queue",
-                manifestPath: "evidence/manifest.json"
-            )
-        ]
+                manifestPath: "evidence/manifest.json",
+            ),
+        ],
     )
 
     let viewModel = ControlTowerViewModel(snapshot: snapshot)
@@ -165,13 +171,13 @@ func controlTowerProjectCardPreservesErrorStatus() {
                 status: .error,
                 workflowState: .ok,
                 sessionCount: 0,
-                attentionCount: 0
-            )
+                attentionCount: 0,
+            ),
         ],
         sessions: [],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     let viewModel = ControlTowerViewModel(snapshot: snapshot)

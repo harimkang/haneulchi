@@ -1,4 +1,3 @@
-use hc_domain::time::now_iso8601;
 use serde::{Deserialize, Serialize};
 
 /// Summary of the orchestrator's automation subsystem state.
@@ -19,8 +18,9 @@ pub struct AutomationStatusSummary {
 /// The orchestrator tick runs on a cadence (default 15 s).  After each tick the
 /// caller updates this tracker so that the ops strip and snapshot can report
 /// the freshness of automation state.
+#[cfg(test)]
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
-pub struct OrchestratorTickTracker {
+struct OrchestratorTickTracker {
     pub tick_count: u64,
     pub last_tick_at: String,
     pub last_reconcile_at: Option<String>,
@@ -29,11 +29,12 @@ pub struct OrchestratorTickTracker {
     pub paused: bool,
 }
 
+#[cfg(test)]
 impl Default for OrchestratorTickTracker {
     fn default() -> Self {
         Self {
             tick_count: 0,
-            last_tick_at: now_iso8601(),
+            last_tick_at: hc_domain::time::now_iso8601(),
             last_reconcile_at: None,
             running_slots: 0,
             max_slots: 1,
@@ -42,21 +43,22 @@ impl Default for OrchestratorTickTracker {
     }
 }
 
+#[cfg(test)]
 impl OrchestratorTickTracker {
     /// Record a new tick.  Returns the updated tick count.
-    pub fn record_tick(&mut self) -> u64 {
+    fn record_tick(&mut self) -> u64 {
         self.tick_count = self.tick_count.saturating_add(1);
-        self.last_tick_at = now_iso8601();
+        self.last_tick_at = hc_domain::time::now_iso8601();
         self.tick_count
     }
 
     /// Record that reconciliation ran during this tick.
-    pub fn record_reconcile(&mut self) {
-        self.last_reconcile_at = Some(now_iso8601());
+    fn record_reconcile(&mut self) {
+        self.last_reconcile_at = Some(hc_domain::time::now_iso8601());
     }
 
     /// Project the current tracker state into a summary for the ops strip.
-    pub fn to_summary(&self) -> AutomationStatusSummary {
+    fn to_summary(&self) -> AutomationStatusSummary {
         AutomationStatusSummary {
             status: if self.paused {
                 "paused".to_string()
@@ -96,8 +98,10 @@ mod tests {
 
     #[test]
     fn paused_tracker_reports_paused_status() {
-        let mut tracker = OrchestratorTickTracker::default();
-        tracker.paused = true;
+        let tracker = OrchestratorTickTracker {
+            paused: true,
+            ..OrchestratorTickTracker::default()
+        };
         let summary = tracker.to_summary();
         assert_eq!(summary.status, "paused");
         assert!(summary.paused);

@@ -1,9 +1,11 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("command palette catalog groups commands, files, sessions, tasks, and inventory from authoritative and derived queries")
-func commandPaletteCatalogUsesSharedState() async throws {
+@Test(
+    "command palette catalog groups commands, files, sessions, tasks, and inventory from authoritative and derived queries",
+)
+func commandPaletteCatalogUsesSharedState() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
@@ -16,8 +18,8 @@ func commandPaletteCatalogUsesSharedState() async throws {
                 status: .active,
                 workflowState: .ok,
                 sessionCount: 1,
-                attentionCount: 0
-            )
+                attentionCount: 0,
+            ),
         ],
         sessions: [
             .init(
@@ -28,14 +30,17 @@ func commandPaletteCatalogUsesSharedState() async throws {
                 runtimeState: .running,
                 manualControlState: .none,
                 dispatchState: .notDispatchable,
-                unreadCount: 0
-            )
+                unreadCount: 0,
+            ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
-    let files = [ProjectFileIndex.Entry(relativePath: "README.md", absolutePath: "/tmp/demo/README.md")]
+    let files = [ProjectFileIndex.Entry(
+        relativePath: "README.md",
+        absolutePath: "/tmp/demo/README.md",
+    )]
     let tasks = [
         TaskSearchProjectionStore.Row(
             taskID: "task_01",
@@ -43,34 +48,35 @@ func commandPaletteCatalogUsesSharedState() async throws {
             title: "Wire app shell",
             state: .ready,
             automationMode: .manual,
-            linkedSessionID: nil
-        )
+            linkedSessionID: nil,
+        ),
     ]
     let inventory = [
         InventorySearchProjectionStore.Row(
             itemID: "inv_01",
             title: "demo",
             rootPath: "/tmp/demo",
-            disposition: "in_use"
-        )
+            disposition: "in_use",
+        ),
     ]
 
     let catalog = CommandPaletteCatalog.build(
         snapshot: snapshot,
         files: files,
         tasks: tasks,
-        inventory: inventory
+        inventory: inventory,
     )
 
     #expect(catalog.sections.map(\.kind) == [.commands, .files, .sessions, .tasks, .inventory])
     #expect(catalog.sections.first(where: { $0.kind == .files })?.items.first?.title == "README.md")
-    #expect(catalog.sections.first(where: { $0.kind == .tasks })?.items.first?.title == "Wire app shell")
+    #expect(catalog.sections.first(where: { $0.kind == .tasks })?.items.first?
+        .title == "Wire app shell")
     #expect(catalog.sections.first(where: { $0.kind == .inventory })?.items.first?.title == "demo")
 }
 
 @MainActor
 @Test("palette query filters across sections and returns a shared action intent")
-func paletteFiltersAcrossSections() async throws {
+func paletteFiltersAcrossSections() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
@@ -79,17 +85,21 @@ func paletteFiltersAcrossSections() async throws {
         sessions: [],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
-    let files = [ProjectFileIndex.Entry(relativePath: "README.md", absolutePath: "/tmp/demo/README.md")]
+    let files = [ProjectFileIndex.Entry(
+        relativePath: "README.md",
+        absolutePath: "/tmp/demo/README.md",
+    )]
 
     let viewModel = CommandPaletteViewModel(
-        catalog: .build(snapshot: snapshot, files: files, tasks: [], inventory: [])
+        catalog: .build(snapshot: snapshot, files: files, tasks: [], inventory: []),
     )
 
     viewModel.query = "read"
 
-    #expect(viewModel.filteredSections.first(where: { $0.kind == .files })?.items.first?.title == "README.md")
+    #expect(viewModel.filteredSections.first(where: { $0.kind == .files })?.items.first?
+        .title == "README.md")
     #expect(viewModel.selection?.action == .queueFileSelection("/tmp/demo/README.md"))
 }
 
@@ -98,7 +108,11 @@ func commandPaletteIncludesLatestUnreadCommand() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
-        app: .init(activeRoute: .projectFocus, focusedSessionID: "restore-1", degradedFlags: [.degraded]),
+        app: .init(
+            activeRoute: .projectFocus,
+            focusedSessionID: "restore-1",
+            degradedFlags: [.degraded],
+        ),
         projects: [],
         sessions: [],
         attention: [
@@ -107,8 +121,8 @@ func commandPaletteIncludesLatestUnreadCommand() {
                 headline: "Preset binaries missing",
                 severity: .degraded,
                 targetRoute: .attentionCenter,
-                targetSessionID: nil
-            )
+                targetSessionID: nil,
+            ),
         ],
         retryQueue: [],
         warnings: [
@@ -116,12 +130,17 @@ func commandPaletteIncludesLatestUnreadCommand() {
                 warningID: "warning-presetBinaries",
                 severity: .degraded,
                 headline: "Preset binaries missing",
-                nextAction: "Open Settings"
-            )
-        ]
+                nextAction: "Open Settings",
+            ),
+        ],
     )
 
-    let catalog = CommandPaletteCatalog.build(snapshot: snapshot, files: [], tasks: [], inventory: [])
+    let catalog = CommandPaletteCatalog.build(
+        snapshot: snapshot,
+        files: [],
+        tasks: [],
+        inventory: [],
+    )
     let commandItems = catalog.sections.first(where: { $0.kind == .commands })?.items ?? []
 
     #expect(commandItems.contains(where: { $0.action == .jumpToLatestUnread }))

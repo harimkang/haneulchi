@@ -13,8 +13,8 @@ fn terminal_settings_json_returns_valid_json() {
         Ok(json) => json,
         Err(error) => serde_json::json!({ "error": error }).to_string(),
     };
-    let _value: Value = serde_json::from_str(&raw)
-        .expect("terminal_settings_json must return valid JSON");
+    let _value: Value =
+        serde_json::from_str(&raw).expect("terminal_settings_json must return valid JSON");
 }
 
 #[test]
@@ -78,8 +78,7 @@ fn resolve_secret_env_json_reads_keychain_backed_refs() {
     let account = format!("account_{suffix}");
     let env_var = "OPENAI_API_KEY";
 
-    KeychainBoundary::store(service, &account, b"sk-test-secret")
-        .expect("store keychain secret");
+    KeychainBoundary::store(service, &account, b"sk-test-secret").expect("store keychain secret");
 
     let ref_json = serde_json::json!({
         "ref_id": ref_id,

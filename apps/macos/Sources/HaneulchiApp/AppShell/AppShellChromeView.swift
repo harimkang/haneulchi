@@ -14,7 +14,7 @@ struct AppShellChromeView<Content: View>: View {
                 LeftRailView(
                     items: chrome.leftRailItems,
                     activeRoute: destination,
-                    onAction: onAction
+                    onAction: onAction,
                 )
 
                 content
@@ -25,7 +25,7 @@ struct AppShellChromeView<Content: View>: View {
             BottomStatusStripView(
                 items: chrome.bottomStripItems,
                 transientNotice: chrome.transientNotice,
-                onAction: onAction
+                onAction: onAction,
             )
         }
         .background(HaneulchiChrome.Colors.appBackground)

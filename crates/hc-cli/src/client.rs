@@ -33,7 +33,8 @@ impl ControlClient {
     }
 
     fn request(&self, method: &str, path: &str, body: Option<&str>) -> Result<String, String> {
-        let mut stream = UnixStream::connect(&self.socket_path).map_err(|error| error.to_string())?;
+        let mut stream =
+            UnixStream::connect(&self.socket_path).map_err(|error| error.to_string())?;
         let body = body.unwrap_or("");
         let request = format!(
             "{method} {path} HTTP/1.1\r\nHost: localhost\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
@@ -44,7 +45,9 @@ impl ControlClient {
             .write_all(request.as_bytes())
             .map_err(|error| error.to_string())?;
         stream.flush().map_err(|error| error.to_string())?;
-        stream.shutdown(std::net::Shutdown::Write).map_err(|error| error.to_string())?;
+        stream
+            .shutdown(std::net::Shutdown::Write)
+            .map_err(|error| error.to_string())?;
         let mut response = String::new();
         stream
             .read_to_string(&mut response)

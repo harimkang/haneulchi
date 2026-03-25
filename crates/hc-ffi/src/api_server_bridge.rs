@@ -103,7 +103,9 @@ pub extern "C" fn hc_api_server_start_json(socket_path: *const c_char) -> HcStri
 
 pub fn runtime_info_summary_json() -> String {
     let handle = server_handle();
-    let guard = handle.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    let guard = handle
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
     match guard.as_ref() {
         Some(existing) => serde_json::json!({
             "socket_path": existing.socket_path,

@@ -1,7 +1,8 @@
 import SwiftUI
 
 // MARK: - Glass Panel
-// Floating surfaces: command palette, modals, context menus
+
+/// Floating surfaces: command palette, modals, context menus
 struct GlassPanel: ViewModifier {
     func body(content: Content) -> some View {
         content
@@ -13,7 +14,8 @@ struct GlassPanel: ViewModifier {
 }
 
 // MARK: - Ambient Shadow
-// Subtle drop shadow for raised/floating surfaces
+
+/// Subtle drop shadow for raised/floating surfaces
 struct AmbientShadow: ViewModifier {
     var radius: CGFloat = 20
     var opacity: Double = 0.35
@@ -24,7 +26,8 @@ struct AmbientShadow: ViewModifier {
 }
 
 // MARK: - Ghost Focus Ring
-// Focus indicator using ghost stroke + primary glow
+
+/// Focus indicator using ghost stroke + primary glow
 struct GhostFocusRing: ViewModifier {
     var isActive: Bool
     func body(content: Content) -> some View {
@@ -35,14 +38,15 @@ struct GhostFocusRing: ViewModifier {
                         isActive
                             ? HaneulchiChrome.Gradient.primaryStart.opacity(0.7)
                             : HaneulchiChrome.Stroke.ghost,
-                        lineWidth: isActive ? 1.5 : 1
-                    )
+                        lineWidth: isActive ? 1.5 : 1,
+                    ),
             )
     }
 }
 
 // MARK: - Hover Spotlight
-// Subtle background brightening on hover
+
+/// Subtle background brightening on hover
 struct HoverSpotlight: ViewModifier {
     var isHovered: Bool
     var baseColor: Color = HaneulchiChrome.Surface.base
@@ -55,7 +59,8 @@ struct HoverSpotlight: ViewModifier {
 }
 
 // MARK: - Tonal Selection
-// Selected state: raised surface + ghost focus stroke
+
+/// Selected state: raised surface + ghost focus stroke
 struct TonalSelection: ViewModifier {
     var isSelected: Bool
     func body(content: Content) -> some View {
@@ -65,26 +70,34 @@ struct TonalSelection: ViewModifier {
                 RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.small)
                     .strokeBorder(
                         isSelected ? HaneulchiChrome.Stroke.ghost : Color.clear,
-                        lineWidth: 1
-                    )
+                        lineWidth: 1,
+                    ),
             )
-            .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isSelected)
+            .animation(
+                .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+                value: isSelected,
+            )
     }
 }
 
 // MARK: - Pressed Scale
-// Subtle scale-down feedback on press (max 1.01 per spec)
+
+/// Subtle scale-down feedback on press (max 1.01 per spec)
 struct PressedScale: ViewModifier {
     var isPressed: Bool
     func body(content: Content) -> some View {
         content
             .scaleEffect(isPressed ? 0.98 : 1.0)
-            .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isPressed)
+            .animation(
+                .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+                value: isPressed,
+            )
     }
 }
 
 // MARK: - Floating Surface
-// Panel raise: used for overlays entering/exiting
+
+/// Panel raise: used for overlays entering/exiting
 struct FloatingSurface: ViewModifier {
     var isVisible: Bool
     func body(content: Content) -> some View {
@@ -96,6 +109,7 @@ struct FloatingSurface: ViewModifier {
 }
 
 // MARK: - View Extensions
+
 extension View {
     func glassPanel() -> some View {
         modifier(GlassPanel())
@@ -112,7 +126,7 @@ extension View {
     func hoverSpotlight(
         isHovered: Bool,
         base: Color = HaneulchiChrome.Surface.base,
-        highlight: Color = HaneulchiChrome.Surface.raised
+        highlight: Color = HaneulchiChrome.Surface.raised,
     ) -> some View {
         modifier(HoverSpotlight(isHovered: isHovered, baseColor: base, highlightColor: highlight))
     }

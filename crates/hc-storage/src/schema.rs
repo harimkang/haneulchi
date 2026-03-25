@@ -256,10 +256,30 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
         "INTEGER NOT NULL DEFAULT 0",
     )?;
     ensure_column(connection, "worktrees", "last_accessed_at", "TEXT")?;
-    ensure_column(connection, "terminal_settings", "font_name", "TEXT NOT NULL DEFAULT ''")?;
-    ensure_column(connection, "terminal_settings", "theme", "TEXT NOT NULL DEFAULT ''")?;
-    ensure_column(connection, "terminal_settings", "cursor_style", "TEXT NOT NULL DEFAULT ''")?;
-    ensure_column(connection, "secret_refs", "scope", "TEXT NOT NULL DEFAULT ''")?;
+    ensure_column(
+        connection,
+        "terminal_settings",
+        "font_name",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
+    ensure_column(
+        connection,
+        "terminal_settings",
+        "theme",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
+    ensure_column(
+        connection,
+        "terminal_settings",
+        "cursor_style",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
+    ensure_column(
+        connection,
+        "secret_refs",
+        "scope",
+        "TEXT NOT NULL DEFAULT ''",
+    )?;
 
     Ok(())
 }

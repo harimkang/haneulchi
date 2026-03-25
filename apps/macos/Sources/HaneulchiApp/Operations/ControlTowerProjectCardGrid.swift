@@ -24,7 +24,7 @@ struct ControlTowerProjectCardGrid: View {
                                 Spacer()
                                 HaneulchiStatusBadge(
                                     state: card.statusBadgeState,
-                                    label: card.statusLabel
+                                    label: card.statusLabel,
                                 )
                             }
 

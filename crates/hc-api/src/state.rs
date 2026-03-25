@@ -12,8 +12,12 @@ pub fn state_json() -> Result<String, String> {
 pub fn state_json_for(project_id: Option<&str>) -> Result<String, String> {
     let mut snapshot = current_snapshot()?;
     if let Some(project_id) = project_id {
-        snapshot.projects.retain(|project| project.project_id == project_id);
-        snapshot.sessions.retain(|session| session.project_id == project_id);
+        snapshot
+            .projects
+            .retain(|project| project.project_id == project_id);
+        snapshot
+            .sessions
+            .retain(|session| session.project_id == project_id);
         snapshot
             .attention
             .retain(|item| item.project_id == project_id);

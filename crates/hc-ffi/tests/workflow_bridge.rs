@@ -94,5 +94,10 @@ fn invalid_reload_surfaces_kept_last_good_status_and_error_details() {
 
     assert_eq!(invalid["state"], "invalid_kept_last_good");
     assert_eq!(invalid["last_good_hash"], initial_hash);
-    assert!(invalid["last_error"].as_str().unwrap().contains("front matter parse error"));
+    assert!(
+        invalid["last_error"]
+            .as_str()
+            .unwrap()
+            .contains("front matter parse error")
+    );
 }

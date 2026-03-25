@@ -37,12 +37,16 @@ Haneulchi is currently macOS-only and under active development.
 
 ```bash
 scripts/bootstrap/ensure-runtime-dirs.sh
+swiftformat --lint apps/macos
+swift build --package-path apps/macos
 swift test --package-path apps/macos
-cargo test
+cargo fmt --all --check
+cargo clippy --workspace --all-targets -- -D warnings
+cargo test --workspace
 bash scripts/smoke.sh --help
 ```
 
-If you use [`justfile`](justfile), `just check` wraps the Swift and Rust test commands above.
+If you use [`justfile`](justfile), `just check` wraps the Swift and Rust format/analyze/test commands above.
 
 ## Project Layout
 

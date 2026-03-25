@@ -1,4 +1,7 @@
-use hc_domain::{WorkflowHealth, settings::{DegradedIssue, RecoveryAction}};
+use hc_domain::{
+    WorkflowHealth,
+    settings::{DegradedIssue, RecoveryAction},
+};
 
 // ── context ──────────────────────────────────────────────────────────────────
 

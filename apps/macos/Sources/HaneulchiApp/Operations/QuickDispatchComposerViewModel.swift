@@ -22,9 +22,11 @@ struct QuickDispatchComposerViewModel: Equatable, Sendable {
                 Target(
                     id: session.sessionID,
                     title: session.title,
-                    subtitle: [session.providerID, session.modelID].compactMap { $0 }.joined(separator: " · "),
-                    disabledReason: session.dispatchState == .dispatchable ? nil : session.dispatchReason,
-                    isNewSession: false
+                    subtitle: [session.providerID, session.modelID].compactMap(\.self)
+                        .joined(separator: " · "),
+                    disabledReason: session.dispatchState == .dispatchable ? nil : session
+                        .dispatchReason,
+                    isNewSession: false,
                 )
             }
         let newSessionTargets = Set(snapshot.sessions.compactMap(\.adapterKind))
@@ -35,13 +37,13 @@ struct QuickDispatchComposerViewModel: Equatable, Sendable {
                     title: "New \(adapterKind) session",
                     subtitle: "Create a new adapter session",
                     disabledReason: nil,
-                    isNewSession: true
+                    isNewSession: true,
                 )
             }
 
-        self.targets = existingTargets + newSessionTargets
-        self.selectedTargetID = existingTargets.first?.id
-        self.messageText = ""
+        targets = existingTargets + newSessionTargets
+        selectedTargetID = existingTargets.first?.id
+        messageText = ""
     }
 
     var selectedTarget: Target? {
@@ -49,7 +51,9 @@ struct QuickDispatchComposerViewModel: Equatable, Sendable {
     }
 
     var sendEnabled: Bool {
-        guard let selectedTarget, !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard let selectedTarget,
+              !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        else {
             return false
         }
         return selectedTarget.disabledReason == nil

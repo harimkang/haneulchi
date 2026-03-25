@@ -1,10 +1,10 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @MainActor
 @Test("attention center view model maps open, resolve, dismiss, and snooze actions")
-func attentionCenterViewModelMapsActions() async throws {
+func attentionCenterViewModelMapsActions() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
@@ -23,7 +23,7 @@ func attentionCenterViewModelMapsActions() async throws {
                 projectID: "proj_demo",
                 latestSummary: "Operator reviewing latest result.",
                 focusState: .background,
-                canTakeover: true
+                canTakeover: true,
             ),
             .init(
                 sessionID: "ses_failed",
@@ -37,7 +37,7 @@ func attentionCenterViewModelMapsActions() async throws {
                 projectID: "proj_demo",
                 latestSummary: "Target stale.",
                 dispatchReason: "stale_target_session",
-                focusState: .background
+                focusState: .background,
             ),
         ],
         attention: [
@@ -47,7 +47,7 @@ func attentionCenterViewModelMapsActions() async throws {
                 severity: .unread,
                 targetRoute: .projectFocus,
                 targetSessionID: "ses_waiting",
-                summary: "Operator answer required."
+                summary: "Operator answer required.",
             ),
             .init(
                 attentionID: "att_review",
@@ -56,11 +56,11 @@ func attentionCenterViewModelMapsActions() async throws {
                 targetRoute: .reviewQueue,
                 targetSessionID: nil,
                 taskID: "task_review",
-                summary: "Evidence pack available."
+                summary: "Evidence pack available.",
             ),
         ],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     var opened: [AppShellAction] = []
@@ -73,10 +73,15 @@ func attentionCenterViewModelMapsActions() async throws {
         openTarget: { opened.append($0) },
         resolveAttention: { resolved.append($0) },
         dismissAttention: { dismissed.append($0) },
-        snoozeAttention: { snoozed.append($0) }
+        snoozeAttention: { snoozed.append($0) },
     )
 
-    #expect(viewModel.items.map(\.id) == ["ses_takeover", "ses_failed", "att_review", "att_waiting"])
+    #expect(viewModel.items.map(\.id) == [
+        "ses_takeover",
+        "ses_failed",
+        "att_review",
+        "att_waiting",
+    ])
     #expect(viewModel.items[0].stateLabel == "manual takeover")
     #expect(viewModel.items[1].stateLabel == "dispatch_failed")
 
@@ -101,7 +106,7 @@ func attentionPresentationUsesDistinctGroups() {
             summary: "Operator reviewing latest result.",
             severity: .failed,
             targetRoute: .projectFocus,
-            targetSessionID: "ses_takeover"
+            targetSessionID: "ses_takeover",
         ),
         .init(
             id: "ses_failed",
@@ -110,7 +115,7 @@ func attentionPresentationUsesDistinctGroups() {
             summary: "Target stale.",
             severity: .failed,
             targetRoute: .projectFocus,
-            targetSessionID: "ses_failed"
+            targetSessionID: "ses_failed",
         ),
         .init(
             id: "att_review",
@@ -119,7 +124,7 @@ func attentionPresentationUsesDistinctGroups() {
             summary: "Evidence pack available.",
             severity: .degraded,
             targetRoute: .reviewQueue,
-            targetSessionID: nil
+            targetSessionID: nil,
         ),
         .init(
             id: "att_waiting",
@@ -128,7 +133,7 @@ func attentionPresentationUsesDistinctGroups() {
             summary: "Operator answer required.",
             severity: .unread,
             targetRoute: .projectFocus,
-            targetSessionID: "ses_waiting"
+            targetSessionID: "ses_waiting",
         ),
     ]
 

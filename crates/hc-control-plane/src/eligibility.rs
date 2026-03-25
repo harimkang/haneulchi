@@ -1,4 +1,7 @@
-use hc_domain::{ClaimState, PolicyPack, Task, TaskAutomationDetails, TaskAutomationMode, TaskColumn, WorkflowHealth};
+use hc_domain::{
+    ClaimState, PolicyPack, Task, TaskAutomationDetails, TaskAutomationMode, TaskColumn,
+    WorkflowHealth,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct EligibilityContext {
@@ -8,7 +11,10 @@ pub struct EligibilityContext {
     pub policy_pack: PolicyPack,
 }
 
-pub fn evaluate_task_eligibility(task: &Task, context: &EligibilityContext) -> TaskAutomationDetails {
+pub fn evaluate_task_eligibility(
+    task: &Task,
+    context: &EligibilityContext,
+) -> TaskAutomationDetails {
     let blocker_reason = if task.column != TaskColumn::Ready {
         Some("task_not_ready_for_dispatch".to_string())
     } else if task.automation_mode == TaskAutomationMode::Manual {

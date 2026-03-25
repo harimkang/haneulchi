@@ -32,8 +32,7 @@ struct SaveAppStateInput {
 }
 
 pub fn load_app_state_json() -> Result<String, String> {
-    let opt = hc_control_plane::shared_load_app_state()
-        .map_err(|e| e.to_string())?;
+    let opt = hc_control_plane::shared_load_app_state().map_err(|e| e.to_string())?;
     match opt {
         None => Ok("null".to_string()),
         Some(record) => serde_json::to_string(&serde_json::json!({

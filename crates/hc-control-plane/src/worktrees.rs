@@ -98,7 +98,9 @@ fn workspace_root_for_repo(repo_root: &Path, task_id: &str) -> PathBuf {
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or("project");
-    workspace_root_base().join(project_slug).join(sanitize(task_id))
+    workspace_root_base()
+        .join(project_slug)
+        .join(sanitize(task_id))
 }
 
 fn workspace_root_base() -> PathBuf {
@@ -151,9 +153,11 @@ fn materialize_git_worktree(
             .args([
                 "worktree",
                 "add",
-                workspace_root
-                    .to_str()
-                    .ok_or_else(|| WorktreeProvisionError::ProvisioningFailed("workspace path is not utf8".to_string()))?,
+                workspace_root.to_str().ok_or_else(|| {
+                    WorktreeProvisionError::ProvisioningFailed(
+                        "workspace path is not utf8".to_string(),
+                    )
+                })?,
                 &branch_name,
             ])
             .status()
@@ -165,9 +169,11 @@ fn materialize_git_worktree(
                 "add",
                 "-b",
                 &branch_name,
-                workspace_root
-                    .to_str()
-                    .ok_or_else(|| WorktreeProvisionError::ProvisioningFailed("workspace path is not utf8".to_string()))?,
+                workspace_root.to_str().ok_or_else(|| {
+                    WorktreeProvisionError::ProvisioningFailed(
+                        "workspace path is not utf8".to_string(),
+                    )
+                })?,
                 "HEAD",
             ])
             .status()

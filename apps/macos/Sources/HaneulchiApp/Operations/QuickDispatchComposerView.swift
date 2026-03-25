@@ -12,7 +12,7 @@ struct QuickDispatchComposerView: View {
 
             Picker("Target", selection: Binding(
                 get: { viewModel.selectedTargetID ?? "" },
-                set: { viewModel.selectTarget(id: $0) }
+                set: { viewModel.selectTarget(id: $0) },
             )) {
                 ForEach(viewModel.targets) { target in
                     Text(target.title).tag(target.id)

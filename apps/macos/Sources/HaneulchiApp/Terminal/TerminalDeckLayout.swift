@@ -17,7 +17,7 @@ indirect enum TerminalDeckNode: Equatable, Sendable {
         axis: TerminalDeckAxis,
         ratio: Double,
         first: TerminalDeckNode,
-        second: TerminalDeckNode
+        second: TerminalDeckNode,
     )
 }
 
@@ -31,22 +31,25 @@ struct TerminalDeckLayout: Equatable, Sendable {
         root: .pane(.init(id: "pane-1", surface: .projectFocusDemo)),
         focusedPaneID: "pane-1",
         nextPaneNumber: 2,
-        nextSplitNumber: 1
+        nextSplitNumber: 1,
     )
 
     static let singleLiveDemo = Self(
         root: .pane(.init(id: "pane-1", surface: .projectFocusLiveDemo)),
         focusedPaneID: "pane-1",
         nextPaneNumber: 2,
-        nextSplitNumber: 1
+        nextSplitNumber: 1,
     )
 
     static func singleLive(_ bundle: TerminalRestoreBundle) -> Self {
         Self(
-            root: .pane(.init(id: "pane-1", surface: .liveSurface(id: "project-focus-live-demo", bundle: bundle))),
+            root: .pane(.init(
+                id: "pane-1",
+                surface: .liveSurface(id: "project-focus-live-demo", bundle: bundle),
+            )),
             focusedPaneID: "pane-1",
             nextPaneNumber: 2,
-            nextSplitNumber: 1
+            nextSplitNumber: 1,
         )
     }
 
@@ -96,7 +99,7 @@ struct TerminalDeckLayout: Equatable, Sendable {
         let focusedSurface = root.pane(for: originalPaneID)?.surface ?? .projectFocusDemo
         let newPane = TerminalPaneModel(
             id: newPaneID,
-            surface: focusedSurface.duplicated(withID: "surface-\(newPaneID)")
+            surface: focusedSurface.duplicated(withID: "surface-\(newPaneID)"),
         )
         root = root.replacingPane(
             id: originalPaneID,
@@ -105,8 +108,8 @@ struct TerminalDeckLayout: Equatable, Sendable {
                 axis: axis,
                 ratio: 0.5,
                 first: .pane(root.pane(for: originalPaneID)!),
-                second: .pane(newPane)
-            )
+                second: .pane(newPane),
+            ),
         )
         focusedPaneID = newPaneID
     }
@@ -142,32 +145,32 @@ private extension TerminalDeckNode {
     var paneIDs: [String] {
         switch self {
         case let .pane(pane):
-            return [pane.id]
+            [pane.id]
         case let .split(_, _, _, first, second):
-            return first.paneIDs + second.paneIDs
+            first.paneIDs + second.paneIDs
         }
     }
 
     func pane(for paneID: String) -> TerminalPaneModel? {
         switch self {
         case let .pane(pane):
-            return pane.id == paneID ? pane : nil
+            pane.id == paneID ? pane : nil
         case let .split(_, _, _, first, second):
-            return first.pane(for: paneID) ?? second.pane(for: paneID)
+            first.pane(for: paneID) ?? second.pane(for: paneID)
         }
     }
 
     func replacingPane(id paneID: String, with replacement: TerminalDeckNode) -> TerminalDeckNode {
         switch self {
         case let .pane(pane):
-            return pane.id == paneID ? replacement : self
+            pane.id == paneID ? replacement : self
         case let .split(id, axis, ratio, first, second):
-            return .split(
+            .split(
                 id: id,
                 axis: axis,
                 ratio: ratio,
                 first: first.replacingPane(id: paneID, with: replacement),
-                second: second.replacingPane(id: paneID, with: replacement)
+                second: second.replacingPane(id: paneID, with: replacement),
             )
         }
     }
@@ -183,7 +186,7 @@ private extension TerminalDeckNode {
                 axis: axis,
                 ratio: updatedRatio,
                 first: first.settingRatio(ratio, for: splitID),
-                second: second.settingRatio(ratio, for: splitID)
+                second: second.settingRatio(ratio, for: splitID),
             )
         }
     }

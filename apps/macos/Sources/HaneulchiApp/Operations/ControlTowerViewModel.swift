@@ -18,24 +18,26 @@ struct ControlTowerViewModel: Equatable, Sendable {
         let latestCommentary: String?
         let heatStrip: HeatStrip
 
-        var id: String { projectID }
+        var id: String {
+            projectID
+        }
 
         var statusBadgeState: HaneulchiStatusBadge.State {
             switch statusLabel.lowercased() {
             case "attention", "error", "blocked":
-                return .blocked
+                .blocked
             case "running", "active":
-                return .active
+                .active
             case "review", "review_ready":
-                return .reviewReady
+                .reviewReady
             case "waiting", "waiting_input":
-                return .waitingInput
+                .waitingInput
             case "degraded":
-                return .degraded
+                .degraded
             case "done", "complete":
-                return .done
+                .done
             default:
-                return .idle
+                .idle
             }
         }
     }
@@ -55,7 +57,9 @@ struct ControlTowerViewModel: Equatable, Sendable {
         let targetRoute: Route
         let manifestPath: String?
 
-        var id: String { "\(projectID):\(taskID)" }
+        var id: String {
+            "\(projectID):\(taskID)"
+        }
     }
 
     let opsModel: AutomationPanelViewModel
@@ -72,10 +76,11 @@ struct ControlTowerViewModel: Equatable, Sendable {
                 (lhs.lastActivityAt ?? "") < (rhs.lastActivityAt ?? "")
             }
             let heatStrip = HeatStrip(
-                running: sessions.filter { $0.runtimeState == .running }.count,
-                waitingInput: sessions.filter { $0.runtimeState == .waitingInput }.count,
-                reviewReady: sessions.filter { $0.runtimeState == .reviewReady }.count,
-                blocked: sessions.filter { $0.runtimeState == .blocked || $0.runtimeState == .error }.count
+                running: sessions.count(where: { $0.runtimeState == .running }),
+                waitingInput: sessions.count(where: { $0.runtimeState == .waitingInput }),
+                reviewReady: sessions.count(where: { $0.runtimeState == .reviewReady }),
+                blocked: sessions
+                    .count(where: { $0.runtimeState == .blocked || $0.runtimeState == .error }),
             )
             let statusLabel = project.attentionCount > 0 ? "attention" : project.status.rawValue
 
@@ -87,7 +92,7 @@ struct ControlTowerViewModel: Equatable, Sendable {
                 attentionCountLabel: "\(project.attentionCount) items",
                 latestSummary: latestSession?.latestSummary,
                 latestCommentary: latestSession?.latestCommentary,
-                heatStrip: heatStrip
+                heatStrip: heatStrip,
             )
         }
 
@@ -97,7 +102,7 @@ struct ControlTowerViewModel: Equatable, Sendable {
                 headline: item.headline,
                 summary: item.summary,
                 targetRoute: item.targetRoute,
-                targetSessionID: item.targetSessionID
+                targetSessionID: item.targetSessionID,
             )
         }
 
@@ -107,7 +112,7 @@ struct ControlTowerViewModel: Equatable, Sendable {
                 projectID: item.projectID,
                 summary: item.summary,
                 targetRoute: item.jumpTarget == "review_queue" ? .reviewQueue : .projectFocus,
-                manifestPath: item.manifestPath
+                manifestPath: item.manifestPath,
             )
         }
     }

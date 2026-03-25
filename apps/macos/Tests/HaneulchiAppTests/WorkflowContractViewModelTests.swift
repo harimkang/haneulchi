@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("workflow status payload decodes summary and reload diagnostics")
 func workflowStatusPayloadDecodesSummary() throws {
@@ -21,7 +21,7 @@ func workflowStatusPayloadDecodesSummary() throws {
             "hooks": ["after_create", "before_run"]
           }
         }
-        """#.utf8
+        """#.utf8,
     )
 
     let status = try JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)

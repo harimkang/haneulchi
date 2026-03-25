@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("bootstrap maps nil fixture to empty")
 func bootstrapMapsNilFixtureToEmpty() {
@@ -9,9 +9,9 @@ func bootstrapMapsNilFixtureToEmpty() {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: true
+                demoMode: true,
             )
-        }
+        },
     )
 
     let state = controller.bootstrap(fixtureName: nil)
@@ -26,12 +26,12 @@ func bootstrapMapsMissingFixtureToDegraded() {
             TerminalBackendDescriptor(
                 rendererID: "swiftterm",
                 transport: "ffi_c_abi",
-                demoMode: true
+                demoMode: true,
             )
         },
         fixtureLoader: { _ in
             throw TerminalTranscriptFixtureError.missing("missing.ansi")
-        }
+        },
     )
 
     let state = controller.bootstrap(fixtureName: "missing.ansi")
@@ -44,7 +44,7 @@ func bootstrapMapsBridgeFailureToFailed() {
     let controller = TerminalTranscriptController(
         runtimeInfoProvider: {
             throw CoreBridgeError.invalidRuntimeInfo
-        }
+        },
     )
 
     let state = controller.bootstrap(fixtureName: "hello-world.ansi")

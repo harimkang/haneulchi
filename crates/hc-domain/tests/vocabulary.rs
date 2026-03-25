@@ -1,6 +1,6 @@
 use hc_domain::{
     AppSnapshot, ClaimState, ProjectSummary, SessionFocusState, SessionRuntimeState,
-    SessionSummary, TrackerStatus, WorkflowRuntimeStatus, WorkflowHealth,
+    SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
 };
 
 #[test]
@@ -40,16 +40,9 @@ fn snapshot_contract_types_expose_required_sprint_two_groups() {
         last_sync_at: None,
         health: "ok".to_string(),
     };
-    let project = ProjectSummary::new(
-        "proj_demo",
-        "demo",
-        "/tmp/demo",
-        WorkflowHealth::Ok,
-        1,
-        0,
-    )
-    .with_task_count("Inbox", 1)
-    .with_task_count("Ready", 2);
+    let project = ProjectSummary::new("proj_demo", "demo", "/tmp/demo", WorkflowHealth::Ok, 1, 0)
+        .with_task_count("Inbox", 1)
+        .with_task_count("Ready", 2);
     let session = SessionSummary::new("ses_demo", "proj_demo", "Demo shell")
         .with_mode("generic")
         .with_runtime_state(SessionRuntimeState::Running)

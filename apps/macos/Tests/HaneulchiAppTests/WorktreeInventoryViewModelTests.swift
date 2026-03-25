@@ -1,14 +1,56 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("inventory groups rows by disposition in correct order: InUse, Recoverable, SafeToDelete, Stale")
-func testInventoryGroupsRowsByDisposition() {
+@Test(
+    "inventory groups rows by disposition in correct order: InUse, Recoverable, SafeToDelete, Stale",
+)
+func inventoryGroupsRowsByDisposition() {
     let rows: [WorktreeInventoryViewModel.Row] = [
-        .init(worktreeId: "wt-stale", path: "/p/stale", projectName: "proj", branch: "main", disposition: .stale, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-safe", path: "/p/safe", projectName: "proj", branch: "main", disposition: .safeToDelete, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-recoverable", path: "/p/rec", projectName: "proj", branch: "feat", disposition: .recoverable, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-inuse", path: "/p/inuse", projectName: "proj", branch: "main", disposition: .inUse, isPinned: true, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
+        .init(
+            worktreeId: "wt-stale",
+            path: "/p/stale",
+            projectName: "proj",
+            branch: "main",
+            disposition: .stale,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-safe",
+            path: "/p/safe",
+            projectName: "proj",
+            branch: "main",
+            disposition: .safeToDelete,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-recoverable",
+            path: "/p/rec",
+            projectName: "proj",
+            branch: "feat",
+            disposition: .recoverable,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-inuse",
+            path: "/p/inuse",
+            projectName: "proj",
+            branch: "main",
+            disposition: .inUse,
+            isPinned: true,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
     ]
 
     let vm = WorktreeInventoryViewModel(rows: rows)
@@ -27,13 +69,63 @@ func testInventoryGroupsRowsByDisposition() {
 }
 
 @Test("summary card shows correct counts for each disposition")
-func testInventorySummaryCardValues() {
+func inventorySummaryCardValues() {
     let rows: [WorktreeInventoryViewModel.Row] = [
-        .init(worktreeId: "wt-1", path: "/p/1", projectName: "p", branch: nil, disposition: .inUse, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-2", path: "/p/2", projectName: "p", branch: nil, disposition: .inUse, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-3", path: "/p/3", projectName: "p", branch: nil, disposition: .recoverable, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-4", path: "/p/4", projectName: "p", branch: nil, disposition: .safeToDelete, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
-        .init(worktreeId: "wt-5", path: "/p/5", projectName: "p", branch: nil, disposition: .stale, isPinned: false, isDegraded: false, sizeBytes: nil, lastAccessedAt: nil),
+        .init(
+            worktreeId: "wt-1",
+            path: "/p/1",
+            projectName: "p",
+            branch: nil,
+            disposition: .inUse,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-2",
+            path: "/p/2",
+            projectName: "p",
+            branch: nil,
+            disposition: .inUse,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-3",
+            path: "/p/3",
+            projectName: "p",
+            branch: nil,
+            disposition: .recoverable,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-4",
+            path: "/p/4",
+            projectName: "p",
+            branch: nil,
+            disposition: .safeToDelete,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
+        .init(
+            worktreeId: "wt-5",
+            path: "/p/5",
+            projectName: "p",
+            branch: nil,
+            disposition: .stale,
+            isPinned: false,
+            isDegraded: false,
+            sizeBytes: nil,
+            lastAccessedAt: nil,
+        ),
     ]
 
     let vm = WorktreeInventoryViewModel(rows: rows)
@@ -47,7 +139,7 @@ func testInventorySummaryCardValues() {
 }
 
 @Test("InUse row has canOpenFinder true and canOpenSession true")
-func testInventoryOpenActionsForInUseRow() {
+func inventoryOpenActionsForInUseRow() {
     let inUseRow = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-inuse",
         taskID: "task-inuse",
@@ -58,7 +150,7 @@ func testInventoryOpenActionsForInUseRow() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(inUseRow.canOpenFinder == true)
@@ -66,7 +158,7 @@ func testInventoryOpenActionsForInUseRow() {
 }
 
 @Test("Stale row has canOpenFinder true and canOpenSession false")
-func testInventoryOpenActionsForStaleRow() {
+func inventoryOpenActionsForStaleRow() {
     let staleRow = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-stale",
         path: "/p/stale",
@@ -76,7 +168,7 @@ func testInventoryOpenActionsForStaleRow() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(staleRow.canOpenFinder == true)
@@ -84,7 +176,7 @@ func testInventoryOpenActionsForStaleRow() {
 }
 
 @Test("empty path row disables Open in Finder")
-func testEmptyPathDisablesOpenInFinder() {
+func emptyPathDisablesOpenInFinder() {
     let row = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-1",
         taskID: "",
@@ -95,13 +187,13 @@ func testEmptyPathDisablesOpenInFinder() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
     #expect(row.canOpenFinder == false)
 }
 
 @Test("Recoverable row with non-empty path has canOpenSession true")
-func testRecoverableRowWithPathCanOpenSession() {
+func recoverableRowWithPathCanOpenSession() {
     let row = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-rec",
         path: "/p/rec",
@@ -111,14 +203,14 @@ func testRecoverableRowWithPathCanOpenSession() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(row.canOpenSession == true)
 }
 
 @Test("Recoverable row with empty path has canOpenSession false")
-func testRecoverableRowWithEmptyPathCannotOpenSession() {
+func recoverableRowWithEmptyPathCannotOpenSession() {
     let row = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-rec",
         path: "",
@@ -128,14 +220,14 @@ func testRecoverableRowWithEmptyPathCannotOpenSession() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(row.canOpenSession == false)
 }
 
 @Test("InUse row has no delete action")
-func testInventoryActionGatingPreventsDeleteOfInUseWorktree() {
+func inventoryActionGatingPreventsDeleteOfInUseWorktree() {
     let inUseRow = WorktreeInventoryViewModel.Row(
         worktreeId: "wt-inuse",
         path: "/p/inuse",
@@ -145,7 +237,7 @@ func testInventoryActionGatingPreventsDeleteOfInUseWorktree() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(inUseRow.canDelete == false)
@@ -161,7 +253,7 @@ func testInventoryActionGatingPreventsDeleteOfInUseWorktree() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(recoverableRow.canDelete == false)
@@ -177,7 +269,7 @@ func testInventoryActionGatingPreventsDeleteOfInUseWorktree() {
         isPinned: false,
         isDegraded: false,
         sizeBytes: nil,
-        lastAccessedAt: nil
+        lastAccessedAt: nil,
     )
 
     #expect(safeRow.canDelete == true)

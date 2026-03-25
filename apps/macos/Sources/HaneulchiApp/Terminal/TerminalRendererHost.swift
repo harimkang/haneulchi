@@ -92,7 +92,8 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
             terminalView.send(EscapeSequences.cmdRet)
             return
         case 48:
-            terminalView.send(flags.contains(.shift) ? EscapeSequences.cmdBackTab : EscapeSequences.cmdTab)
+            terminalView
+                .send(flags.contains(.shift) ? EscapeSequences.cmdBackTab : EscapeSequences.cmdTab)
             return
         case 51:
             terminalView.send(EscapeSequences.cmdDel)
@@ -109,22 +110,34 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
         {
             switch Int(scalar.value) {
             case NSUpArrowFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveUpApp : EscapeSequences.moveUpNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveUpApp : EscapeSequences.moveUpNormal)
                 return
             case NSDownArrowFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveDownApp : EscapeSequences.moveDownNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveDownApp : EscapeSequences.moveDownNormal)
                 return
             case NSLeftArrowFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveLeftApp : EscapeSequences.moveLeftNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveLeftApp : EscapeSequences.moveLeftNormal)
                 return
             case NSRightArrowFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveRightApp : EscapeSequences.moveRightNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveRightApp : EscapeSequences.moveRightNormal)
                 return
             case NSHomeFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveHomeApp : EscapeSequences.moveHomeNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveHomeApp : EscapeSequences.moveHomeNormal)
                 return
             case NSEndFunctionKey:
-                terminalView.send(terminalView.terminal.applicationCursor ? EscapeSequences.moveEndApp : EscapeSequences.moveEndNormal)
+                terminalView
+                    .send(terminalView.terminal.applicationCursor ? EscapeSequences
+                        .moveEndApp : EscapeSequences.moveEndNormal)
                 return
             case NSPageUpFunctionKey:
                 terminalView.send(EscapeSequences.cmdPageUp)
@@ -137,10 +150,12 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
             }
         }
 
-        if flags.contains(.control), let chars = event.charactersIgnoringModifiers, let scalar = chars.unicodeScalars.first {
+        if flags.contains(.control), let chars = event.charactersIgnoringModifiers,
+           let scalar = chars.unicodeScalars.first
+        {
             let value = scalar.value
-            if value >= 0x40, value <= 0x7f {
-                terminalView.send([UInt8(value & 0x1f)])
+            if value >= 0x40, value <= 0x7F {
+                terminalView.send([UInt8(value & 0x1F)])
                 return
             }
         }
@@ -193,7 +208,7 @@ final class FocusingTerminalContainerView: NSView {
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 
@@ -222,24 +237,24 @@ struct TerminalRendererHost: NSViewRepresentable {
         case live(
             text: @Sendable () -> String,
             write: @Sendable (Data) -> Void,
-            resize: @Sendable (TerminalGridSize) -> Void
+            resize: @Sendable (TerminalGridSize) -> Void,
         )
 
         var text: String {
             switch self {
             case let .replay(transcript):
-                return transcript
+                transcript
             case let .live(text, _, _):
-                return text()
+                text()
             }
         }
 
         var mode: RenderMode {
             switch self {
             case .replay:
-                return .replay
+                .replay
             case .live:
-                return .live
+                .live
             }
         }
     }
@@ -248,7 +263,7 @@ struct TerminalRendererHost: NSViewRepresentable {
     private let onHostHandleReady: HostHandleReady?
 
     init(transcript: String, onHostHandleReady: HostHandleReady? = nil) {
-        self.source = .replay(transcript)
+        source = .replay(transcript)
         self.onHostHandleReady = onHostHandleReady
     }
 
@@ -259,7 +274,7 @@ struct TerminalRendererHost: NSViewRepresentable {
 
     static func live(
         controller: TerminalSessionController,
-        onHostHandleReady: HostHandleReady? = nil
+        onHostHandleReady: HostHandleReady? = nil,
     ) -> Self {
         Self(
             source: .live(
@@ -277,9 +292,9 @@ struct TerminalRendererHost: NSViewRepresentable {
                     Task { @MainActor in
                         try? controller.resize(geometry)
                     }
-                }
+                },
             ),
-            onHostHandleReady: onHostHandleReady
+            onHostHandleReady: onHostHandleReady,
         )
     }
 
@@ -297,10 +312,17 @@ struct TerminalRendererHost: NSViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         terminalView.nativeBackgroundColor = .textBackgroundColor
         terminalView.nativeForegroundColor = .textColor
-        let clickRecognizer = NSClickGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.focusTerminalFromClick(_:)))
+        let clickRecognizer = NSClickGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.focusTerminalFromClick(_:)),
+        )
         clickRecognizer.buttonMask = 0x1
         terminalView.addGestureRecognizer(clickRecognizer)
-        onHostHandleReady?(SwiftTermTerminalHostHandle(commandTarget: SwiftTermTerminalCommandTarget(terminalView: terminalView)))
+        onHostHandleReady?(
+            SwiftTermTerminalHostHandle(
+                commandTarget: SwiftTermTerminalCommandTarget(terminalView: terminalView),
+            ),
+        )
         context.coordinator.render(text: source.text, mode: source.mode, into: terminalView)
         return FocusingTerminalContainerView(frame: .zero, terminalView: terminalView)
     }
@@ -316,7 +338,7 @@ struct TerminalRendererHost: NSViewRepresentable {
 
         init(
             writeHandler: @escaping @Sendable (Data) -> Void = { _ in },
-            resizeHandler: @escaping @Sendable (TerminalGridSize) -> Void = { _ in }
+            resizeHandler: @escaping @Sendable (TerminalGridSize) -> Void = { _ in },
         ) {
             self.writeHandler = writeHandler
             self.resizeHandler = resizeHandler
@@ -325,7 +347,7 @@ struct TerminalRendererHost: NSViewRepresentable {
         static func renderInstruction(
             previousText: String?,
             nextText: String,
-            mode: RenderMode
+            mode: RenderMode,
         ) -> RenderInstruction {
             guard previousText != nextText else {
                 return .none
@@ -353,7 +375,7 @@ struct TerminalRendererHost: NSViewRepresentable {
             let instruction = Self.renderInstruction(
                 previousText: renderedTranscript,
                 nextText: text,
-                mode: mode
+                mode: mode,
             )
             renderedTranscript = text
 
@@ -368,26 +390,29 @@ struct TerminalRendererHost: NSViewRepresentable {
             }
         }
 
-        func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {
+        func sizeChanged(source _: TerminalView, newCols: Int, newRows: Int) {
             resizeHandler(.init(cols: newCols, rows: newRows))
         }
-        func setTerminalTitle(source: TerminalView, title: String) {}
-        func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-        func send(source: TerminalView, data: ArraySlice<UInt8>) {
+
+        func setTerminalTitle(source _: TerminalView, title _: String) {}
+        func hostCurrentDirectoryUpdate(source _: TerminalView, directory _: String?) {}
+        func send(source _: TerminalView, data: ArraySlice<UInt8>) {
             writeHandler(Data(data))
         }
-        func scrolled(source: TerminalView, position: Double) {}
-        func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {
+
+        func scrolled(source _: TerminalView, position _: Double) {}
+        func requestOpenLink(source _: TerminalView, link: String, params _: [String: String]) {
             guard let url = URL(string: link) else {
                 return
             }
 
             NSWorkspace.shared.open(url)
         }
-        func bell(source: TerminalView) {}
-        func clipboardCopy(source: TerminalView, content: Data) {}
-        func iTermContent(source: TerminalView, content: Data) {}
-        func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+
+        func bell(source _: TerminalView) {}
+        func clipboardCopy(source _: TerminalView, content _: Data) {}
+        func iTermContent(source _: TerminalView, content _: Data) {}
+        func rangeChanged(source _: TerminalView, startY _: Int, endY _: Int) {}
 
         @MainActor
         func containsScrollbackMarker(_ marker: String, in terminalView: TerminalView) -> Bool {
@@ -395,13 +420,17 @@ struct TerminalRendererHost: NSViewRepresentable {
                 return true
             }
 
-            guard let rendered = String(data: terminalView.terminal.getBufferAsData(), encoding: .utf8) else {
+            guard let rendered = String(
+                data: terminalView.terminal.getBufferAsData(),
+                encoding: .utf8,
+            ) else {
                 return false
             }
 
             return rendered.contains(marker)
         }
 
+        @MainActor
         @objc
         func focusTerminalFromClick(_ recognizer: NSClickGestureRecognizer) {
             guard let terminalView = recognizer.view as? TerminalView else {

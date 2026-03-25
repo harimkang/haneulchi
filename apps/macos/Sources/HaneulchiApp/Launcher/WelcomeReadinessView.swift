@@ -21,7 +21,7 @@ struct WelcomeReadinessView: View {
             selectedProject: selectedProject,
             report: report,
             supportsDemoWorkspace: supportsDemoWorkspace,
-            launcherNotice: launcherNotice
+            launcherNotice: launcherNotice,
         )
     }
 
@@ -39,8 +39,10 @@ struct WelcomeReadinessView: View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
             Text("Welcome")
                 .font(.largeTitle.weight(.bold))
-            Text("Add a project or reopen a recent workspace. Start with a generic shell and add setup later.")
-                .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+            Text(
+                "Add a project or reopen a recent workspace. Start with a generic shell and add setup later.",
+            )
+            .foregroundStyle(HaneulchiChrome.Colors.mutedText)
 
             Button("Add Folder", action: addFolder)
                 .buttonStyle(.borderedProminent)
@@ -49,8 +51,10 @@ struct WelcomeReadinessView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Quick Start")
                         .font(.headline)
-                    Text("Open the demo workspace to verify the launcher flow before selecting your own repository.")
-                        .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    Text(
+                        "Open the demo workspace to verify the launcher flow before selecting your own repository.",
+                    )
+                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
                     Button("Open Demo Workspace", action: openDemoWorkspace)
                         .buttonStyle(.bordered)
                 }
@@ -66,8 +70,10 @@ struct WelcomeReadinessView: View {
                 Text("Recent Projects")
                     .font(.headline)
                 if recentProjects.isEmpty {
-                    Text("No recent projects yet. Add a folder or open the demo workspace to start.")
-                        .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    Text(
+                        "No recent projects yet. Add a folder or open the demo workspace to start.",
+                    )
+                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
                 } else {
                     ForEach(recentProjects) { project in
                         Button {
@@ -101,8 +107,10 @@ struct WelcomeReadinessView: View {
                 .foregroundStyle(HaneulchiChrome.Colors.mutedText)
 
             if viewModel.readinessChecks.isEmpty {
-                Text("Select a workspace to inspect shell, git, preset, keychain, and workflow readiness.")
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                Text(
+                    "Select a workspace to inspect shell, git, preset, keychain, and workflow readiness.",
+                )
+                .foregroundStyle(HaneulchiChrome.Colors.mutedText)
             } else {
                 ForEach(viewModel.readinessChecks, id: \.name) { check in
                     readinessRow(check)

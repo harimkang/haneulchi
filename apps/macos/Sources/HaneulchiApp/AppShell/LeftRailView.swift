@@ -11,20 +11,24 @@ struct LeftRailView: View {
                 RailItemButton(
                     item: item,
                     isActive: item.route == activeRoute,
-                    onAction: onAction
+                    onAction: onAction,
                 )
             }
 
             Spacer()
         }
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
-        .frame(minWidth: HaneulchiMetrics.Shell.railWidth, maxWidth: HaneulchiMetrics.Shell.railWidth, maxHeight: .infinity)
+        .frame(
+            minWidth: HaneulchiMetrics.Shell.railWidth,
+            maxWidth: HaneulchiMetrics.Shell.railWidth,
+            maxHeight: .infinity,
+        )
         .background(HaneulchiChrome.Surface.recess)
         .overlay(
             Rectangle()
                 .frame(width: 1)
                 .foregroundColor(HaneulchiChrome.Stroke.ghost),
-            alignment: .trailing
+            alignment: .trailing,
         )
     }
 }
@@ -54,13 +58,19 @@ private struct RailItemButton: View {
 
                 VStack(spacing: HaneulchiMetrics.Spacing.xxs) {
                     Image(systemName: item.route.symbolName)
-                        .font(.system(size: HaneulchiMetrics.Icon.standard, weight: isActive ? .semibold : .regular))
+                        .font(.system(
+                            size: HaneulchiMetrics.Icon.standard,
+                            weight: isActive ? .semibold : .regular,
+                        ))
                         .foregroundStyle(
                             isActive
                                 ? HaneulchiChrome.Gradient.primaryEnd
-                                : HaneulchiChrome.Label.muted
+                                : HaneulchiChrome.Label.muted,
                         )
-                        .frame(width: HaneulchiMetrics.Icon.standard, height: HaneulchiMetrics.Icon.standard)
+                        .frame(
+                            width: HaneulchiMetrics.Icon.standard,
+                            height: HaneulchiMetrics.Icon.standard,
+                        )
 
                     if let badgeText = item.badgeText {
                         Text(badgeText)
@@ -75,15 +85,21 @@ private struct RailItemButton: View {
                 .frame(maxWidth: .infinity)
                 .padding(.leading, 2) // offset for accent line space
             }
-            .frame(width: HaneulchiMetrics.Shell.railWidth, height: HaneulchiMetrics.Shell.railWidth)
+            .frame(
+                width: HaneulchiMetrics.Shell.railWidth,
+                height: HaneulchiMetrics.Shell.railWidth,
+            )
             .background(
                 isActive
                     ? HaneulchiChrome.Surface.base.opacity(0.6)
-                    : (isHovered ? HaneulchiChrome.Surface.base.opacity(0.4) : Color.clear)
+                    : (isHovered ? HaneulchiChrome.Surface.base.opacity(0.4) : Color.clear),
             )
             .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             .animation(.easeInOut(duration: HaneulchiMetrics.Motion.hoverShift), value: isHovered)
-            .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isActive)
+            .animation(
+                .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+                value: isActive,
+            )
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }

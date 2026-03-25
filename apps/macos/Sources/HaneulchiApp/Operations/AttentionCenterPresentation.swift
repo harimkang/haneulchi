@@ -3,46 +3,46 @@ import Foundation
 enum AttentionCenterPresentation {
     enum Group: String, CaseIterable, Equatable {
         case manualTakeover = "manual_takeover"
-        case failed = "failed"
-        case degraded = "degraded"
-        case unread = "unread"
+        case failed
+        case degraded
+        case unread
 
         var displayTitle: String {
             switch self {
             case .manualTakeover:
-                return "Manual Takeover"
+                "Manual Takeover"
             case .failed:
-                return "Failed"
+                "Failed"
             case .degraded:
-                return "Degraded"
+                "Degraded"
             case .unread:
-                return "Unread"
+                "Unread"
             }
         }
 
         var badgeState: HaneulchiStatusBadge.State {
             switch self {
             case .manualTakeover:
-                return .manualTakeover
+                .manualTakeover
             case .failed:
-                return .blocked
+                .blocked
             case .degraded:
-                return .degraded
+                .degraded
             case .unread:
-                return .waitingInput
+                .waitingInput
             }
         }
 
         var badgeLabel: String {
             switch self {
             case .manualTakeover:
-                return "MANUAL"
+                "MANUAL"
             case .failed:
-                return "FAILED"
+                "FAILED"
             case .degraded:
-                return "DEGRADED"
+                "DEGRADED"
             case .unread:
-                return "UNREAD"
+                "UNREAD"
             }
         }
     }

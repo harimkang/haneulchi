@@ -13,13 +13,11 @@ use crate::automation::reconcile_now_json;
 use crate::dispatch::dispatch_send_json;
 use crate::envelope::{error_json, success_json};
 use crate::sessions::{
-    session_attach_task_json, session_details_json, session_detach_task_json, session_focus_json,
+    session_attach_task_json, session_detach_task_json, session_details_json, session_focus_json,
     session_release_takeover_json, session_takeover_json, sessions_list_json_filtered,
 };
 use crate::state::{current_snapshot, state_json_for};
-use crate::tasks::{
-    task_automation_mode_json, task_create_json, task_move_json, tasks_list_json,
-};
+use crate::tasks::{task_automation_mode_json, task_create_json, task_move_json, tasks_list_json};
 use crate::workflow::{workflow_reload_json, workflow_validate_json};
 
 pub struct ApiServer {
@@ -36,10 +34,7 @@ impl ApiServer {
         if socket_path.exists() {
             match UnixStream::connect(&socket_path) {
                 Ok(_) => {
-                    return Err(format!(
-                        "socket_already_owned:{}",
-                        socket_path.display()
-                    ));
+                    return Err(format!("socket_already_owned:{}", socket_path.display()));
                 }
                 Err(error)
                     if matches!(
@@ -54,7 +49,8 @@ impl ApiServer {
                             | ErrorKind::NotFound
                     ) =>
                 {
-                    fs::remove_file(&socket_path).map_err(|remove_error| remove_error.to_string())?;
+                    fs::remove_file(&socket_path)
+                        .map_err(|remove_error| remove_error.to_string())?;
                 }
                 Err(error) => return Err(error.to_string()),
             }
@@ -93,7 +89,11 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
     let header_len = match request.parse(&bytes).map_err(|error| error.to_string())? {
         httparse::Status::Complete(len) => len,
         httparse::Status::Partial => {
-            let payload = error_json("invalid_request", "incomplete_request", current_snapshot().ok().as_ref())?;
+            let payload = error_json(
+                "invalid_request",
+                "incomplete_request",
+                current_snapshot().ok().as_ref(),
+            )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
@@ -102,7 +102,11 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
     let method = match request.method {
         Some(method) => method,
         None => {
-            let payload = error_json("invalid_request", "missing_method", current_snapshot().ok().as_ref())?;
+            let payload = error_json(
+                "invalid_request",
+                "missing_method",
+                current_snapshot().ok().as_ref(),
+            )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
@@ -110,7 +114,11 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
     let path = match request.path {
         Some(path) => path,
         None => {
-            let payload = error_json("invalid_request", "missing_path", current_snapshot().ok().as_ref())?;
+            let payload = error_json(
+                "invalid_request",
+                "missing_path",
+                current_snapshot().ok().as_ref(),
+            )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
@@ -118,7 +126,11 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
     let body = match std::str::from_utf8(&bytes[header_len..]) {
         Ok(body) => body.trim(),
         Err(error) => {
-            let payload = error_json("invalid_request", &error.to_string(), current_snapshot().ok().as_ref())?;
+            let payload = error_json(
+                "invalid_request",
+                &error.to_string(),
+                current_snapshot().ok().as_ref(),
+            )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
@@ -126,7 +138,10 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
 
     let (status, payload) = match resolve_route_response(route(method, path, body)) {
         Ok(response) => response,
-        Err(error) => (500, error_json("internal_error", &error, current_snapshot().ok().as_ref())?),
+        Err(error) => (
+            500,
+            error_json("internal_error", &error, current_snapshot().ok().as_ref())?,
+        ),
     };
     write_response(&mut stream, status, &payload)?;
     Ok(())
@@ -154,9 +169,13 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                     .and_then(|value| value.parse::<bool>().ok()),
             )?,
         ),
-        ("GET", ["v1", "sessions", session_id]) => wrap_success(200, session_details_json(session_id)?),
+        ("GET", ["v1", "sessions", session_id]) => {
+            wrap_success(200, session_details_json(session_id)?)
+        }
         ("GET", ["v1", "tasks"]) => wrap_success(200, tasks_list_json(None)?),
-        ("POST", ["v1", "sessions", session_id, "focus"]) => wrap_success(202, session_focus_json(session_id)?),
+        ("POST", ["v1", "sessions", session_id, "focus"]) => {
+            wrap_success(202, session_focus_json(session_id)?)
+        }
         ("POST", ["v1", "sessions", session_id, "takeover"]) => {
             wrap_success(200, session_takeover_json(session_id)?)
         }
@@ -176,8 +195,14 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
         }
         ("POST", ["v1", "tasks"]) => {
             let json = parse_json(body)?;
-            let project_id = json.get("project_id").and_then(Value::as_str).ok_or_else(|| "missing_project_id".to_string())?;
-            let title = json.get("title").and_then(Value::as_str).ok_or_else(|| "missing_title".to_string())?;
+            let project_id = json
+                .get("project_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "missing_project_id".to_string())?;
+            let title = json
+                .get("title")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "missing_title".to_string())?;
             let priority = json.get("priority").and_then(Value::as_str);
             wrap_success(200, task_create_json(project_id, title, priority)?)
         }
@@ -199,10 +224,19 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
         }
         ("POST", ["v1", "dispatch"]) => {
             let json = parse_json(body)?;
-            let target_session_id = json.get("target_session_id").and_then(Value::as_str).ok_or_else(|| "missing_target_session_id".to_string())?;
+            let target_session_id = json
+                .get("target_session_id")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "missing_target_session_id".to_string())?;
             let task_id = json.get("task_id").and_then(Value::as_str);
-            let target_live = json.get("target_live").and_then(Value::as_bool).unwrap_or(true);
-            let payload = json.get("payload").and_then(Value::as_str).ok_or_else(|| "missing_payload".to_string())?;
+            let target_live = json
+                .get("target_live")
+                .and_then(Value::as_bool)
+                .unwrap_or(true);
+            let payload = json
+                .get("payload")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "missing_payload".to_string())?;
             let response = dispatch_send_json(target_session_id, task_id, target_live, payload)?;
             let parsed: Value = serde_json::from_str(&response).map_err(|e| e.to_string())?;
             if parsed.get("ok").and_then(Value::as_bool) == Some(false) {
@@ -262,15 +296,12 @@ fn classify_route_error(error: &str) -> (u16, String, String) {
     }
 
     match error {
-        "session_not_found" | "task_not_found" => {
-            (404, error.to_string(), error.to_string())
-        }
-        "task_claim_conflict" | "takeover_conflict" | "stale_target_session" | "manual_takeover_active" => {
-            (409, error.to_string(), error.to_string())
-        }
-        "invalid_transition" | "dispatch_failed" => {
-            (422, error.to_string(), error.to_string())
-        }
+        "session_not_found" | "task_not_found" => (404, error.to_string(), error.to_string()),
+        "task_claim_conflict"
+        | "takeover_conflict"
+        | "stale_target_session"
+        | "manual_takeover_active" => (409, error.to_string(), error.to_string()),
+        "invalid_transition" | "dispatch_failed" => (422, error.to_string(), error.to_string()),
         _ if error.contains("front matter parse error")
             || error.contains("workflow")
             || error.contains("last-known-good")

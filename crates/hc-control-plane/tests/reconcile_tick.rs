@@ -57,7 +57,12 @@ fn reconcile_releases_stale_claims_and_is_idempotent_without_touching_takeover_s
     assert_eq!(snapshot.sessions[0].dispatch_state, "not_dispatchable");
     assert_eq!(snapshot.sessions[1].claim_state, ClaimState::Stale);
     assert_eq!(snapshot.meta.projection_rev, initial_rev + 1);
-    assert!(snapshot.attention.iter().any(|item| item.kind == "retry_due"));
+    assert!(
+        snapshot
+            .attention
+            .iter()
+            .any(|item| item.kind == "retry_due")
+    );
 
     let second = reconcile_snapshot(&mut snapshot);
     assert!(second.released_session_ids.is_empty());
@@ -85,7 +90,10 @@ fn reconcile_cleans_exited_sessions_with_active_claims() {
     assert_eq!(report.cleaned_exited_ids, vec!["ses_exited"]);
     assert!(report.released_session_ids.is_empty());
     assert_eq!(snapshot.sessions[0].claim_state, ClaimState::Released);
-    assert_eq!(snapshot.sessions[0].dispatch_reason.as_deref(), Some("session_exited"));
+    assert_eq!(
+        snapshot.sessions[0].dispatch_reason.as_deref(),
+        Some("session_exited")
+    );
     assert_eq!(snapshot.sessions[1].claim_state, ClaimState::Claimed);
     assert_eq!(snapshot.meta.projection_rev, initial_rev + 1);
     assert!(snapshot.ops.automation.last_reconcile_at.is_some());

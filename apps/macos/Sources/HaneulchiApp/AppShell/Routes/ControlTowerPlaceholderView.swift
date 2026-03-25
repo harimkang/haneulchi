@@ -7,7 +7,7 @@ struct ControlTowerPlaceholderView: View {
     var body: some View {
         ControlTowerView(
             model: ControlTowerViewModel(snapshot: snapshot),
-            onAction: onAction
+            onAction: onAction,
         )
     }
 }

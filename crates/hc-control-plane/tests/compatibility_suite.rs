@@ -1,7 +1,7 @@
-/// Sprint 5 optional-tool compatibility smoke tests.
-///
-/// Tests skip cleanly when a binary is absent so that CI environments without
-/// every optional tool installed do not produce false failures.
+// Sprint 5 optional-tool compatibility smoke tests.
+//
+// Tests skip cleanly when a binary is absent so that CI environments without
+// every optional tool installed do not produce false failures.
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 

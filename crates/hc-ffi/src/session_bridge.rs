@@ -86,7 +86,8 @@ fn bytes_to_hcbytes(value: Result<Vec<u8>, String>) -> HcBytes {
 }
 
 pub fn terminal_session_spawn_json(config_json: &str) -> Result<String, String> {
-    let request: SpawnRequest = serde_json::from_str(config_json).map_err(|error| error.to_string())?;
+    let request: SpawnRequest =
+        serde_json::from_str(config_json).map_err(|error| error.to_string())?;
     let launch = TerminalLaunchConfig {
         program: request.program,
         args: request.args,
@@ -94,16 +95,22 @@ pub fn terminal_session_spawn_json(config_json: &str) -> Result<String, String> 
         environment: request.environment,
     };
     let geometry = TerminalGeometry::new(request.geometry.cols, request.geometry.rows);
-    let session_id = lock_runtime()
-        .and_then(|mut runtime| runtime.spawn(launch, geometry).map_err(|error| error.to_string()))?;
+    let session_id = lock_runtime().and_then(|mut runtime| {
+        runtime
+            .spawn(launch, geometry)
+            .map_err(|error| error.to_string())
+    })?;
 
     serde_json::to_string(&serde_json::json!({ "session_id": session_id }))
         .map_err(|error| error.to_string())
 }
 
 pub fn terminal_session_drain(session_id: &str) -> Result<Vec<u8>, String> {
-    lock_runtime()
-        .and_then(|mut runtime| runtime.drain_output(session_id).map_err(|error| error.to_string()))
+    lock_runtime().and_then(|mut runtime| {
+        runtime
+            .drain_output(session_id)
+            .map_err(|error| error.to_string())
+    })
 }
 
 pub fn terminal_session_write(session_id: &str, data: &[u8]) -> Result<(), String> {
@@ -131,15 +138,20 @@ pub fn terminal_session_terminate(session_id: &str) -> Result<(), String> {
 }
 
 pub fn terminal_session_snapshot_json(session_id: &str) -> Result<String, String> {
-    let snapshot = lock_runtime()
-        .and_then(|runtime| runtime.snapshot(session_id).map_err(|error| error.to_string()))?;
+    let snapshot = lock_runtime().and_then(|runtime| {
+        runtime
+            .snapshot(session_id)
+            .map_err(|error| error.to_string())
+    })?;
 
     serde_json::to_string(&snapshot).map_err(|error| error.to_string())
 }
 
 #[unsafe(no_mangle)]
 pub extern "C" fn hc_terminal_session_spawn_json(config_json: *const c_char) -> HcString {
-    string_to_hcstring(read_c_string(config_json).and_then(|text| terminal_session_spawn_json(&text)))
+    string_to_hcstring(
+        read_c_string(config_json).and_then(|text| terminal_session_spawn_json(&text)),
+    )
 }
 
 #[unsafe(no_mangle)]
@@ -148,7 +160,11 @@ pub extern "C" fn hc_terminal_session_drain(session_id: *const c_char) -> HcByte
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn hc_terminal_session_write(
+/// # Safety
+///
+/// `session_id` must point to a valid NUL-terminated C string, and `(ptr, len)`
+/// must describe a readable buffer for the duration of this call.
+pub unsafe extern "C" fn hc_terminal_session_write(
     session_id: *const c_char,
     ptr: *const u8,
     len: usize,
@@ -158,6 +174,7 @@ pub extern "C" fn hc_terminal_session_write(
     }
 
     let result = read_c_string(session_id).and_then(|text| {
+        // SAFETY: the FFI caller owns the `(ptr, len)` buffer and we reject null.
         let data = unsafe { std::slice::from_raw_parts(ptr, len) };
         terminal_session_write(&text, data)
     });
@@ -186,5 +203,7 @@ pub extern "C" fn hc_terminal_session_terminate(session_id: *const c_char) -> i3
 
 #[unsafe(no_mangle)]
 pub extern "C" fn hc_terminal_session_snapshot_json(session_id: *const c_char) -> HcString {
-    string_to_hcstring(read_c_string(session_id).and_then(|text| terminal_session_snapshot_json(&text)))
+    string_to_hcstring(
+        read_c_string(session_id).and_then(|text| terminal_session_snapshot_json(&text)),
+    )
 }

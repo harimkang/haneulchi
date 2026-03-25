@@ -47,7 +47,7 @@ struct TopAppBarView: View {
             Rectangle()
                 .frame(height: 1)
                 .foregroundColor(HaneulchiChrome.Stroke.ghost),
-            alignment: .bottom
+            alignment: .bottom,
         )
     }
 

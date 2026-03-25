@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("restore store round-trips a persisted terminal restore bundle")
 func restoreStoreRoundTripsBundle() throws {
@@ -26,7 +26,7 @@ func fileBackedRestoreStoreRoundTripsBundles() throws {
 }
 
 @Test("restore store round-trips multiple bundles through save and load")
-func testRestoreStoreRoundTrips() throws {
+func restoreStoreRoundTrips() throws {
     let store = TerminalSessionRestoreStore.inMemory
 
     // Initially empty

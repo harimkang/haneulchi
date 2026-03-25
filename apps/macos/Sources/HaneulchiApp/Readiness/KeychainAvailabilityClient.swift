@@ -16,7 +16,8 @@ struct KeychainAvailabilityClient: Sendable {
                 kSecReturnAttributes as String: false,
             ]
             let status = SecItemCopyMatching(query as CFDictionary, nil)
-            return status == errSecSuccess || status == errSecItemNotFound || status == errSecInteractionNotAllowed
-        }
+            return status == errSecSuccess || status == errSecItemNotFound || status ==
+                errSecInteractionNotAllowed
+        },
     )
 }

@@ -34,7 +34,7 @@ struct TaskDrawerModel: Equatable, Sendable {
         from snapshot: AppShellSnapshot,
         workflowStatus: WorkflowStatusPayload?,
         timeline: [TaskTimelineEntry] = [],
-        targetTaskID: String? = nil
+        targetTaskID: String? = nil,
     ) -> Self? {
         let focusedSession = targetTaskID.flatMap { taskID in
             snapshot.sessions.first(where: { $0.taskID == taskID })
@@ -62,7 +62,7 @@ struct TaskDrawerModel: Equatable, Sendable {
             blockerReason: blockerReason(
                 automationMode: session.automationMode,
                 claimState: session.claimState,
-                workflowStatus: workflowStatus
+                workflowStatus: workflowStatus,
             ),
             taskID: taskID,
             sessionID: session.sessionID,
@@ -81,14 +81,14 @@ struct TaskDrawerModel: Equatable, Sendable {
             renderedPromptPath: workflowStatus?.lastBootstrap?.renderedPromptPath,
             hookPhaseResults: workflowStatus?.lastBootstrap?.hookPhaseResults ?? [],
             timeline: timeline,
-            primaryActionTitle: "Detach Session"
+            primaryActionTitle: "Detach Session",
         )
     }
 
     private static func blockerReason(
         automationMode: TaskBoardAutomationModePayload?,
         claimState: ClaimState,
-        workflowStatus: WorkflowStatusPayload?
+        workflowStatus: WorkflowStatusPayload?,
     ) -> String? {
         if let automationMode, automationMode == .manual {
             return "manual_mode"
@@ -98,7 +98,8 @@ struct TaskDrawerModel: Equatable, Sendable {
         }
         if let allowedAgents = workflowStatus?.workflow?.allowedAgents,
            !allowedAgents.isEmpty,
-           !allowedAgents.contains("codex") {
+           !allowedAgents.contains("codex")
+        {
             return "task_not_eligible_for_dispatch"
         }
         if claimState == .claimed {

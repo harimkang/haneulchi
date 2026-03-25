@@ -11,7 +11,9 @@ struct SessionStackView: View {
         let isFocused: Bool
         let showsManualContinueCTA: Bool
 
-        var id: String { sessionID }
+        var id: String {
+            sessionID
+        }
     }
 
     let rows: [Row]
@@ -31,7 +33,6 @@ struct SessionStackView: View {
         .background(HaneulchiChrome.Surface.recess)
     }
 
-    @ViewBuilder
     private func sessionRow(_ row: Row) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
@@ -57,7 +58,7 @@ struct SessionStackView: View {
                                 .foregroundStyle(
                                     row.isFocused
                                         ? HaneulchiChrome.Label.primary
-                                        : HaneulchiChrome.Label.secondary
+                                        : HaneulchiChrome.Label.secondary,
                                 )
                                 .lineLimit(row.isFocused ? 2 : 1)
 
@@ -68,7 +69,7 @@ struct SessionStackView: View {
                             if let signal = row.signal {
                                 HaneulchiStatusBadge(
                                     state: signal.badgeState,
-                                    label: signal.label
+                                    label: signal.label,
                                 )
                             }
 
@@ -104,13 +105,13 @@ struct SessionStackView: View {
                 .background(
                     row.isFocused
                         ? HaneulchiChrome.Surface.raised
-                        : HaneulchiChrome.Surface.recess
+                        : HaneulchiChrome.Surface.recess,
                 )
             }
             .buttonStyle(.plain)
             .paneAttentionDecoration(
                 hasAttention: row.signal?.tone == .strong,
-                hasUnread: row.unreadCount > 0
+                hasUnread: row.unreadCount > 0,
             )
 
             if row.showsManualContinueCTA {
@@ -127,7 +128,8 @@ struct SessionStackView: View {
 
     nonisolated static func rows(from snapshot: AppShellSnapshot) -> [Row] {
         snapshot.sessions.map { session in
-            let isFocused = session.focusState == .focused || snapshot.app.focusedSessionID == session.sessionID
+            let isFocused = session.focusState == .focused || snapshot.app
+                .focusedSessionID == session.sessionID
             return Row(
                 sessionID: session.sessionID,
                 title: session.title,
@@ -136,7 +138,8 @@ struct SessionStackView: View {
                 unreadCount: session.unreadCount,
                 signal: SessionSignalPresentation.from(session: session, isFocused: isFocused),
                 isFocused: isFocused,
-                showsManualContinueCTA: session.canTakeover || session.manualControlState == .takeover
+                showsManualContinueCTA: session.canTakeover || session
+                    .manualControlState == .takeover,
             )
         }
     }

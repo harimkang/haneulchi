@@ -31,7 +31,7 @@ struct PresetRegistry: Equatable, Sendable {
             defaultArgs: [String],
             capabilityFlags: [String],
             requiresShellIntegration: Bool,
-            installState: InstallState
+            installState: InstallState,
         ) {
             self.id = id
             self.title = title
@@ -49,7 +49,10 @@ struct PresetRegistry: Equatable, Sendable {
             binary = try container.decode(String.self, forKey: .binary)
             defaultArgs = try container.decode([String].self, forKey: .defaultArgs)
             capabilityFlags = try container.decode([String].self, forKey: .capabilityFlags)
-            requiresShellIntegration = try container.decode(Bool.self, forKey: .requiresShellIntegration)
+            requiresShellIntegration = try container.decode(
+                Bool.self,
+                forKey: .requiresShellIntegration,
+            )
             installState = .missing
         }
     }
@@ -58,10 +61,13 @@ struct PresetRegistry: Equatable, Sendable {
 
     static func loadDefault(
         commandResolver: @escaping (String) -> Bool = { command in
-            ProcessInfo.processInfo.environment["PATH"]?.split(separator: ":").contains(where: { path in
-                FileManager.default.isExecutableFile(atPath: URL(fileURLWithPath: String(path)).appendingPathComponent(command).path)
-            }) == true
-        }
+            ProcessInfo.processInfo.environment["PATH"]?.split(separator: ":")
+                .contains(where: { path in
+                    FileManager.default
+                        .isExecutableFile(atPath: URL(fileURLWithPath: String(path))
+                            .appendingPathComponent(command).path)
+                }) == true
+        },
     ) throws -> Self {
         let data = try Data(contentsOf: defaultPresetURL)
         let rawPresets = try JSONDecoder().decode([Preset].self, from: data)
@@ -74,9 +80,9 @@ struct PresetRegistry: Equatable, Sendable {
                     defaultArgs: preset.defaultArgs,
                     capabilityFlags: preset.capabilityFlags,
                     requiresShellIntegration: preset.requiresShellIntegration,
-                    installState: commandResolver(preset.binary) ? .installed : .missing
+                    installState: commandResolver(preset.binary) ? .installed : .missing,
                 )
-            }
+            },
         )
     }
 
@@ -89,7 +95,7 @@ struct PresetRegistry: Equatable, Sendable {
 
     private static var defaultPresetURL: URL {
         var url = URL(fileURLWithPath: #filePath)
-        for _ in 0..<6 {
+        for _ in 0 ..< 6 {
             url.deleteLastPathComponent()
         }
         return url

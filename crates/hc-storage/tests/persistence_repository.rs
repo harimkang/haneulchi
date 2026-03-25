@@ -1,4 +1,4 @@
-use hc_storage::{AppStateRow, LayoutRow, SessionMetadataRow, SqliteStore};
+use hc_storage::{LayoutRow, SessionMetadataRow, SqliteStore};
 
 #[test]
 fn app_state_initially_absent() {
@@ -120,8 +120,6 @@ fn layout_load_latest_absent_when_none() {
     let store = SqliteStore::in_memory().expect("sqlite store");
     let repo = store.persistence();
 
-    let loaded = repo
-        .load_latest_layout("proj_nonexistent")
-        .expect("load");
+    let loaded = repo.load_latest_layout("proj_nonexistent").expect("load");
     assert!(loaded.is_none());
 }

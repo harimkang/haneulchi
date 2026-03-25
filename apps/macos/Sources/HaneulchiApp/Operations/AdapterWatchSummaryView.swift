@@ -8,7 +8,7 @@ struct AdapterWatchSummaryView: View {
             Text("Adapter Watch")
                 .font(HaneulchiTypography.heading(18))
 
-            Text([session.providerID, session.modelID].compactMap { $0 }.joined(separator: " · "))
+            Text([session.providerID, session.modelID].compactMap(\.self).joined(separator: " · "))
                 .font(HaneulchiTypography.caption)
                 .foregroundStyle(HaneulchiChrome.Colors.mutedText)
 

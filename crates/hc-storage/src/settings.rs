@@ -32,9 +32,7 @@ impl<'connection> SettingsRepository<'connection> {
         Self { connection }
     }
 
-    pub fn get_terminal_settings(
-        &self,
-    ) -> Result<Option<TerminalSettingsRow>, StorageError> {
+    pub fn get_terminal_settings(&self) -> Result<Option<TerminalSettingsRow>, StorageError> {
         let mut statement = self.connection.prepare(
             r#"
             SELECT shell, default_cols, default_rows, scrollback_lines,
@@ -60,10 +58,7 @@ impl<'connection> SettingsRepository<'connection> {
             .map_err(Into::into)
     }
 
-    pub fn upsert_terminal_settings(
-        &self,
-        row: TerminalSettingsRow,
-    ) -> Result<(), StorageError> {
+    pub fn upsert_terminal_settings(&self, row: TerminalSettingsRow) -> Result<(), StorageError> {
         self.connection.execute(
             r#"
             INSERT INTO terminal_settings (
@@ -132,17 +127,22 @@ impl<'connection> SettingsRepository<'connection> {
                 keychain_account = excluded.keychain_account,
                 scope = excluded.scope
             "#,
-            params![row.id, row.label, row.env_var_name, row.keychain_service, row.keychain_account, row.scope],
+            params![
+                row.id,
+                row.label,
+                row.env_var_name,
+                row.keychain_service,
+                row.keychain_account,
+                row.scope
+            ],
         )?;
 
         Ok(())
     }
 
     pub fn delete_secret_ref(&self, id: &str) -> Result<(), StorageError> {
-        self.connection.execute(
-            "DELETE FROM secret_refs WHERE id = ?1",
-            params![id],
-        )?;
+        self.connection
+            .execute("DELETE FROM secret_refs WHERE id = ?1", params![id])?;
 
         Ok(())
     }

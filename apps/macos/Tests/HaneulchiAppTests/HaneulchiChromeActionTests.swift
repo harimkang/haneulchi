@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("chrome actions expose consistent iconography and accessibility labels")
 func chromeActionsExposeStableIconsAndLabels() {

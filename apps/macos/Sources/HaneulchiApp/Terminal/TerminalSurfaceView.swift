@@ -13,13 +13,13 @@ struct TerminalSurfaceConfiguration: Equatable, Identifiable, Sendable {
     static let projectFocusDemo = Self(
         id: "project-focus-demo",
         title: "Hosted Terminal",
-        source: .fixture("hello-world.ansi")
+        source: .fixture("hello-world.ansi"),
     )
 
     static let projectFocusLiveDemo = Self(
         id: "project-focus-live-demo",
         title: "Hosted Terminal",
-        source: .live(.demo)
+        source: .live(.demo),
     )
 
     static func liveSurface(id: String, bundle: TerminalRestoreBundle) -> Self {
@@ -66,21 +66,22 @@ struct TerminalSurfaceView: View {
     init(
         configuration: TerminalSurfaceConfiguration,
         controller: TerminalTranscriptController = TerminalTranscriptController(),
-        liveController: @autoclosure @escaping () -> TerminalSessionController = TerminalSessionController(),
+        liveController: @autoclosure @escaping ()
+            -> TerminalSessionController = TerminalSessionController(),
         restoreStore: TerminalSessionRestoreStore = .liveDefault,
         paneID: String? = nil,
         deckCoordinator: TerminalDeckCoordinator? = nil,
         isFocused: Bool = false,
-        onSessionReady: ((String) -> Void)? = nil
+        onSessionReady: ((String) -> Void)? = nil,
     ) {
         self.configuration = configuration
-        self.liveBundle = configuration.liveBundle
+        liveBundle = configuration.liveBundle
         self.restoreStore = restoreStore
         self.paneID = paneID
         self.deckCoordinator = deckCoordinator
         self.isFocused = isFocused
         self.onSessionReady = onSessionReady
-        self.state = if configuration.isLive {
+        state = if configuration.isLive {
             controller.bootstrapLive()
         } else {
             controller.bootstrap(fixtureName: configuration.fixtureName)
@@ -100,38 +101,38 @@ struct TerminalSurfaceView: View {
                     if let transcript = resolvedState.transcript {
                         TerminalRendererHost(
                             transcript: transcript,
-                            onHostHandleReady: registerHostHandle
+                            onHostHandleReady: registerHostHandle,
                         )
                     } else if liveBundle != nil, resolvedState.kind == .ready {
                         TerminalRendererHost.live(
                             controller: liveController,
-                            onHostHandleReady: registerHostHandle
+                            onHostHandleReady: registerHostHandle,
                         )
-                            .task {
-                                guard let liveBundle, liveController.status == .idle else {
-                                    return
-                                }
+                        .task {
+                            guard let liveBundle, liveController.status == .idle else {
+                                return
+                            }
 
-                                do {
-                                    try await liveController.restore(liveBundle)
-                                } catch {
-                                    // The controller publishes an operator-visible failure state.
-                                }
+                            do {
+                                try await liveController.restore(liveBundle)
+                            } catch {
+                                // The controller publishes an operator-visible failure state.
                             }
-                            .onReceive(liveController.$restorePoint) { bundle in
-                                try? restoreStore.save([bundle])
+                        }
+                        .onReceive(liveController.$restorePoint) { bundle in
+                            try? restoreStore.save([bundle])
+                        }
+                        .onReceive(liveController.$sessionSnapshot) { snapshot in
+                            guard
+                                let snapshot,
+                                snapshot.running,
+                                reportedSessionID != snapshot.sessionID
+                            else {
+                                return
                             }
-                            .onReceive(liveController.$sessionSnapshot) { snapshot in
-                                guard
-                                    let snapshot,
-                                    snapshot.running,
-                                    reportedSessionID != snapshot.sessionID
-                                else {
-                                    return
-                                }
-                                reportedSessionID = snapshot.sessionID
-                                onSessionReady?(snapshot.sessionID)
-                            }
+                            reportedSessionID = snapshot.sessionID
+                            onSessionReady?(snapshot.sessionID)
+                        }
                     } else {
                         statusView(for: resolvedState)
                     }
@@ -141,7 +142,7 @@ struct TerminalSurfaceView: View {
             .frame(minHeight: 320)
             .overlay(
                 RoundedRectangle(cornerRadius: 14)
-                    .strokeBorder(borderColor(for: resolvedState), lineWidth: 1)
+                    .strokeBorder(borderColor(for: resolvedState), lineWidth: 1),
             )
         }
         .onChange(of: isFocused) { _, focused in
@@ -167,26 +168,26 @@ struct TerminalSurfaceView: View {
     private func statusTitle(for state: TerminalSurfaceState) -> String {
         switch state.kind {
         case .ready:
-            return configuration.title
+            configuration.title
         case .empty:
-            return "Empty Surface"
+            "Empty Surface"
         case .degraded:
-            return "Degraded Surface"
+            "Degraded Surface"
         case .failed:
-            return "Failed Surface"
+            "Failed Surface"
         }
     }
 
     private func borderColor(for state: TerminalSurfaceState) -> Color {
         switch state.kind {
         case .ready:
-            return .secondary.opacity(0.25)
+            .secondary.opacity(0.25)
         case .empty:
-            return .secondary.opacity(0.25)
+            .secondary.opacity(0.25)
         case .degraded:
-            return .orange.opacity(0.6)
+            .orange.opacity(0.6)
         case .failed:
-            return .red.opacity(0.65)
+            .red.opacity(0.65)
         }
     }
 

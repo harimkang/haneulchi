@@ -7,13 +7,18 @@ use hc_storage::{NewReviewItem, NewTaskRecord, SqliteStore};
 use crate::reviews::ReviewQueueError;
 use crate::tasks::TaskBoardError;
 
-pub(crate) fn lock_shared_store() -> Result<std::sync::MutexGuard<'static, SqliteStore>, TaskBoardError> {
-    shared_store().lock().map_err(|_| TaskBoardError::LockPoisoned)
+pub(crate) fn lock_shared_store()
+-> Result<std::sync::MutexGuard<'static, SqliteStore>, TaskBoardError> {
+    shared_store()
+        .lock()
+        .map_err(|_| TaskBoardError::LockPoisoned)
 }
 
-pub(crate) fn lock_shared_store_for_reviews(
-) -> Result<std::sync::MutexGuard<'static, SqliteStore>, ReviewQueueError> {
-    shared_store().lock().map_err(|_| ReviewQueueError::LockPoisoned)
+pub(crate) fn lock_shared_store_for_reviews()
+-> Result<std::sync::MutexGuard<'static, SqliteStore>, ReviewQueueError> {
+    shared_store()
+        .lock()
+        .map_err(|_| ReviewQueueError::LockPoisoned)
 }
 
 pub(crate) fn reset_shared_store() {
@@ -31,7 +36,9 @@ fn build_default_store() -> Result<SqliteStore, hc_storage::StorageError> {
     let path = persistent_store_path();
     if let Some(parent) = path.parent() {
         std::fs::create_dir_all(parent).map_err(|error| {
-            hc_storage::StorageError::Sqlite(rusqlite::Error::ToSqlConversionFailure(Box::new(error)))
+            hc_storage::StorageError::Sqlite(rusqlite::Error::ToSqlConversionFailure(Box::new(
+                error,
+            )))
         })?;
     }
     SqliteStore::open(path)
@@ -77,9 +84,12 @@ fn build_seeded_store() -> Result<SqliteStore, hc_storage::StorageError> {
         created_at: "2026-03-23T02:00:00Z".to_string(),
         updated_at: "2026-03-23T02:00:00Z".to_string(),
     })?;
-    store
-        .tasks()
-        .move_to("task_ready", TaskColumn::Ready, "seed_shared", "2026-03-23T02:05:00Z")?;
+    store.tasks().move_to(
+        "task_ready",
+        TaskColumn::Ready,
+        "seed_shared",
+        "2026-03-23T02:05:00Z",
+    )?;
     store.tasks().create(NewTaskRecord {
         id: "task_running".to_string(),
         project_id: "proj_alpha".to_string(),
@@ -91,9 +101,12 @@ fn build_seeded_store() -> Result<SqliteStore, hc_storage::StorageError> {
         created_at: "2026-03-23T02:00:00Z".to_string(),
         updated_at: "2026-03-23T02:00:00Z".to_string(),
     })?;
-    store
-        .tasks()
-        .move_to("task_running", TaskColumn::Running, "seed_shared", "2026-03-23T02:05:00Z")?;
+    store.tasks().move_to(
+        "task_running",
+        TaskColumn::Running,
+        "seed_shared",
+        "2026-03-23T02:05:00Z",
+    )?;
 
     store.tasks().create(NewTaskRecord {
         id: "task_review".to_string(),
@@ -106,9 +119,12 @@ fn build_seeded_store() -> Result<SqliteStore, hc_storage::StorageError> {
         created_at: "2026-03-23T09:00:00Z".to_string(),
         updated_at: "2026-03-23T09:00:00Z".to_string(),
     })?;
-    store
-        .tasks()
-        .move_to("task_review", TaskColumn::Review, "seed_shared", "2026-03-23T09:01:00Z")?;
+    store.tasks().move_to(
+        "task_review",
+        TaskColumn::Review,
+        "seed_shared",
+        "2026-03-23T09:01:00Z",
+    )?;
     store.reviews().create_pending(NewReviewItem {
         id: "review_01".to_string(),
         task_id: "task_review".to_string(),
@@ -166,17 +182,20 @@ mod tests {
         let db_path = std::env::temp_dir().join(format!("hc-shared-store-{unique}.sqlite"));
 
         let store = SqliteStore::open(&db_path).expect("file store");
-        store.tasks().create(NewTaskRecord {
-            id: "task_persisted".to_string(),
-            project_id: "proj_demo".to_string(),
-            display_key: "TASK-PERSISTED".to_string(),
-            title: "Persisted task".to_string(),
-            description: "persist me".to_string(),
-            priority: "p1".to_string(),
-            automation_mode: TaskAutomationMode::Manual,
-            created_at: "2026-03-23T10:00:00Z".to_string(),
-            updated_at: "2026-03-23T10:00:00Z".to_string(),
-        }).expect("task create");
+        store
+            .tasks()
+            .create(NewTaskRecord {
+                id: "task_persisted".to_string(),
+                project_id: "proj_demo".to_string(),
+                display_key: "TASK-PERSISTED".to_string(),
+                title: "Persisted task".to_string(),
+                description: "persist me".to_string(),
+                priority: "p1".to_string(),
+                automation_mode: TaskAutomationMode::Manual,
+                created_at: "2026-03-23T10:00:00Z".to_string(),
+                updated_at: "2026-03-23T10:00:00Z".to_string(),
+            })
+            .expect("task create");
         drop(store);
 
         let reopened = SqliteStore::open(&db_path).expect("reopen store");

@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("quick dispatch composer groups adapter watch targets and disables send for stale sessions")
 func quickDispatchComposerViewModelBuildsTargetsAndEnablement() {
@@ -27,7 +27,7 @@ func quickDispatchComposerViewModelBuildsTargetsAndEnablement() {
                 adapterKind: "claude_code",
                 canFocus: true,
                 canTakeover: true,
-                canReleaseTakeover: false
+                canReleaseTakeover: false,
             ),
             .init(
                 sessionID: "ses_stale",
@@ -47,12 +47,12 @@ func quickDispatchComposerViewModelBuildsTargetsAndEnablement() {
                 adapterKind: "claude_code",
                 canFocus: true,
                 canTakeover: false,
-                canReleaseTakeover: false
-            )
+                canReleaseTakeover: false,
+            ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     let viewModel = QuickDispatchComposerViewModel(snapshot: snapshot, origin: .controlTower)

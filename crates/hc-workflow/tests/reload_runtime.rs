@@ -86,7 +86,10 @@ fn invalid_reload_keeps_last_known_good() {
     assert_eq!(error.code(), WorkflowErrorCode::FrontMatterParse);
     assert_eq!(runtime.state(), WorkflowState::InvalidKeptLastGood);
     assert_eq!(
-        runtime.current().expect("last known good kept").contract_hash,
+        runtime
+            .current()
+            .expect("last known good kept")
+            .contract_hash,
         initial_hash
     );
 }
@@ -198,7 +201,9 @@ fn runtime_tracks_last_bootstrap_summary_without_changing_launch_hash_semantics(
         warning_codes: Vec::new(),
         claim_released: false,
         launch_exit_code: Some(0),
-        last_known_good_hash: runtime.prepare_launch().map(|binding| binding.contract_hash),
+        last_known_good_hash: runtime
+            .prepare_launch()
+            .map(|binding| binding.contract_hash),
     });
 
     assert_eq!(

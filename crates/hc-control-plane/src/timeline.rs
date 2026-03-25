@@ -19,6 +19,7 @@ pub fn project_task_timeline(
     let mut timeline = Vec::new();
 
     for event in events {
+        let event_kind = event.kind.as_str();
         let broken_link = event
             .review_item_id
             .as_deref()
@@ -35,10 +36,14 @@ pub fn project_task_timeline(
             kind: if warning_reason.is_some() {
                 "warning".to_string()
             } else {
-                event.kind.as_str().to_string()
+                event_kind.to_string()
             },
             actor: event.actor,
-            summary: summarize_event(&event.kind.as_str().to_string(), event.reason_code.as_deref(), event.payload_json.as_deref()),
+            summary: summarize_event(
+                event_kind,
+                event.reason_code.as_deref(),
+                event.payload_json.as_deref(),
+            ),
             warning_reason,
             created_at: event.created_at,
         });
@@ -49,7 +54,8 @@ pub fn project_task_timeline(
 
 fn review_item_exists(store: &SqliteStore, review_id: &str) -> bool {
     let connection = store.connection();
-    let mut statement = match connection.prepare("SELECT 1 FROM review_items WHERE id = ?1 LIMIT 1") {
+    let mut statement = match connection.prepare("SELECT 1 FROM review_items WHERE id = ?1 LIMIT 1")
+    {
         Ok(statement) => statement,
         Err(_) => return false,
     };

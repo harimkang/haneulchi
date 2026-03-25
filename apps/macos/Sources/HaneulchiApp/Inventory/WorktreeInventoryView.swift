@@ -43,8 +43,16 @@ struct WorktreeInventoryView: View {
         HStack(spacing: 12) {
             SummaryCardView(label: "Total", count: viewModel.summaryCard.total, color: .primary)
             SummaryCardView(label: "In Use", count: viewModel.summaryCard.inUse, color: .blue)
-            SummaryCardView(label: "Recoverable", count: viewModel.summaryCard.recoverable, color: .orange)
-            SummaryCardView(label: "Safe to Delete", count: viewModel.summaryCard.safeToDelete, color: .green)
+            SummaryCardView(
+                label: "Recoverable",
+                count: viewModel.summaryCard.recoverable,
+                color: .orange,
+            )
+            SummaryCardView(
+                label: "Safe to Delete",
+                count: viewModel.summaryCard.safeToDelete,
+                color: .green,
+            )
             SummaryCardView(label: "Stale", count: viewModel.summaryCard.stale, color: .secondary)
         }
     }
@@ -56,13 +64,25 @@ struct WorktreeInventoryView: View {
                 .frame(maxWidth: .infinity)
         } else {
             if !viewModel.inUseRows.isEmpty {
-                InventoryGroupSection(title: "In Use", rows: viewModel.inUseRows, onAction: onAction)
+                InventoryGroupSection(
+                    title: "In Use",
+                    rows: viewModel.inUseRows,
+                    onAction: onAction,
+                )
             }
             if !viewModel.recoverableRows.isEmpty {
-                InventoryGroupSection(title: "Recoverable", rows: viewModel.recoverableRows, onAction: onAction)
+                InventoryGroupSection(
+                    title: "Recoverable",
+                    rows: viewModel.recoverableRows,
+                    onAction: onAction,
+                )
             }
             if !viewModel.safeToDeleteRows.isEmpty {
-                InventoryGroupSection(title: "Safe to Delete", rows: viewModel.safeToDeleteRows, onAction: onAction)
+                InventoryGroupSection(
+                    title: "Safe to Delete",
+                    rows: viewModel.safeToDeleteRows,
+                    onAction: onAction,
+                )
             }
             if !viewModel.staleRows.isEmpty {
                 InventoryGroupSection(title: "Stale", rows: viewModel.staleRows, onAction: onAction)

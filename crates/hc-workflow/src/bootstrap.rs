@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use serde::{Deserialize, Serialize};
@@ -53,7 +53,12 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
     fs::create_dir_all(&workspace_root).map_err(|error| error.to_string())?;
     phases.push("workspace".to_string());
 
-    let base_root = request.workflow.effective_config.workspace.base_root.clone();
+    let base_root = request
+        .workflow
+        .effective_config
+        .workspace
+        .base_root
+        .clone();
     let session_cwd = if base_root == "." {
         workspace_root.clone()
     } else {
@@ -190,8 +195,8 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
 fn run_phase_if_present(
     request: &BootstrapRequest,
     phase: HookPhase,
-    workspace_root: &PathBuf,
-    session_cwd: &PathBuf,
+    workspace_root: &Path,
+    session_cwd: &Path,
     env: &BTreeMap<String, String>,
     results: &mut Vec<HookPhaseResult>,
 ) -> Option<HookPhaseResult> {
@@ -226,9 +231,9 @@ fn run_phase_if_present(
 }
 
 fn mirror_hook_path(
-    repo_root: &PathBuf,
-    workspace_root: &PathBuf,
-    source_path: &PathBuf,
+    repo_root: &Path,
+    workspace_root: &Path,
+    source_path: &Path,
 ) -> Result<PathBuf, String> {
     let relative_path = source_path
         .strip_prefix(repo_root)
@@ -254,11 +259,7 @@ fn mirror_hook_path(
     Ok(mirrored_path)
 }
 
-fn render_prompt(
-    request: &BootstrapRequest,
-    workspace_root: &PathBuf,
-    session_cwd: &PathBuf,
-) -> String {
+fn render_prompt(request: &BootstrapRequest, workspace_root: &Path, session_cwd: &Path) -> String {
     let workflow_name = request
         .workflow
         .effective_config
@@ -272,7 +273,10 @@ fn render_prompt(
         .replace("{{task.title}}", &request.task_title)
         .replace("{{task.id}}", &request.task_id)
         .replace("{{project.name}}", &request.project_name)
-        .replace("{{project.repo_root}}", &request.repo_root.display().to_string())
+        .replace(
+            "{{project.repo_root}}",
+            &request.repo_root.display().to_string(),
+        )
         .replace("{{workflow.name}}", &workflow_name)
         .replace(
             "{{session.workspace_root}}",
@@ -283,12 +287,15 @@ fn render_prompt(
 
 fn bootstrap_env(
     request: &BootstrapRequest,
-    workspace_root: &PathBuf,
-    session_cwd: &PathBuf,
+    workspace_root: &Path,
+    session_cwd: &Path,
 ) -> BTreeMap<String, String> {
     BTreeMap::from([
         ("HANEULCHI_TASK_ID".to_string(), request.task_id.clone()),
-        ("HANEULCHI_TASK_TITLE".to_string(), request.task_title.clone()),
+        (
+            "HANEULCHI_TASK_TITLE".to_string(),
+            request.task_title.clone(),
+        ),
         (
             "HANEULCHI_WORKSPACE_ROOT".to_string(),
             workspace_root.display().to_string(),
@@ -303,7 +310,12 @@ fn bootstrap_env(
         ),
         (
             "HANEULCHI_BASE_ROOT".to_string(),
-            request.workflow.effective_config.workspace.base_root.clone(),
+            request
+                .workflow
+                .effective_config
+                .workspace
+                .base_root
+                .clone(),
         ),
     ])
 }

@@ -15,15 +15,25 @@ fn degraded_issues_json_returns_valid_json() {
     }"#;
 
     let result = degraded_issues_json(context_json);
-    assert!(result.is_ok(), "degraded_issues_json should succeed: {:?}", result);
+    assert!(
+        result.is_ok(),
+        "degraded_issues_json should succeed: {:?}",
+        result
+    );
 
     let json = result.unwrap();
-    let value: Value = serde_json::from_str(&json).expect("degraded_issues_json must return valid JSON");
-    assert!(value.is_array(), "degraded_issues_json should return a JSON array");
+    let value: Value =
+        serde_json::from_str(&json).expect("degraded_issues_json must return valid JSON");
+    assert!(
+        value.is_array(),
+        "degraded_issues_json should return a JSON array"
+    );
 
     let issues = value.as_array().unwrap();
     assert!(
-        issues.iter().any(|issue| issue["issue_code"] == "crashed_restore"),
+        issues
+            .iter()
+            .any(|issue| issue["issue_code"] == "crashed_restore"),
         "expected crashed_restore issue in {:?}",
         issues
     );
@@ -43,9 +53,15 @@ fn recovery_action_json_returns_valid_action() {
 
     for code in known_codes {
         let result = recovery_action_for_issue_json(code);
-        assert!(result.is_ok(), "recovery_action_for_issue_json({code}) should succeed");
+        assert!(
+            result.is_ok(),
+            "recovery_action_for_issue_json({code}) should succeed"
+        );
         let action = result.unwrap();
-        assert!(!action.is_empty(), "action string should not be empty for code: {code}");
+        assert!(
+            !action.is_empty(),
+            "action string should not be empty for code: {code}"
+        );
     }
 
     // Unknown codes should still return a safe default.

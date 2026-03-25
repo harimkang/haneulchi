@@ -26,8 +26,11 @@ struct AttentionCenterView: View {
 
                 ForEach(groupedItems, id: \.group.rawValue) { section in
                     VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
-                        HaneulchiSectionHeader(title: section.group.displayTitle, count: section.items.count)
-                            .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
+                        HaneulchiSectionHeader(
+                            title: section.group.displayTitle,
+                            count: section.items.count,
+                        )
+                        .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
 
                         ForEach(section.items) { item in
                             attentionItemRow(item: item, group: section.group)
@@ -41,10 +44,9 @@ struct AttentionCenterView: View {
         .background(HaneulchiChrome.Surface.foundation)
     }
 
-    @ViewBuilder
     private func attentionItemRow(
         item: AttentionCenterViewModel.Item,
-        group: AttentionCenterPresentation.Group
+        group: AttentionCenterPresentation.Group,
     ) -> some View {
         HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.sm) {
             // State chip
@@ -89,6 +91,9 @@ struct AttentionCenterView: View {
         }
         .padding(HaneulchiMetrics.Padding.card)
         .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(
+            cornerRadius: HaneulchiMetrics.Radius.large,
+            style: .continuous,
+        ))
     }
 }

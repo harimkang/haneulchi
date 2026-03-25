@@ -35,7 +35,7 @@ struct BottomStatusStripView: View {
             Rectangle()
                 .frame(height: 1)
                 .foregroundColor(HaneulchiChrome.Stroke.ghost),
-            alignment: .top
+            alignment: .top,
         )
     }
 }

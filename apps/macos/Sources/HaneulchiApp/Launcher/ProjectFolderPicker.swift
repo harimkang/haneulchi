@@ -12,6 +12,6 @@ struct ProjectFolderPicker {
             panel.allowsMultipleSelection = false
             panel.prompt = "Open Project"
             return panel.runModal() == .OK ? panel.url : nil
-        }
+        },
     )
 }

@@ -6,7 +6,7 @@ struct TaskBoardView: View {
 
     init(
         summary: String = "Task board projection is loaded from Rust-owned task data.",
-        viewModel: TaskBoardViewModel = TaskBoardViewModel()
+        viewModel: TaskBoardViewModel = TaskBoardViewModel(),
     ) {
         self.summary = summary
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -32,7 +32,10 @@ struct TaskBoardView: View {
                     .padding(HaneulchiMetrics.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(HaneulchiChrome.Surface.recess)
-                    .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium, style: .continuous))
+                    .clipShape(RoundedRectangle(
+                        cornerRadius: HaneulchiMetrics.Radius.medium,
+                        style: .continuous,
+                    ))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
@@ -60,7 +63,11 @@ struct TaskBoardView: View {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 filterButton(title: "All Projects", projectID: nil, taskCount: totalTaskCount)
                 ForEach(viewModel.projectOptions, id: \.projectID) { option in
-                    filterButton(title: option.title, projectID: option.projectID, taskCount: option.taskCount)
+                    filterButton(
+                        title: option.title,
+                        projectID: option.projectID,
+                        taskCount: option.taskCount,
+                    )
                 }
             }
         }
@@ -79,13 +86,16 @@ struct TaskBoardView: View {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 Text(title)
                     .font(HaneulchiTypography.systemLabel)
-                    .foregroundStyle(isSelected ? HaneulchiChrome.Label.primary : HaneulchiChrome.Label.secondary)
+                    .foregroundStyle(isSelected ? HaneulchiChrome.Label.primary : HaneulchiChrome
+                        .Label.secondary)
                 Text("\(taskCount)")
                     .font(HaneulchiTypography.compactMeta)
-                    .foregroundStyle(isSelected ? HaneulchiChrome.Surface.foundation : HaneulchiChrome.Label.muted)
+                    .foregroundStyle(isSelected ? HaneulchiChrome.Surface
+                        .foundation : HaneulchiChrome.Label.muted)
                     .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
                     .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-                    .background(isSelected ? HaneulchiChrome.Surface.base : HaneulchiChrome.Surface.raised)
+                    .background(isSelected ? HaneulchiChrome.Surface.base : HaneulchiChrome.Surface
+                        .raised)
                     .clipShape(Capsule())
             }
             .padding(.horizontal, HaneulchiMetrics.Spacing.md)
@@ -104,11 +114,13 @@ struct TaskBoardView: View {
                 Text(column.title.uppercased())
                     .font(HaneulchiTypography.systemLabel)
                     .tracking(HaneulchiTypography.Tracking.labelWide)
-                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label.muted)
+                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label
+                        .muted)
                 Spacer()
                 Text("\(column.taskCount)")
                     .font(HaneulchiTypography.compactMeta)
-                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label.muted)
+                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label
+                        .muted)
             }
 
             if column.tasks.isEmpty {
@@ -129,7 +141,10 @@ struct TaskBoardView: View {
         .frame(minWidth: HaneulchiMetrics.Panel.boardColumnMin, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(columnBackground(for: column.column))
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(
+            cornerRadius: HaneulchiMetrics.Radius.large,
+            style: .continuous,
+        ))
         .dropDestination(for: String.self) { items, _ in
             guard let taskID = items.first else {
                 return false
@@ -152,12 +167,12 @@ struct TaskBoardView: View {
         case .review:
             HaneulchiChrome.Surface.base
                 .overlay(
-                    HaneulchiChrome.Gradient.primaryEnd.opacity(0.06)
+                    HaneulchiChrome.Gradient.primaryEnd.opacity(0.06),
                 )
         case .blocked:
             HaneulchiChrome.Surface.base
                 .overlay(
-                    HaneulchiChrome.State.errorSolid.opacity(0.08)
+                    HaneulchiChrome.State.errorSolid.opacity(0.08),
                 )
         case .inbox, .ready, .done:
             HaneulchiChrome.Surface.recess

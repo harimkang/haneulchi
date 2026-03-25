@@ -93,7 +93,7 @@ struct InventoryRowPayload: Codable, Sendable {
         isPinned: Bool,
         isDegraded: Bool,
         sizeBytes: Int?,
-        lastAccessedAt: String?
+        lastAccessedAt: String?,
     ) {
         self.worktreeId = worktreeId
         self.taskId = taskId

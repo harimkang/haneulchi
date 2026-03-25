@@ -1,11 +1,11 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 private func makePanelSnapshot() -> AppShellSnapshot {
     AppShellSnapshot(
         meta: .init(snapshotRev: 7, runtimeRev: 4, projectionRev: 9, snapshotAt: .now),
         ops: .init(
-            cadenceMs: 15_000,
+            cadenceMs: 15000,
             lastTickAt: "2026-03-23T12:00:00Z",
             lastReconcileAt: "2026-03-23T12:00:30Z",
             runningSlots: 2,
@@ -14,7 +14,7 @@ private func makePanelSnapshot() -> AppShellSnapshot {
             queuedClaimCount: 1,
             workflowHealth: .invalidKeptLastGood,
             trackerHealth: "degraded",
-            paused: false
+            paused: false,
         ),
         app: .init(activeRoute: .settings, focusedSessionID: nil, degradedFlags: [.degraded]),
         projects: [],
@@ -27,18 +27,20 @@ private func makePanelSnapshot() -> AppShellSnapshot {
             path: "/tmp/demo/WORKFLOW.md",
             lastGoodHash: "sha256:abc123",
             lastReloadAt: "2026-03-23T12:00:00Z",
-            lastError: "front matter parse error"
+            lastError: "front matter parse error",
         ),
-        tracker: .init(state: "local_only", lastSyncAt: nil, health: "degraded")
+        tracker: .init(state: "local_only", lastSyncAt: nil, health: "degraded"),
     )
 }
 
-@Test("automation control panel view model groups orchestrator, workflow, API, CLI, tracker, and action bar state")
+@Test(
+    "automation control panel view model groups orchestrator, workflow, API, CLI, tracker, and action bar state",
+)
 func automationControlPanelViewModelUsesLiveSnapshotDiagnostics() {
     let snapshot = makePanelSnapshot()
     let model = AutomationControlPanelViewModel(
         snapshot: snapshot,
-        runtimeInfo: .init(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        runtimeInfo: .init(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false),
     )
 
     #expect(model.orchestratorSummary.contains("2/4"))

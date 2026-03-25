@@ -14,7 +14,7 @@ final class CommandPaletteViewModel: ObservableObject {
 
     init(catalog: CommandPaletteCatalog) {
         self.catalog = catalog
-        self.selectedItemID = catalog.sections.first?.items.first?.id
+        selectedItemID = catalog.sections.first?.items.first?.id
     }
 
     var filteredSections: [CommandPaletteSection] {
@@ -74,7 +74,9 @@ final class CommandPaletteViewModel: ObservableObject {
             return
         }
 
-        guard let currentID = selection?.id, let index = items.firstIndex(where: { $0.id == currentID }) else {
+        guard let currentID = selection?.id,
+              let index = items.firstIndex(where: { $0.id == currentID })
+        else {
             selectedItemID = items.first?.id
             return
         }
@@ -94,6 +96,6 @@ final class CommandPaletteViewModel: ObservableObject {
             return
         }
 
-        self.selectedItemID = items.first?.id
+        selectedItemID = items.first?.id
     }
 }

@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @MainActor
 @Test("task board view model preserves the Rust column vocabulary and task counts")
@@ -7,21 +7,27 @@ func taskBoardViewModelUsesProjectionVocabularyAndCounts() throws {
     let projection = TaskBoardProjectionPayload(
         selectedProjectID: nil,
         projects: [
-            .init(projectID: "proj_demo", title: "proj_demo", taskCount: 2)
+            .init(projectID: "proj_demo", title: "proj_demo", taskCount: 2),
         ],
         columns: [
-            .init(column: .inbox, tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")]),
-            .init(column: .ready, tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")]),
+            .init(
+                column: .inbox,
+                tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")],
+            ),
+            .init(
+                column: .ready,
+                tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")],
+            ),
             .init(column: .running, tasks: []),
             .init(column: .review, tasks: []),
             .init(column: .blocked, tasks: []),
             .init(column: .done, tasks: []),
-        ]
+        ],
     )
 
     let viewModel = TaskBoardViewModel(
         loadProjection: { _ in projection },
-        moveTask: { _, _ in projection }
+        moveTask: { _, _ in projection },
     )
 
     try viewModel.reload()
@@ -41,13 +47,26 @@ func taskBoardViewModelUsesBridgeMoveResponses() throws {
             .init(projectID: "proj_demo", title: "proj_demo", taskCount: 2),
         ],
         columns: [
-            .init(column: .inbox, tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")]),
-            .init(column: .ready, tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")]),
-            .init(column: .running, tasks: [.fixture(id: "task_running", title: "Running task", projectID: "proj_alpha")]),
+            .init(
+                column: .inbox,
+                tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")],
+            ),
+            .init(
+                column: .ready,
+                tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")],
+            ),
+            .init(
+                column: .running,
+                tasks: [.fixture(
+                    id: "task_running",
+                    title: "Running task",
+                    projectID: "proj_alpha",
+                )],
+            ),
             .init(column: .review, tasks: []),
             .init(column: .blocked, tasks: []),
             .init(column: .done, tasks: []),
-        ]
+        ],
     )
     let movedProjection = TaskBoardProjectionPayload(
         selectedProjectID: "proj_demo",
@@ -56,13 +75,19 @@ func taskBoardViewModelUsesBridgeMoveResponses() throws {
             .init(projectID: "proj_demo", title: "proj_demo", taskCount: 2),
         ],
         columns: [
-            .init(column: .inbox, tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")]),
+            .init(
+                column: .inbox,
+                tasks: [.fixture(id: "task_inbox", title: "Inbox task", projectID: "proj_demo")],
+            ),
             .init(column: .ready, tasks: []),
             .init(column: .running, tasks: []),
-            .init(column: .review, tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")]),
+            .init(
+                column: .review,
+                tasks: [.fixture(id: "task_ready", title: "Ready task", projectID: "proj_demo")],
+            ),
             .init(column: .blocked, tasks: []),
             .init(column: .done, tasks: []),
-        ]
+        ],
     )
 
     let recorder = BoardTestRecorder()
@@ -74,7 +99,7 @@ func taskBoardViewModelUsesBridgeMoveResponses() throws {
         moveTask: { taskID, _ in
             recorder.movedTaskIDs.append(taskID)
             return movedProjection
-        }
+        },
     )
 
     try viewModel.reload()
@@ -98,7 +123,7 @@ func taskCardPresentationPreservesOperationalMetadata() {
         priority: "p1",
         automationMode: .assisted,
         linkedSessionID: "ses_review",
-        column: .review
+        column: .review,
     )
     let blockedTask = TaskBoardProjectionPayload.TaskCard(
         id: "task_blocked",
@@ -109,7 +134,7 @@ func taskCardPresentationPreservesOperationalMetadata() {
         priority: "p0",
         automationMode: .manual,
         linkedSessionID: nil,
-        column: .blocked
+        column: .blocked,
     )
 
     #expect(reviewTask.evidenceReadinessLabel == "review_ready")
@@ -138,7 +163,7 @@ private extension TaskBoardProjectionPayload.TaskCard {
             priority: "p1",
             automationMode: .manual,
             linkedSessionID: nil,
-            column: .inbox
+            column: .inbox,
         )
     }
 }

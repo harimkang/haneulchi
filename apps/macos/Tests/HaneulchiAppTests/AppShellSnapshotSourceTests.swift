@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("snapshot decodes richer sprint 2 projection groups and session fields")
 func snapshotDecodesRicherProjectionContract() throws {
@@ -145,21 +145,33 @@ func localSnapshotUsesCurrentShellInputs() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "zsh available", nextAction: nil),
-            .init(name: .presetBinaries, status: .degraded, headline: "Preset binaries missing", detail: "Generic shell remains available.", nextAction: "Open Settings"),
-        ]
+            .init(
+                name: .shell,
+                status: .ready,
+                headline: "Shell ready",
+                detail: "zsh available",
+                nextAction: nil,
+            ),
+            .init(
+                name: .presetBinaries,
+                status: .degraded,
+                headline: "Preset binaries missing",
+                detail: "Generic shell remains available.",
+                nextAction: "Open Settings",
+            ),
+        ],
     )
 
     let snapshot = try await LocalAppShellSnapshotSource(restoreStore: restoreStore).load(
         activeRoute: .projectFocus,
         selectedProject: project,
         readinessReport: report,
-        recentProjects: [project]
+        recentProjects: [project],
     )
 
     #expect(snapshot.meta.snapshotRev >= 1)
@@ -183,7 +195,7 @@ func localSnapshotUsesCurrentShellInputs() async throws {
 
 @MainActor
 @Test("sessions from restore bundles with no live counterpart appear as archived/recoverable")
-func testDeadSessionsAppearAsRecoverable() async throws {
+func deadSessionsAppearAsRecoverable() async throws {
     let restoreStore = TerminalSessionRestoreStore.inMemory
     try restoreStore.save([
         .genericShell(at: "/tmp/demo"),
@@ -194,7 +206,7 @@ func testDeadSessionsAppearAsRecoverable() async throws {
         activeRoute: .projectFocus,
         selectedProject: nil,
         readinessReport: nil,
-        recentProjects: []
+        recentProjects: [],
     )
 
     // All restored sessions have no live terminal backing, so they should be exited (archived)

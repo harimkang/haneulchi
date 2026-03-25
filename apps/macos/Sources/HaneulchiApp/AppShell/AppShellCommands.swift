@@ -11,7 +11,10 @@ struct AppShellCommands: Commands {
                         await model.perform(.selectRoute(route))
                     }
                 }
-                .keyboardShortcut(route.keyboardShortcut.keyEquivalent, modifiers: route.keyboardShortcut.eventModifiers)
+                .keyboardShortcut(
+                    route.keyboardShortcut.keyEquivalent,
+                    modifiers: route.keyboardShortcut.eventModifiers,
+                )
             }
 
             Button("Command Palette") {
@@ -47,7 +50,10 @@ struct AppShellCommands: Commands {
                     await model.perform(.jumpToLatestUnread)
                 }
             }
-            .keyboardShortcut(Route.latestUnreadShortcut.keyEquivalent, modifiers: Route.latestUnreadShortcut.eventModifiers)
+            .keyboardShortcut(
+                Route.latestUnreadShortcut.keyEquivalent,
+                modifiers: Route.latestUnreadShortcut.eventModifiers,
+            )
 
             Button("Show Inventory") {
                 Task {

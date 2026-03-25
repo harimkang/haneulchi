@@ -41,7 +41,10 @@ fn discovery_prefers_explicit_path_over_repo_root_file() {
     .expect("workflow discovered");
 
     assert_eq!(loaded.discovery_path, explicit_path);
-    assert_eq!(loaded.effective_config.workflow.name.as_deref(), Some("Explicit"));
+    assert_eq!(
+        loaded.effective_config.workflow.name.as_deref(),
+        Some("Explicit")
+    );
 }
 
 #[test]
@@ -81,7 +84,10 @@ Task: {{task.title}}
         .hooks
         .hook(HookPhase::AfterCreate)
         .expect("after_create normalized");
-    assert_eq!(after_create.run.as_deref(), Some("./scripts/after-create.sh"));
+    assert_eq!(
+        after_create.run.as_deref(),
+        Some("./scripts/after-create.sh")
+    );
     assert_eq!(after_create.timeout_sec, 30);
     assert!(!after_create.optional);
     assert_eq!(loaded.template_body.trim(), "Task: {{task.title}}");
@@ -91,10 +97,7 @@ Task: {{task.title}}
 #[test]
 fn unsupported_future_version_is_rejected() {
     let root = temp_dir("unsupported-version");
-    write_workflow(
-        &root,
-        "---\nworkflow:\n  version: 2\n---\n{{task.title}}\n",
-    );
+    write_workflow(&root, "---\nworkflow:\n  version: 2\n---\n{{task.title}}\n");
 
     let error = WorkflowLoader::load(&LoadWorkflowRequest {
         repo_root: root,

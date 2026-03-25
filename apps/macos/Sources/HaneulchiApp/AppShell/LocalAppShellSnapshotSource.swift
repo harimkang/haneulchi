@@ -6,7 +6,7 @@ struct LocalAppShellSnapshotSource: Sendable {
 
     init(
         restoreStore: TerminalSessionRestoreStore,
-        dateProvider: @escaping @Sendable () -> Date = Date.init
+        dateProvider: @escaping @Sendable () -> Date = Date.init,
     ) {
         self.restoreStore = restoreStore
         self.dateProvider = dateProvider
@@ -16,7 +16,7 @@ struct LocalAppShellSnapshotSource: Sendable {
         activeRoute: Route,
         selectedProject: LauncherProject?,
         readinessReport: ReadinessReport?,
-        recentProjects: [LauncherProject]
+        recentProjects: [LauncherProject],
     ) async throws -> AppShellSnapshot {
         let restoreBundles = try restoreStore.load()
         let sessions = makeSessions(from: restoreBundles)
@@ -29,7 +29,7 @@ struct LocalAppShellSnapshotSource: Sendable {
             sessions: runningSessions,
             warnings: warnings,
             attention: attention,
-            readinessReport: readinessReport
+            readinessReport: readinessReport,
         )
         let workflowHealth = projects.first(where: { $0.status == .active })?.workflowState
             ?? projects.first?.workflowState
@@ -41,18 +41,18 @@ struct LocalAppShellSnapshotSource: Sendable {
                 snapshotRev: 1,
                 runtimeRev: 1,
                 projectionRev: 1,
-                snapshotAt: dateProvider()
+                snapshotAt: dateProvider(),
             ),
             ops: .init(
                 runningSlots: runningSessions.count,
                 maxSlots: max(1, runningSessions.count),
                 retryQueueCount: 0,
-                workflowHealth: workflowHealth
+                workflowHealth: workflowHealth,
             ),
             app: .init(
                 activeRoute: activeRoute,
                 focusedSessionID: focusedSessionID,
-                degradedFlags: warnings.map(\.severity)
+                degradedFlags: warnings.map(\.severity),
             ),
             projects: projects,
             sessions: sessions,
@@ -60,15 +60,20 @@ struct LocalAppShellSnapshotSource: Sendable {
             retryQueue: [],
             warnings: warnings,
             workflow: nil,
-            tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+            tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok"),
         )
     }
 
-    private func makeSessions(from restoreBundles: [TerminalRestoreBundle]) -> [AppShellSnapshot.SessionSummary] {
+    private func makeSessions(from restoreBundles: [TerminalRestoreBundle])
+        -> [AppShellSnapshot.SessionSummary]
+    {
         restoreBundles.enumerated().map { index, bundle in
             let currentDirectory = bundle.launch.currentDirectory
             let sessionTitle = currentDirectory
-                .flatMap { URL(fileURLWithPath: $0).lastPathComponent.isEmpty ? nil : URL(fileURLWithPath: $0).lastPathComponent }
+                .flatMap {
+                    URL(fileURLWithPath: $0).lastPathComponent
+                        .isEmpty ? nil : URL(fileURLWithPath: $0).lastPathComponent
+                }
                 ?? "Generic Shell"
 
             return .init(
@@ -79,12 +84,14 @@ struct LocalAppShellSnapshotSource: Sendable {
                 runtimeState: .exited,
                 manualControlState: .none,
                 dispatchState: .notDispatchable,
-                unreadCount: 0
+                unreadCount: 0,
             )
         }
     }
 
-    private func makeWarnings(from readinessReport: ReadinessReport?) -> [AppShellSnapshot.WarningSummary] {
+    private func makeWarnings(from readinessReport: ReadinessReport?)
+        -> [AppShellSnapshot.WarningSummary]
+    {
         guard let readinessReport else {
             return []
         }
@@ -92,20 +99,20 @@ struct LocalAppShellSnapshotSource: Sendable {
         return readinessReport.checks.compactMap { check in
             switch check.status {
             case .ready:
-                return nil
+                nil
             case .degraded:
-                return .init(
+                .init(
                     warningID: "warning-\(check.name.rawValue)",
                     severity: .degraded,
                     headline: check.headline,
-                    nextAction: check.nextAction
+                    nextAction: check.nextAction,
                 )
             case .blocked:
-                return .init(
+                .init(
                     warningID: "warning-\(check.name.rawValue)",
                     severity: .failed,
                     headline: check.headline,
-                    nextAction: check.nextAction
+                    nextAction: check.nextAction,
                 )
             }
         }
@@ -117,13 +124,18 @@ struct LocalAppShellSnapshotSource: Sendable {
         sessions: [AppShellSnapshot.SessionSummary],
         warnings: [AppShellSnapshot.WarningSummary],
         attention: [AppShellSnapshot.AttentionSummary],
-        readinessReport: ReadinessReport?
+        readinessReport: ReadinessReport?,
     ) -> [AppShellSnapshot.ProjectSummary] {
-        let orderedProjects = orderedProjects(selectedProject: selectedProject, recentProjects: recentProjects)
+        let orderedProjects = orderedProjects(
+            selectedProject: selectedProject,
+            recentProjects: recentProjects,
+        )
         return orderedProjects.map { project in
-            let projectSessionCount = sessions.filter { $0.currentDirectory == project.rootPath }.count
+            let projectSessionCount = sessions
+                .count(where: { $0.currentDirectory == project.rootPath })
             let hasFailure = warnings.contains { $0.severity == .failed }
-            let projectAttentionCount = project.projectID == selectedProject?.projectID ? attention.count : 0
+            let projectAttentionCount = project.projectID == selectedProject?.projectID ? attention
+                .count : 0
 
             return .init(
                 projectID: project.projectID,
@@ -134,13 +146,13 @@ struct LocalAppShellSnapshotSource: Sendable {
                     : .idle,
                 workflowState: workflowHealth(for: project, readinessReport: readinessReport),
                 sessionCount: projectSessionCount,
-                attentionCount: projectAttentionCount
+                attentionCount: projectAttentionCount,
             )
         }
     }
 
     private func makeAttention(
-        from warnings: [AppShellSnapshot.WarningSummary]
+        from warnings: [AppShellSnapshot.WarningSummary],
     ) -> [AppShellSnapshot.AttentionSummary] {
         warnings.enumerated().map { index, warning in
             .init(
@@ -148,14 +160,14 @@ struct LocalAppShellSnapshotSource: Sendable {
                 headline: warning.headline,
                 severity: warning.severity,
                 targetRoute: .attentionCenter,
-                targetSessionID: nil
+                targetSessionID: nil,
             )
         }
     }
 
     private func orderedProjects(
         selectedProject: LauncherProject?,
-        recentProjects: [LauncherProject]
+        recentProjects: [LauncherProject],
     ) -> [LauncherProject] {
         var projects: [LauncherProject] = []
         var seen = Set<String>()
@@ -175,7 +187,7 @@ struct LocalAppShellSnapshotSource: Sendable {
 
     private func workflowHealth(
         for project: LauncherProject,
-        readinessReport: ReadinessReport?
+        readinessReport: ReadinessReport?,
     ) -> WorkflowHealth {
         guard readinessReport?.project?.projectID == project.projectID else {
             return .none

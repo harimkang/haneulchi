@@ -23,7 +23,7 @@ enum Route: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
     case taskBoard = "task_board"
     case reviewQueue = "review_queue"
     case attentionCenter = "attention_center"
-    case settings = "settings"
+    case settings
 
     static let primaryCases: [Route] = [
         .projectFocus,
@@ -35,10 +35,12 @@ enum Route: String, CaseIterable, Hashable, Identifiable, Codable, Sendable {
 
     static let latestUnreadShortcut = RouteShortcut(
         "u",
-        modifiers: [.command, .shift]
+        modifiers: [.command, .shift],
     )
 
-    var id: String { rawValue }
+    var id: String {
+        rawValue
+    }
 
     var title: String {
         switch self {

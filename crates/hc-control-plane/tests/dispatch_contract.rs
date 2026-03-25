@@ -2,7 +2,10 @@ use hc_control_plane::{
     DispatchFailureClass, DispatchLifecycleState, classify_dispatch_failure, dispatch_snapshot,
     dispatch_to_session,
 };
-use hc_domain::{AppSnapshot, SessionRuntimeState, SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus};
+use hc_domain::{
+    AppSnapshot, SessionRuntimeState, SessionSummary, TrackerStatus, WorkflowHealth,
+    WorkflowRuntimeStatus,
+};
 
 #[test]
 fn dispatch_lifecycle_reports_queued_started_and_sent_for_dispatchable_session() {
@@ -22,7 +25,11 @@ fn dispatch_lifecycle_reports_queued_started_and_sent_for_dispatchable_session()
         ]
     );
     assert_eq!(session.dispatch_state, "dispatchable");
-    assert!(events.iter().all(|event| event.target_session_id == "ses_dispatch"));
+    assert!(
+        events
+            .iter()
+            .all(|event| event.target_session_id == "ses_dispatch")
+    );
 }
 
 #[test]
@@ -37,7 +44,9 @@ fn dispatch_fails_for_stale_or_takeover_targets_and_classifies_retryability() {
         DispatchLifecycleState::Failed
     );
     assert_eq!(
-        stale_events.last().and_then(|event| event.reason_code.as_deref()),
+        stale_events
+            .last()
+            .and_then(|event| event.reason_code.as_deref()),
         Some("stale_target_session")
     );
     assert_eq!(stale.dispatch_state, "dispatch_failed");
@@ -94,15 +103,30 @@ fn dispatch_snapshot_emits_failed_notification_without_silent_reroute() {
     session.dispatch_state = "dispatchable".to_string();
     snapshot.sessions = vec![session];
 
-    let events = dispatch_snapshot(&mut snapshot, "ses_stale", Some("task_review"), false, "rerun tests");
+    let events = dispatch_snapshot(
+        &mut snapshot,
+        "ses_stale",
+        Some("task_review"),
+        false,
+        "rerun tests",
+    );
 
-    assert_eq!(events.last().expect("failed dispatch").state, DispatchLifecycleState::Failed);
+    assert_eq!(
+        events.last().expect("failed dispatch").state,
+        DispatchLifecycleState::Failed
+    );
     assert_eq!(
         events.last().and_then(|event| event.reason_code.as_deref()),
         Some("stale_target_session")
     );
-    assert_eq!(events.last().map(|event| event.task_id.as_deref()), Some(Some("task_review")));
+    assert_eq!(
+        events.last().map(|event| event.task_id.as_deref()),
+        Some(Some("task_review"))
+    );
     assert_eq!(snapshot.attention.len(), 1);
     assert_eq!(snapshot.attention[0].kind, "session_error");
-    assert_eq!(snapshot.attention[0].session_id.as_deref(), Some("ses_stale"));
+    assert_eq!(
+        snapshot.attention[0].session_id.as_deref(),
+        Some("ses_stale")
+    );
 }

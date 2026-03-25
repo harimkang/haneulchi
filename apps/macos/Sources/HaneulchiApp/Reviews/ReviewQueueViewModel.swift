@@ -46,7 +46,9 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             case timeline
         }
 
-        var id: String { taskID }
+        var id: String {
+            taskID
+        }
 
         init(
             taskID: String,
@@ -64,7 +66,7 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
             evidenceManifestPath: String?,
             ciRunURL: String? = nil,
             prURL: String? = nil,
-            timeline: [TaskTimelineEntry] = []
+            timeline: [TaskTimelineEntry] = [],
         ) {
             self.taskID = taskID
             self.projectID = projectID
@@ -105,8 +107,10 @@ final class ReviewQueueViewModel: ObservableObject {
     let applyDecision: @Sendable (String, ReviewDecisionCommand) throws -> Void
 
     init(
-        loadProjection: @escaping @Sendable () throws -> ReviewQueueProjectionPayload = liveLoadProjection,
-        applyDecision: @escaping @Sendable (String, ReviewDecisionCommand) throws -> Void = liveApplyDecision
+        loadProjection: @escaping @Sendable () throws
+            -> ReviewQueueProjectionPayload = liveLoadProjection,
+        applyDecision: @escaping @Sendable (String, ReviewDecisionCommand) throws
+            -> Void = liveApplyDecision,
     ) {
         self.loadProjection = loadProjection
         self.applyDecision = applyDecision
@@ -190,7 +194,10 @@ private func reviewQueueStringPayloadData(_ payload: HcString) throws -> Data {
 
 private func liveLoadProjection() throws -> ReviewQueueProjectionPayload {
     let payload = try reviewQueueStringPayloadData(hc_review_queue_json())
-    guard let projection = try? JSONDecoder().decode(ReviewQueueProjectionPayload.self, from: payload) else {
+    guard let projection = try? JSONDecoder().decode(
+        ReviewQueueProjectionPayload.self,
+        from: payload,
+    ) else {
         throw ReviewQueueBridgeError.invalidProjection
     }
     return projection

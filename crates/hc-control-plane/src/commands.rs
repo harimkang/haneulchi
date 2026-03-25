@@ -5,8 +5,9 @@ use std::sync::{Mutex, OnceLock};
 use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, ProjectSummary,
     SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
-    WorkflowHealth, WorkflowRuntimeStatus, time::now_iso8601,
+    WorkflowHealth, WorkflowRuntimeStatus,
     inventory::{InventoryRow, InventorySummary},
+    time::now_iso8601,
 };
 use hc_runtime::terminal::runtime::TerminalSessionSnapshot as RuntimeSessionSnapshot;
 use hc_workflow::{LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime};
@@ -15,10 +16,13 @@ use crate::attention::derive_attention;
 use crate::inventory::{build_inventory_for_project, build_inventory_summary};
 use crate::session_projection::{focus_session, release_takeover_session, takeover_session};
 use crate::shared_store::lock_shared_store;
-use crate::snapshot::{project_snapshot, SnapshotSeed};
+use crate::snapshot::{SnapshotSeed, project_snapshot};
 use crate::tasks::{shared_attach_session, shared_detach_session, shared_task};
-use crate::worktrees::{shared_set_worktree_pinned as worktrees_set_pinned, shared_update_worktree_lifecycle as worktrees_update_lifecycle};
 use crate::workflow_projection::{sample_tracker_status, sample_workflow_status};
+use crate::worktrees::{
+    shared_set_worktree_pinned as worktrees_set_pinned,
+    shared_update_worktree_lifecycle as worktrees_update_lifecycle,
+};
 
 #[derive(Debug, thiserror::Error, Eq, PartialEq)]
 pub enum ControlPlaneError {
@@ -178,10 +182,13 @@ impl ControlPlaneState {
             })
             .collect();
 
-        if !sessions.is_empty() && !sessions.iter().any(|session| session.focus_state == SessionFocusState::Focused) {
-            if let Some(first) = sessions.first_mut() {
-                first.focus_state = SessionFocusState::Focused;
-            }
+        if !sessions.is_empty()
+            && !sessions
+                .iter()
+                .any(|session| session.focus_state == SessionFocusState::Focused)
+            && let Some(first) = sessions.first_mut()
+        {
+            first.focus_state = SessionFocusState::Focused;
         }
 
         let focused_session_id = sessions
@@ -192,7 +199,9 @@ impl ControlPlaneState {
         let mut project_counts: BTreeMap<String, u32> = BTreeMap::new();
         for session in &sessions {
             if !session.project_id.is_empty() {
-                *project_counts.entry(session.project_id.clone()).or_insert(0) += 1;
+                *project_counts
+                    .entry(session.project_id.clone())
+                    .or_insert(0) += 1;
             }
         }
 
@@ -213,7 +222,11 @@ impl ControlPlaneState {
 
         let workflow = focused_session_id
             .as_ref()
-            .and_then(|focused_session_id| sessions.iter().find(|session| &session.session_id == focused_session_id))
+            .and_then(|focused_session_id| {
+                sessions
+                    .iter()
+                    .find(|session| &session.session_id == focused_session_id)
+            })
             .map(|session| workflow_for_root(&session.project_id))
             .unwrap_or_else(empty_workflow_status);
         let tracker = TrackerStatus {
@@ -271,10 +284,7 @@ impl ControlPlaneState {
         takeover_session(&mut self.snapshot, session_id)
     }
 
-    pub fn release_takeover_session(
-        &mut self,
-        session_id: &str,
-    ) -> Result<(), ControlPlaneError> {
+    pub fn release_takeover_session(&mut self, session_id: &str) -> Result<(), ControlPlaneError> {
         release_takeover_session(&mut self.snapshot, session_id)
     }
 
@@ -303,23 +313,18 @@ impl ControlPlaneState {
             });
         }
 
-        if self
-            .snapshot
-            .sessions
-            .iter()
-            .any(|session| {
-                session.session_id != session_id
-                    && session.task_id.as_deref() == Some(task_id)
-                    && is_live_session(session.runtime_state)
-            })
-        {
+        if self.snapshot.sessions.iter().any(|session| {
+            session.session_id != session_id
+                && session.task_id.as_deref() == Some(task_id)
+                && is_live_session(session.runtime_state)
+        }) {
             return Err(ControlPlaneError::TaskClaimConflict(task_id.to_string()));
         }
 
-        if let Some(previous_task_id) = self.snapshot.sessions[session_index].task_id.clone() {
-            if previous_task_id != task_id {
-                let _ = shared_detach_session(&previous_task_id);
-            }
+        if let Some(previous_task_id) = self.snapshot.sessions[session_index].task_id.clone()
+            && previous_task_id != task_id
+        {
+            let _ = shared_detach_session(&previous_task_id);
         }
 
         shared_attach_session(task_id, session_id)
@@ -353,7 +358,9 @@ impl ControlPlaneState {
 
     pub fn resolve_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
         if !crate::attention::resolve_attention(&mut self.snapshot, attention_id) {
-            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+            return Err(ControlPlaneError::AttentionNotFound(
+                attention_id.to_string(),
+            ));
         }
         bump_projection_meta(&mut self.snapshot);
         Ok(())
@@ -361,7 +368,9 @@ impl ControlPlaneState {
 
     pub fn dismiss_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
         if !crate::attention::dismiss_attention(&mut self.snapshot, attention_id) {
-            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+            return Err(ControlPlaneError::AttentionNotFound(
+                attention_id.to_string(),
+            ));
         }
         bump_projection_meta(&mut self.snapshot);
         Ok(())
@@ -369,7 +378,9 @@ impl ControlPlaneState {
 
     pub fn snooze_attention(&mut self, attention_id: &str) -> Result<(), ControlPlaneError> {
         if !crate::attention::snooze_attention(&mut self.snapshot, attention_id) {
-            return Err(ControlPlaneError::AttentionNotFound(attention_id.to_string()));
+            return Err(ControlPlaneError::AttentionNotFound(
+                attention_id.to_string(),
+            ));
         }
         bump_projection_meta(&mut self.snapshot);
         Ok(())
@@ -416,9 +427,11 @@ impl Default for ControlPlaneState {
     }
 }
 
-pub fn shared_inventory_for_project(project_id: &str) -> Result<Vec<InventoryRow>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|error| ControlPlaneError::Storage(error.to_string()))?;
+pub fn shared_inventory_for_project(
+    project_id: &str,
+) -> Result<Vec<InventoryRow>, ControlPlaneError> {
+    let store =
+        lock_shared_store().map_err(|error| ControlPlaneError::Storage(error.to_string()))?;
     build_inventory_for_project(&store, project_id)
         .map_err(|error| ControlPlaneError::Storage(error.to_string()))
 }
@@ -468,13 +481,16 @@ pub fn reload_workflow(
     });
     match runtime.reload() {
         Ok(()) => Ok(runtime.clone()),
-        Err(_error) if runtime.state() == hc_workflow::WorkflowState::InvalidKeptLastGood => Ok(runtime.clone()),
+        Err(_error) if runtime.state() == hc_workflow::WorkflowState::InvalidKeptLastGood => {
+            Ok(runtime.clone())
+        }
         Err(error) => Err(error),
     }
 }
 
 fn workflow_runtimes() -> &'static Mutex<std::collections::HashMap<String, WorkflowRuntime>> {
-    static RUNTIMES: OnceLock<Mutex<std::collections::HashMap<String, WorkflowRuntime>>> = OnceLock::new();
+    static RUNTIMES: OnceLock<Mutex<std::collections::HashMap<String, WorkflowRuntime>>> =
+        OnceLock::new();
     RUNTIMES.get_or_init(|| Mutex::new(std::collections::HashMap::new()))
 }
 
@@ -548,7 +564,9 @@ fn workflow_for_root(root: &str) -> WorkflowRuntimeStatus {
     WorkflowRuntimeStatus {
         state,
         path,
-        last_good_hash: runtime.last_known_good().map(|loaded| loaded.contract_hash.clone()),
+        last_good_hash: runtime
+            .last_known_good()
+            .map(|loaded| loaded.contract_hash.clone()),
         last_reload_at: runtime.last_reload_at().map(str::to_string),
         last_error: runtime.last_error().map(str::to_string),
     }
@@ -575,7 +593,8 @@ fn shared_control_plane() -> &'static Mutex<ControlPlaneState> {
     CONTROL_PLANE.get_or_init(|| Mutex::new(ControlPlaneState::default()))
 }
 
-pub fn lock_shared_control_plane() -> Result<std::sync::MutexGuard<'static, ControlPlaneState>, String> {
+pub fn lock_shared_control_plane()
+-> Result<std::sync::MutexGuard<'static, ControlPlaneState>, String> {
     shared_control_plane()
         .lock()
         .map_err(|_| "control plane lock poisoned".to_string())
@@ -605,7 +624,10 @@ fn workflow_runtime_for_root(root: &str) -> WorkflowRuntime {
         })
     });
 
-    if runtime.current().is_none() && runtime.last_known_good().is_none() && runtime.last_error().is_none() {
+    if runtime.current().is_none()
+        && runtime.last_known_good().is_none()
+        && runtime.last_error().is_none()
+    {
         let _ = runtime.reload();
     } else {
         let _ = runtime.poll_watch();

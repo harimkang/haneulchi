@@ -1,10 +1,15 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("inventory search store returns real inventory rows from restore metadata and filesystem roots")
+@Test(
+    "inventory search store returns real inventory rows from restore metadata and filesystem roots",
+)
 func inventorySearchStoreReturnsRealRows() async throws {
-    let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+        UUID().uuidString,
+        isDirectory: true,
+    )
     try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
 
     defer {
@@ -15,7 +20,7 @@ func inventorySearchStoreReturnsRealRows() async throws {
     try restoreStore.save([.genericShell(at: root.path)])
 
     let rows = try await InventorySearchProjectionStore(restoreStore: restoreStore).load(
-        selectedProjectRoot: root.path
+        selectedProjectRoot: root.path,
     )
 
     #expect(rows.contains(where: { $0.rootPath == root.path }))

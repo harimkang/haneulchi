@@ -9,39 +9,39 @@ struct RouteDestinationDescriptor: Equatable {
     static func placeholder(for route: Route, snapshot: AppShellSnapshot) -> Self {
         switch route {
         case .controlTower:
-            return .init(
+            .init(
                 route: route,
                 title: route.title,
                 summary: "\(snapshot.projects.count) projects, \(snapshot.sessions.count) sessions, \(snapshot.attention.count) attention items.",
-                nextActionTitle: "Open Control Tower"
+                nextActionTitle: "Open Control Tower",
             )
         case .taskBoard:
-            return .init(
+            .init(
                 route: route,
                 title: route.title,
                 summary: "Task Board now reads the Rust-owned board projection, supports project filtering, and lets operators move tasks between the fixed six columns.",
-                nextActionTitle: "Open Task Board"
+                nextActionTitle: "Open Task Board",
             )
         case .reviewQueue:
-            return .init(
+            .init(
                 route: route,
                 title: route.title,
                 summary: "Review Queue now reads Rust-owned review-ready evidence summaries so touched files, diff signals, test results, and warnings stay aligned with the task projection.",
-                nextActionTitle: "Open Review Queue"
+                nextActionTitle: "Open Review Queue",
             )
         case .attentionCenter:
-            return .init(
+            .init(
                 route: route,
                 title: route.title,
                 summary: "\(snapshot.attention.count) attention items, \(snapshot.warnings.count) warnings.",
-                nextActionTitle: "Open Attention Center"
+                nextActionTitle: "Open Attention Center",
             )
         case .projectFocus, .settings:
-            return .init(
+            .init(
                 route: route,
                 title: route.title,
                 summary: route.title,
-                nextActionTitle: route.title
+                nextActionTitle: route.title,
             )
         }
     }
@@ -62,19 +62,22 @@ struct RouteDestinationView: View {
                 model: projectFocusModel,
                 snapshot: snapshot,
                 queuedFilePath: queuedProjectFocusFilePath,
-                onAction: onAction
+                onAction: onAction,
             )
         case .settings:
             SettingsView(viewModel: settingsStatusViewModel, onAction: onAction)
         case .controlTower:
             ControlTowerPlaceholderView(
                 snapshot: snapshot,
-                onAction: onAction
+                onAction: onAction,
             )
         case .taskBoard:
             TaskBoardPlaceholderView(descriptor: .placeholder(for: .taskBoard, snapshot: snapshot))
         case .reviewQueue:
-            ReviewQueuePlaceholderView(descriptor: .placeholder(for: .reviewQueue, snapshot: snapshot))
+            ReviewQueuePlaceholderView(descriptor: .placeholder(
+                for: .reviewQueue,
+                snapshot: snapshot,
+            ))
         case .attentionCenter:
             AttentionCenterPlaceholderView(snapshot: snapshot, onAction: onAction)
         }

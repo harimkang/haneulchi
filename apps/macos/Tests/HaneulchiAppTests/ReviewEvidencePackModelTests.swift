@@ -1,7 +1,9 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
-@Test("review evidence pack model groups summaries, warnings, manifest links, and null-safe placeholders")
+@Test(
+    "review evidence pack model groups summaries, warnings, manifest links, and null-safe placeholders",
+)
 func reviewEvidencePackModelFormatsProjectionPayload() {
     let item = ReviewQueueProjectionPayload.Item(
         taskID: "task_review",
@@ -18,15 +20,18 @@ func reviewEvidencePackModelFormatsProjectionPayload() {
         warnings: ["after_run_failed", "snapshot drift"],
         evidenceManifestPath: "evidence/reviews/task_review/review_01/manifest.json",
         ciRunURL: nil,
-        prURL: nil
+        prURL: nil,
     )
 
     let model = ReviewEvidencePackModel(item: item)
 
     #expect(model.summary == "Ready for handoff")
     #expect(model.primaryFacts.count == 5)
-    #expect(model.primaryFacts.contains(where: { $0.label == "hook" && $0.value == "after_run_failed: evidence degraded" }))
-    #expect(model.primaryFacts.contains(where: { $0.label == "checklist" && $0.value == "1/2 checks complete" }))
+    #expect(model.primaryFacts
+        .contains(where: { $0.label == "hook" && $0.value == "after_run_failed: evidence degraded"
+        }))
+    #expect(model.primaryFacts
+        .contains(where: { $0.label == "checklist" && $0.value == "1/2 checks complete" }))
     #expect(model.warningRows == ["after_run_failed", "snapshot drift"])
     #expect(model.manifestPath == "evidence/reviews/task_review/review_01/manifest.json")
     #expect(model.ciRunURL == nil)

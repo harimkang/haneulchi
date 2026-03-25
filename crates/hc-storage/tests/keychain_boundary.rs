@@ -12,8 +12,7 @@ mod tests {
 
     /// Delete a test item, ignoring "not found" so cleanup is always safe.
     fn cleanup(account: &str) {
-        let _ =
-            security_framework::passwords::delete_generic_password(TEST_SERVICE, account);
+        let _ = security_framework::passwords::delete_generic_password(TEST_SERVICE, account);
     }
 
     // ---------------------------------------------------------------------------
@@ -28,11 +27,10 @@ mod tests {
 
         cleanup(account);
 
-        KeychainBoundary::store(TEST_SERVICE, account, secret)
-            .expect("store should succeed");
+        KeychainBoundary::store(TEST_SERVICE, account, secret).expect("store should succeed");
 
-        let retrieved = KeychainBoundary::retrieve(TEST_SERVICE, account)
-            .expect("retrieve should succeed");
+        let retrieved =
+            KeychainBoundary::retrieve(TEST_SERVICE, account).expect("retrieve should succeed");
 
         assert_eq!(retrieved, Some(secret.to_vec()));
 
@@ -64,8 +62,7 @@ mod tests {
 
         cleanup(account);
 
-        KeychainBoundary::store(TEST_SERVICE, account, first)
-            .expect("first store should succeed");
+        KeychainBoundary::store(TEST_SERVICE, account, first).expect("first store should succeed");
 
         KeychainBoundary::store(TEST_SERVICE, account, second)
             .expect("overwrite store should succeed");

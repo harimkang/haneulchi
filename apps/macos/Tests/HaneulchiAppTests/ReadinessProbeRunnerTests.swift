@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("readiness report keeps generic shell available when preset binaries are missing")
 func readinessReportAllowsGenericShellFallback() async throws {
@@ -14,10 +14,10 @@ func readinessReportAllowsGenericShellFallback() async throws {
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
                 "which git [shell:/bin/zsh]": .success("/opt/homebrew/bin/git\n"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.none)
+        workflowProbe: .mock(.none),
     )
 
     let report = try await runner.run(forProjectRoot: "/tmp/demo")
@@ -39,10 +39,10 @@ func readinessReportDoesNotRequireRecoveryForInformationalGaps() async throws {
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
                 "which git [shell:/bin/zsh]": .success("/opt/homebrew/bin/git\n"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.none)
+        workflowProbe: .mock(.none),
     )
 
     let report = try await runner.run(forProjectRoot: "/tmp/demo")
@@ -64,10 +64,10 @@ func readinessReportRequiresRecoveryForBlockedShell() async throws {
                 "which gemini": .failure("missing"),
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.present)
+        workflowProbe: .mock(.present),
     )
 
     let report = try await runner.run(forProjectRoot: "/tmp/demo")
@@ -90,16 +90,16 @@ func readinessRunnerDoesNotBakeProjectIdentityIntoRootPath() async throws {
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
                 "which git [shell:/bin/zsh]": .success("/opt/homebrew/bin/git\n"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.none)
+        workflowProbe: .mock(.none),
     )
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
 
     let report = try await runner.run(for: project)
@@ -121,10 +121,10 @@ func readinessRunnerUsesConfiguredShell() async throws {
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
                 "which git [shell:/bin/bash]": .success("/usr/local/bin/git\n"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.none)
+        workflowProbe: .mock(.none),
     )
 
     let report = try await runner.run(forProjectRoot: "/tmp/demo")

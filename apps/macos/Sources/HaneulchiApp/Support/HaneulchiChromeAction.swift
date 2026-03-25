@@ -16,54 +16,54 @@ enum HaneulchiChromeAction: Equatable {
     var symbolName: String {
         switch self {
         case .commandPalette:
-            return "magnifyingglass"
+            "magnifyingglass"
         case .notifications:
-            return "bell"
+            "bell"
         case .focusPane:
-            return "scope"
+            "scope"
         case .find:
-            return "text.magnifyingglass"
+            "text.magnifyingglass"
         case .paste:
-            return "doc.on.clipboard"
+            "doc.on.clipboard"
         case .dispatch:
-            return "paperplane"
+            "paperplane"
         case .splitHorizontal:
-            return "rectangle.split.2x1"
+            "rectangle.split.2x1"
         case .splitVertical:
-            return "rectangle.split.1x2"
+            "rectangle.split.1x2"
         case .resolve:
-            return "checkmark"
+            "checkmark"
         case .dismiss:
-            return "xmark"
+            "xmark"
         case .snooze:
-            return "bell.slash"
+            "bell.slash"
         }
     }
 
     var accessibilityLabel: String {
         switch self {
         case .commandPalette:
-            return "Open Command Palette"
+            "Open Command Palette"
         case .notifications:
-            return "Open Notifications"
+            "Open Notifications"
         case .focusPane:
-            return "Focus Terminal Pane"
+            "Focus Terminal Pane"
         case .find:
-            return "Find in Terminal Pane"
+            "Find in Terminal Pane"
         case .paste:
-            return "Paste Clipboard"
+            "Paste Clipboard"
         case .dispatch:
-            return "Open Quick Dispatch"
+            "Open Quick Dispatch"
         case .splitHorizontal:
-            return "Split Horizontally"
+            "Split Horizontally"
         case .splitVertical:
-            return "Split Vertically"
+            "Split Vertically"
         case .resolve:
-            return "Resolve Attention Item"
+            "Resolve Attention Item"
         case .dismiss:
-            return "Dismiss Attention Item"
+            "Dismiss Attention Item"
         case .snooze:
-            return "Snooze Attention Item"
+            "Snooze Attention Item"
         }
     }
 }

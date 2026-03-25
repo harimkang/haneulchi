@@ -34,7 +34,10 @@ struct RecentArtifactsTableView: View {
                         } label: {
                             HaneulchiTableRow {
                                 HStack(alignment: .top) {
-                                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xxs,
+                                    ) {
                                         Text(item.taskID)
                                             .font(HaneulchiTypography.compactMeta)
                                             .foregroundStyle(HaneulchiChrome.Label.muted)
@@ -61,6 +64,9 @@ struct RecentArtifactsTableView: View {
             }
         }
         .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(
+            cornerRadius: HaneulchiMetrics.Radius.large,
+            style: .continuous,
+        ))
     }
 }

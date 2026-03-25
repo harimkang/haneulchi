@@ -5,9 +5,11 @@ struct InventorySearchProjectionStore: Sendable {
         let itemID: String
         let title: String
         let rootPath: String
-        let disposition: String  // "in_use" | "recoverable" | "safe_to_delete" | "stale"
+        let disposition: String // "in_use" | "recoverable" | "safe_to_delete" | "stale"
 
-        var id: String { itemID }
+        var id: String {
+            itemID
+        }
     }
 
     /// When set, rows are loaded from the FFI inventory list for the selected project.
@@ -18,17 +20,17 @@ struct InventorySearchProjectionStore: Sendable {
 
     init(inventoryList: @escaping @Sendable (String) throws -> [InventoryRowPayload]) {
         self.inventoryList = inventoryList
-        self.restoreStore = nil
+        restoreStore = nil
     }
 
     init(restoreStore: TerminalSessionRestoreStore) {
         self.restoreStore = restoreStore
-        self.inventoryList = nil
+        inventoryList = nil
     }
 
     func load(
         selectedProjectID: String? = nil,
-        selectedProjectRoot: String? = nil
+        selectedProjectRoot: String? = nil,
     ) async throws -> [Row] {
         if let inventoryList, let selectedProjectID, !selectedProjectID.isEmpty {
             let payloads = try inventoryList(selectedProjectID)
@@ -40,7 +42,7 @@ struct InventorySearchProjectionStore: Sendable {
                     itemID: payload.worktreeId,
                     title: title,
                     rootPath: payload.path,
-                    disposition: payload.disposition
+                    disposition: payload.disposition,
                 )
             }
         }
@@ -61,7 +63,9 @@ struct InventorySearchProjectionStore: Sendable {
             seen.insert(selectedProjectRoot)
         }
 
-        for root in restoreRoots where FileManager.default.fileExists(atPath: root) && !seen.contains(root) {
+        for root in restoreRoots
+            where FileManager.default.fileExists(atPath: root) && !seen.contains(root)
+        {
             roots.append(root)
             seen.insert(root)
         }
@@ -75,7 +79,7 @@ struct InventorySearchProjectionStore: Sendable {
                 itemID: "inventory-\(index + 1)",
                 title: title,
                 rootPath: root,
-                disposition: root == selectedProjectRoot ? "in_use" : "recoverable"
+                disposition: root == selectedProjectRoot ? "in_use" : "recoverable",
             )
         }
     }
@@ -93,9 +97,9 @@ struct InventorySearchProjectionStore: Sendable {
                     isPinned: false,
                     isDegraded: false,
                     sizeBytes: nil,
-                    lastAccessedAt: nil
-                )
+                    lastAccessedAt: nil,
+                ),
             ]
-        }
+        },
     )
 }

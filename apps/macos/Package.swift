@@ -12,7 +12,7 @@ let vendorLibraryDirectory = packageDirectory
 let pluginLibraryDirectory = packageDirectory
     .appendingPathComponent(
         ".build/plugins/outputs/macos/HaneulchiApp/destination/HCCoreFFIBuildPlugin/hc-ffi-build",
-        isDirectory: true
+        isDirectory: true,
     )
     .path
 let hcFFILinkerSettings: [LinkerSetting] = [
@@ -37,12 +37,12 @@ let package = Package(
     targets: [
         .plugin(
             name: "HCCoreFFIBuildPlugin",
-            capability: .buildTool()
+            capability: .buildTool(),
         ),
         .target(
             name: "HCCoreFFI",
             path: "Vendor/HCCoreFFI",
-            publicHeadersPath: "include"
+            publicHeadersPath: "include",
         ),
         .executableTarget(
             name: "HaneulchiApp",
@@ -54,13 +54,13 @@ let package = Package(
             linkerSettings: hcFFILinkerSettings,
             plugins: [
                 "HCCoreFFIBuildPlugin",
-            ]
+            ],
         ),
         .testTarget(
             name: "HaneulchiAppTests",
             dependencies: ["HaneulchiApp"],
             path: "Tests/HaneulchiAppTests",
-            linkerSettings: hcFFILinkerSettings
+            linkerSettings: hcFFILinkerSettings,
         ),
-    ]
+    ],
 )

@@ -21,5 +21,7 @@ struct CommandPaletteSection: Equatable, Identifiable, Sendable {
     let kind: CommandPaletteSectionKind
     let items: [CommandPaletteItem]
 
-    var id: String { kind.rawValue }
+    var id: String {
+        kind.rawValue
+    }
 }

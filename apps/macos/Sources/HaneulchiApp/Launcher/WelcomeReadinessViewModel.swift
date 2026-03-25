@@ -12,7 +12,7 @@ struct WelcomeReadinessViewModel: Equatable {
         switch (entryReason, selectedProject) {
         case (.degradedRecovery, _):
             "Recover this workspace"
-        case (.firstRun, .some(let project)):
+        case let (.firstRun, .some(project)):
             project.name
         case (.firstRun, nil):
             "Start a workspace"
@@ -23,7 +23,7 @@ struct WelcomeReadinessViewModel: Equatable {
         switch (entryReason, selectedProject) {
         case (.degradedRecovery, _):
             "Review the current readiness state, then continue with a generic shell or adjust settings."
-        case (.firstRun, .some(let project)):
+        case let (.firstRun, .some(project)):
             project.rootPath
         case (.firstRun, nil):
             "Open the demo workspace or add a folder. Generic shell remains available when presets are incomplete."
@@ -62,7 +62,7 @@ struct WelcomeReadinessViewModel: Equatable {
         selectedProject: LauncherProject?,
         report: ReadinessReport?,
         supportsDemoWorkspace: Bool,
-        launcherNotice: String?
+        launcherNotice: String?,
     ) {
         self.entryReason = entryReason
         self.recentProjectsCount = recentProjectsCount
@@ -79,7 +79,7 @@ struct WelcomeReadinessViewModel: Equatable {
             selectedProject: selectedProject,
             report: report,
             supportsDemoWorkspace: false,
-            launcherNotice: nil
+            launcherNotice: nil,
         )
     }
 }

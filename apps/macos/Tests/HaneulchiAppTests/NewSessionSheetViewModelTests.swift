@@ -1,13 +1,13 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("preset registry loads documented presets and resolves installed state")
 func presetRegistryLoadsAndResolvesInstallState() throws {
     let registry = try PresetRegistry.loadDefault(
         commandResolver: { command in
             command == "codex" || command == "yazi"
-        }
+        },
     )
 
     #expect(registry.presets.map(\.id) == ["claude", "codex", "gemini", "yazi", "lazygit"])
@@ -26,16 +26,16 @@ func newSessionSheetBuildsLaunchDescriptors() throws {
                 defaultArgs: ["--sandbox", "workspace-write"],
                 capabilityFlags: ["agent", "dispatch"],
                 requiresShellIntegration: false,
-                installState: .installed
-            )
-        ]
+                installState: .installed,
+            ),
+        ],
     )
     let workflowSummary = WorkflowLaunchSummary(
         name: "Demo Workflow",
         strategy: "worktree",
         baseRoot: ".",
         reviewChecklist: ["tests passed"],
-        allowedAgents: ["codex", "claude"]
+        allowedAgents: ["codex", "claude"],
     )
 
     let viewModel = NewSessionSheetViewModel(
@@ -51,9 +51,9 @@ func newSessionSheetBuildsLaunchDescriptors() throws {
                 worktreeID: "wt_task_104",
                 workspaceRoot: "/tmp/demo/worktrees/task-104",
                 baseRoot: ".",
-                branchName: "hc/task-104"
+                branchName: "hc/task-104",
             )
-        }
+        },
     )
 
     let generic = try viewModel.makeGenericDescriptor()
@@ -74,7 +74,6 @@ func newSessionSheetBuildsLaunchDescriptors() throws {
     #expect(isolated.workspaceRoot == "/tmp/demo/worktrees/task-104")
 }
 
-
 @Test("isolated launch surfaces provisioning failures instead of fabricating a local path")
 func isolatedLaunchFailsGracefullyWhenProvisioningFails() throws {
     let viewModel = NewSessionSheetViewModel(
@@ -84,7 +83,7 @@ func isolatedLaunchFailsGracefullyWhenProvisioningFails() throws {
         workflowSummary: nil,
         provisionIsolatedWorkspace: { _, _ in
             throw NewSessionSheetError.isolatedProvisionFailed("non_git_project")
-        }
+        },
     )
 
     #expect(throws: NewSessionSheetError.isolatedProvisionFailed("non_git_project")) {

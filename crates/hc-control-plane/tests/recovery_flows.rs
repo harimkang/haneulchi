@@ -53,11 +53,12 @@ fn missing_project_path_emits_recovery_issue() {
         .expect("missing_project_path issue");
 
     // details must reference the path but not contain any secret value
-    assert!(issue.details.contains("/nonexistent/haneulchi/path/that/does/not/exist"));
-    assert_eq!(
-        recovery_action_for_issue(issue),
-        RecoveryAction::ResetPath
+    assert!(
+        issue
+            .details
+            .contains("/nonexistent/haneulchi/path/that/does/not/exist")
     );
+    assert_eq!(recovery_action_for_issue(issue), RecoveryAction::ResetPath);
 }
 
 #[test]
@@ -147,7 +148,11 @@ fn stale_claim_reconcile_emits_recovery_issue() {
         .filter(|i| i.issue_code == "stale_claim_reconcile")
         .collect();
 
-    assert_eq!(stale_issues.len(), 2, "expected one issue per stale session");
+    assert_eq!(
+        stale_issues.len(),
+        2,
+        "expected one issue per stale session"
+    );
     for issue in &stale_issues {
         assert_eq!(
             recovery_action_for_issue(issue),

@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("recent project store keeps the last-opened project first and deduplicates by root path")
 func projectLauncherStoreKeepsMostRecentProjectFirst() throws {
@@ -9,13 +9,13 @@ func projectLauncherStoreKeepsMostRecentProjectFirst() throws {
         projectID: "proj_alpha",
         name: "alpha",
         rootPath: "/tmp/alpha",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let beta = LauncherProject(
         projectID: "proj_beta",
         name: "beta",
         rootPath: "/tmp/beta",
-        lastOpenedAt: .now.addingTimeInterval(5)
+        lastOpenedAt: .now.addingTimeInterval(5),
     )
 
     try store.recordOpen(alpha)

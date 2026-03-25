@@ -5,9 +5,9 @@ use hc_control_plane::{
     shared_task_move,
 };
 use hc_domain::{
-    ClaimState, ProjectSummary, RetryQueueEntry, RetryState, SessionFocusState, SessionRuntimeState,
-    SessionSummary, TaskAutomationMode, TaskColumn, TrackerStatus, WorkflowHealth,
-    WorkflowRuntimeStatus,
+    ClaimState, ProjectSummary, RetryQueueEntry, RetryState, SessionFocusState,
+    SessionRuntimeState, SessionSummary, TaskAutomationMode, TaskColumn, TrackerStatus,
+    WorkflowHealth, WorkflowRuntimeStatus,
 };
 
 fn workflow_status(state: WorkflowHealth) -> WorkflowRuntimeStatus {
@@ -65,25 +65,40 @@ fn session_projection_includes_workflow_review_ready_and_retry_due_attention() {
         }],
     });
 
-    assert_eq!(snapshot.ops.workflow.state, WorkflowHealth::InvalidKeptLastGood);
+    assert_eq!(
+        snapshot.ops.workflow.state,
+        WorkflowHealth::InvalidKeptLastGood
+    );
     assert_eq!(snapshot.sessions.len(), 2);
     assert_eq!(snapshot.attention.len(), 4);
-    assert!(snapshot
-        .attention
-        .iter()
-        .any(|item| item.kind == "waiting_input" && item.action_hint.as_deref() == Some("focus_session")));
-    assert!(snapshot
-        .attention
-        .iter()
-        .any(|item| item.kind == "review_ready" && item.action_hint.as_deref() == Some("open_review")));
-    assert!(snapshot
-        .attention
-        .iter()
-        .any(|item| item.kind == "retry_due" && item.action_hint.as_deref() == Some("open_retry_queue")));
-    assert!(snapshot
-        .attention
-        .iter()
-        .any(|item| item.kind == "workflow_invalid" && item.action_hint.as_deref() == Some("reload_workflow")));
+    assert!(
+        snapshot
+            .attention
+            .iter()
+            .any(|item| item.kind == "waiting_input"
+                && item.action_hint.as_deref() == Some("focus_session"))
+    );
+    assert!(
+        snapshot
+            .attention
+            .iter()
+            .any(|item| item.kind == "review_ready"
+                && item.action_hint.as_deref() == Some("open_review"))
+    );
+    assert!(
+        snapshot
+            .attention
+            .iter()
+            .any(|item| item.kind == "retry_due"
+                && item.action_hint.as_deref() == Some("open_retry_queue"))
+    );
+    assert!(
+        snapshot
+            .attention
+            .iter()
+            .any(|item| item.kind == "workflow_invalid"
+                && item.action_hint.as_deref() == Some("reload_workflow"))
+    );
 }
 
 #[test]
@@ -114,16 +129,25 @@ fn shared_commands_update_projection_state_consistently() {
 
     state.focus_session("ses_02").expect("focus succeeds");
     state.takeover_session("ses_02").expect("takeover succeeds");
-    state.attach_task("ses_02", "task_ready").expect("attach succeeds");
+    state
+        .attach_task("ses_02", "task_ready")
+        .expect("attach succeeds");
     assert_eq!(
         state.attach_task("ses_01", "task_ready"),
-        Err(ControlPlaneError::TaskClaimConflict("task_ready".to_string()))
+        Err(ControlPlaneError::TaskClaimConflict(
+            "task_ready".to_string()
+        ))
     );
     state.detach_task("ses_02").expect("detach succeeds");
-    state.release_takeover_session("ses_02").expect("release succeeds");
+    state
+        .release_takeover_session("ses_02")
+        .expect("release succeeds");
 
     let snapshot = state.snapshot();
-    assert_eq!(snapshot.ops.app.focused_session_id.as_deref(), Some("ses_02"));
+    assert_eq!(
+        snapshot.ops.app.focused_session_id.as_deref(),
+        Some("ses_02")
+    );
     assert_eq!(
         snapshot
             .sessions
@@ -201,7 +225,8 @@ fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_project
 fn scheduler_respects_slot_capacity_and_reports_stale_targets() {
     reset_task_board_for_tests();
     let extra = shared_create_task("proj_demo", "Overflow candidate", None).expect("extra task");
-    let extra_two = shared_create_task("proj_demo", "Second overflow", None).expect("second extra task");
+    let extra_two =
+        shared_create_task("proj_demo", "Second overflow", None).expect("second extra task");
     shared_task_move(&extra.id, TaskColumn::Ready, "test_seed").expect("move extra task");
     shared_task_move(&extra_two.id, TaskColumn::Ready, "test_seed").expect("move second extra");
     shared_set_automation_mode("task_ready", TaskAutomationMode::AutoEligible)

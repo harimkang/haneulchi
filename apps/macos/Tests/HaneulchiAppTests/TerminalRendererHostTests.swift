@@ -1,8 +1,8 @@
 import AppKit
 import Foundation
+@testable import HaneulchiApp
 import SwiftTerm
 import Testing
-@testable import HaneulchiApp
 
 private final class RecordingTerminalSessionController: @unchecked Sendable {
     private(set) var sentPayloads: [Data] = []
@@ -45,27 +45,28 @@ private final class RecordingTerminalCommandTarget: TerminalCommandTarget {
         selectAllCalls += 1
     }
 
-    func handleKeyDown(_ event: NSEvent) {}
+    func handleKeyDown(_: NSEvent) {}
 }
 
 private final class CapturingTerminalDelegate: TerminalViewDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private(set) var sentPayloads: [Data] = []
 
-    func sizeChanged(source: TerminalView, newCols: Int, newRows: Int) {}
-    func setTerminalTitle(source: TerminalView, title: String) {}
-    func hostCurrentDirectoryUpdate(source: TerminalView, directory: String?) {}
-    func send(source: TerminalView, data: ArraySlice<UInt8>) {
+    func sizeChanged(source _: TerminalView, newCols _: Int, newRows _: Int) {}
+    func setTerminalTitle(source _: TerminalView, title _: String) {}
+    func hostCurrentDirectoryUpdate(source _: TerminalView, directory _: String?) {}
+    func send(source _: TerminalView, data: ArraySlice<UInt8>) {
         lock.lock()
         sentPayloads.append(Data(data))
         lock.unlock()
     }
-    func scrolled(source: TerminalView, position: Double) {}
-    func requestOpenLink(source: TerminalView, link: String, params: [String: String]) {}
-    func bell(source: TerminalView) {}
-    func clipboardCopy(source: TerminalView, content: Data) {}
-    func iTermContent(source: TerminalView, content: ArraySlice<UInt8>) {}
-    func rangeChanged(source: TerminalView, startY: Int, endY: Int) {}
+
+    func scrolled(source _: TerminalView, position _: Double) {}
+    func requestOpenLink(source _: TerminalView, link _: String, params _: [String: String]) {}
+    func bell(source _: TerminalView) {}
+    func clipboardCopy(source _: TerminalView, content _: Data) {}
+    func iTermContent(source _: TerminalView, content _: ArraySlice<UInt8>) {}
+    func rangeChanged(source _: TerminalView, startY _: Int, endY _: Int) {}
 }
 
 @MainActor
@@ -78,7 +79,7 @@ func rendererHostResetsTerminalStateBeforeReplay() throws {
     coordinator.render(text: "second\n", mode: .replay, into: terminalView)
 
     let rendered = try #require(
-        String(data: terminalView.terminal.getBufferAsData(), encoding: .utf8)
+        String(data: terminalView.terminal.getBufferAsData(), encoding: .utf8),
     )
     let normalized = rendered.replacingOccurrences(of: "\n", with: "")
 
@@ -88,7 +89,7 @@ func rendererHostResetsTerminalStateBeforeReplay() throws {
 
 @MainActor
 @Test("renderer host forwards keystrokes and resize events to the session controller")
-func rendererHostForwardsInputAndResize() throws {
+func rendererHostForwardsInputAndResize() {
     let controller = RecordingTerminalSessionController()
     let coordinator = TerminalRendererHost.Coordinator(
         writeHandler: { data in
@@ -96,7 +97,7 @@ func rendererHostForwardsInputAndResize() throws {
         },
         resizeHandler: { geometry in
             try? controller.resize(geometry)
-        }
+        },
     )
     let terminalView = TerminalView(frame: .zero)
 
@@ -110,8 +111,9 @@ func rendererHostForwardsInputAndResize() throws {
 @MainActor
 @Test("renderer host retains scrollback markers after overflow and resize")
 func rendererHostRetainsScrollbackMarkersAfterOverflowAndResize() async throws {
-    let overflowTranscript = (1...200).map { "line \($0)\n" }.joined()
-    let controller = TerminalSessionController(bridge: .mockLiveSession(outputChunks: [overflowTranscript]))
+    let overflowTranscript = (1 ... 200).map { "line \($0)\n" }.joined()
+    let controller =
+        TerminalSessionController(bridge: .mockLiveSession(outputChunks: [overflowTranscript]))
     let coordinator = TerminalRendererHost.Coordinator()
     let terminalView = TerminalView(frame: .zero)
 
@@ -129,7 +131,7 @@ func liveRendererUsesAppendInstructionForStreamingUpdates() {
     let instruction = TerminalRendererHost.Coordinator.renderInstruction(
         previousText: "hello",
         nextText: "hello world",
-        mode: .live
+        mode: .live,
     )
 
     #expect(instruction == .append(" world"))
@@ -169,8 +171,8 @@ func commandTargetSendsPlainTextAndReturn() throws {
             characters: "a",
             charactersIgnoringModifiers: "a",
             isARepeat: false,
-            keyCode: 0
-        )
+            keyCode: 0,
+        ),
     )
     let returnEvent = try #require(
         NSEvent.keyEvent(
@@ -183,8 +185,8 @@ func commandTargetSendsPlainTextAndReturn() throws {
             characters: "\r",
             charactersIgnoringModifiers: "\r",
             isARepeat: false,
-            keyCode: 36
-        )
+            keyCode: 36,
+        ),
     )
 
     target.handleKeyDown(textEvent)
@@ -201,9 +203,9 @@ func commandTargetFocusesTerminalAfterWindowAttachment() throws {
         contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
         styleMask: [.titled, .closable, .resizable],
         backing: .buffered,
-        defer: false
+        defer: false,
     )
-    let container = NSView(frame: window.contentView!.bounds)
+    let container = try NSView(frame: #require(window.contentView?.bounds))
     let terminalView = TerminalView(frame: container.bounds)
     container.addSubview(terminalView)
     window.contentView = container
@@ -223,10 +225,10 @@ func commandTargetRetriesFocusUntilWindowBecomesKey() throws {
         contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
         styleMask: [.titled, .closable, .resizable],
         backing: .buffered,
-        defer: false
+        defer: false,
     )
     let terminalView = TerminalView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
-    let container = NSView(frame: window.contentView!.bounds)
+    let container = try NSView(frame: #require(window.contentView?.bounds))
     container.addSubview(terminalView)
     window.contentView = container
 
@@ -250,14 +252,14 @@ func focusingTerminalContainerTakesFirstResponderOnMouseDown() throws {
         contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
         styleMask: [.titled, .closable, .resizable],
         backing: .buffered,
-        defer: false
+        defer: false,
     )
     let terminalView = TerminalView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
     let view = FocusingTerminalContainerView(
         frame: NSRect(x: 0, y: 0, width: 300, height: 200),
-        terminalView: terminalView
+        terminalView: terminalView,
     )
-    let container = NSView(frame: window.contentView!.bounds)
+    let container = try NSView(frame: #require(window.contentView?.bounds))
     container.addSubview(view)
     window.contentView = container
     window.makeKeyAndOrderFront(nil)
@@ -272,8 +274,8 @@ func focusingTerminalContainerTakesFirstResponderOnMouseDown() throws {
             context: nil,
             eventNumber: 1,
             clickCount: 1,
-            pressure: 1
-        )
+            pressure: 1,
+        ),
     )
 
     view.mouseDown(with: event)

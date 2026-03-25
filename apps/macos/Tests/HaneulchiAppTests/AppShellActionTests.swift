@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 private final class SendableBox<T>: @unchecked Sendable {
     var value: T
@@ -12,13 +12,13 @@ private final class SendableBox<T>: @unchecked Sendable {
 
 @MainActor
 @Test("file selection intent routes back to project focus and records a visible shell notice")
-func fileSelectionActionUsesSharedDispatcher() async throws {
+func fileSelectionActionUsesSharedDispatcher() async {
     let restoreStore = TerminalSessionRestoreStore.inMemory
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
 
     let model = AppShellModel(
@@ -29,7 +29,7 @@ func fileSelectionActionUsesSharedDispatcher() async throws {
         readinessReport: nil,
         projectStore: .inMemory,
         restoreStore: restoreStore,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     await model.perform(.queueFileSelection("/tmp/demo/README.md"))
@@ -42,7 +42,7 @@ func fileSelectionActionUsesSharedDispatcher() async throws {
 
 @MainActor
 @Test("palette presentation is shared state owned by the shell model")
-func toggleCommandPaletteOwnsPresentationState() async throws {
+func toggleCommandPaletteOwnsPresentationState() async {
     let model = AppShellModel(
         entrySurface: .shell,
         selectedRoute: .projectFocus,
@@ -51,7 +51,7 @@ func toggleCommandPaletteOwnsPresentationState() async throws {
         readinessReport: nil,
         projectStore: .inMemory,
         restoreStore: .inMemory,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     #expect(model.isCommandPalettePresented == false)
@@ -71,7 +71,7 @@ func createTaskDraftActionCreatesPersistedTask() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
 
     let model = AppShellModel(
@@ -83,7 +83,7 @@ func createTaskDraftActionCreatesPersistedTask() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        taskSearchProjectionStore: taskStore
+        taskSearchProjectionStore: taskStore,
     )
 
     await model.perform(.createTaskDraft("Wire app shell"))
@@ -97,12 +97,12 @@ func createTaskDraftActionCreatesPersistedTask() async throws {
 
 @MainActor
 @Test("create task draft failure keeps the current route and reports a failure notice")
-func createTaskDraftFailureDoesNotReportSuccess() async throws {
+func createTaskDraftFailureDoesNotReportSuccess() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let failingStore = TaskSearchProjectionStore(
         search: { _ in [] },
@@ -110,7 +110,7 @@ func createTaskDraftFailureDoesNotReportSuccess() async throws {
         createDraft: { _, _ in
             struct DraftFailure: Error {}
             throw DraftFailure()
-        }
+        },
     )
 
     let model = AppShellModel(
@@ -122,7 +122,7 @@ func createTaskDraftFailureDoesNotReportSuccess() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        taskSearchProjectionStore: failingStore
+        taskSearchProjectionStore: failingStore,
     )
 
     await model.perform(.createTaskDraft("Wire app shell"))
@@ -133,19 +133,31 @@ func createTaskDraftFailureDoesNotReportSuccess() async throws {
 
 @MainActor
 @Test("latest unread uses projected attention from the shared shell snapshot")
-func jumpToLatestUnreadUsesProjectedAttention() async throws {
+func jumpToLatestUnreadUsesProjectedAttention() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "/bin/zsh", nextAction: nil),
-            .init(name: .presetBinaries, status: .degraded, headline: "Preset binaries missing", detail: "Generic shell remains available.", nextAction: "Open Settings"),
-        ]
+            .init(
+                name: .shell,
+                status: .ready,
+                headline: "Shell ready",
+                detail: "/bin/zsh",
+                nextAction: nil,
+            ),
+            .init(
+                name: .presetBinaries,
+                status: .degraded,
+                headline: "Preset binaries missing",
+                detail: "Generic shell remains available.",
+                nextAction: "Open Settings",
+            ),
+        ],
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -155,7 +167,7 @@ func jumpToLatestUnreadUsesProjectedAttention() async throws {
         readinessReport: report,
         projectStore: .inMemory,
         restoreStore: .inMemory,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     await model.refreshShellSnapshot()
@@ -167,7 +179,7 @@ func jumpToLatestUnreadUsesProjectedAttention() async throws {
 
 @MainActor
 @Test("notification drawer toggles from shell state")
-func notificationDrawerToggleUpdatesPresentationState() async throws {
+func notificationDrawerToggleUpdatesPresentationState() async {
     let model = AppShellModel(
         entrySurface: .shell,
         selectedRoute: .projectFocus,
@@ -176,7 +188,7 @@ func notificationDrawerToggleUpdatesPresentationState() async throws {
         readinessReport: nil,
         projectStore: .inMemory,
         restoreStore: .inMemory,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     #expect(model.isNotificationDrawerPresented == false)
@@ -190,10 +202,14 @@ func notificationDrawerToggleUpdatesPresentationState() async throws {
 
 @MainActor
 @Test("quick dispatch overlay can open from control tower and dismiss after send")
-func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async throws {
+func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async {
     let sent = SendableBox<[(String, String?, String)]>([])
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -217,15 +233,15 @@ func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async throws {
                         dispatchState: .dispatchable,
                         unreadCount: 0,
                         projectID: "proj_demo",
-                        focusState: .focused
-                    )
+                        focusState: .focused,
+                    ),
                 ],
                 attention: [],
                 retryQueue: [],
-                warnings: []
+                warnings: [],
             )
         },
-        dispatchSend: { sent.value.append(($0, $1, $2)) }
+        dispatchSend: { sent.value.append(($0, $1, $2)) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -236,7 +252,7 @@ func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -245,15 +261,21 @@ func quickDispatchOverlayTracksOriginAndDismissesAfterSend() async throws {
     #expect(model.quickDispatchComposer != nil)
     #expect(model.quickDispatchOrigin == .controlTower)
 
-    await model.perform(.dispatchSend(targetSessionID: "ses_dispatch", taskID: nil, message: "run tests"))
+    await model.perform(.dispatchSend(
+        targetSessionID: "ses_dispatch",
+        taskID: nil,
+        message: "run tests",
+    ))
 
     #expect(sent.value.count == 1)
     #expect(model.quickDispatchComposer == nil)
 }
 
 @MainActor
-@Test("quick dispatch new adapter target opens a prefilled new session sheet instead of dispatching a synthetic session id")
-func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
+@Test(
+    "quick dispatch new adapter target opens a prefilled new session sheet instead of dispatching a synthetic session id",
+)
+func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async {
     let sent = SendableBox<[(String, String?, String)]>([])
     let registry = PresetRegistry(
         presets: [
@@ -264,18 +286,22 @@ func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
                 defaultArgs: ["--sandbox", "workspace-write"],
                 capabilityFlags: ["agent", "dispatch"],
                 requiresShellIntegration: false,
-                installState: .installed
-            )
-        ]
+                installState: .installed,
+            ),
+        ],
     )
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -300,15 +326,15 @@ func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
                         unreadCount: 0,
                         projectID: "proj_demo",
                         adapterKind: "codex",
-                        focusState: .focused
-                    )
+                        focusState: .focused,
+                    ),
                 ],
                 attention: [],
                 retryQueue: [],
-                warnings: []
+                warnings: [],
             )
         },
-        dispatchSend: { sent.value.append(($0, $1, $2)) }
+        dispatchSend: { sent.value.append(($0, $1, $2)) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -320,7 +346,7 @@ func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
         presetRegistry: registry,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -334,15 +360,17 @@ func quickDispatchNewAdapterTargetPrefillsNewSessionSheet() async throws {
 }
 
 @MainActor
-@Test("pending quick dispatch replays onto the launched live session once the terminal reports its real session id")
-func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
+@Test(
+    "pending quick dispatch replays onto the launched live session once the terminal reports its real session id",
+)
+func quickDispatchReplayUsesRealLaunchedSessionID() async {
     let sent = SendableBox<[(String, String?, String)]>([])
     let restoreStore = TerminalSessionRestoreStore.inMemory
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let registry = PresetRegistry(
         presets: [
@@ -353,19 +381,23 @@ func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
                 defaultArgs: ["--sandbox", "workspace-write"],
                 capabilityFlags: ["agent", "dispatch"],
                 requiresShellIntegration: false,
-                installState: .installed
-            )
-        ]
+                installState: .installed,
+            ),
+        ],
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        dispatchSend: { sent.value.append(($0, $1, $2)) }
+        dispatchSend: { sent.value.append(($0, $1, $2)) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -377,7 +409,7 @@ func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
         restoreStore: restoreStore,
         preferencesStore: .inMemory,
         presetRegistry: registry,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.submitQuickDispatch(targetID: "new:codex", message: "run tests"))
@@ -391,12 +423,12 @@ func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
                 args: ["--sandbox", "workspace-write"],
                 currentDirectory: "/tmp/demo",
                 geometry: .defaultShell,
-                environment: [:]
+                environment: [:],
             ),
-            geometry: .defaultShell
+            geometry: .defaultShell,
         ),
         workspaceRoot: nil,
-        workflowSummary: nil
+        workflowSummary: nil,
     )
 
     await model.perform(.launchSession(descriptor))
@@ -410,10 +442,14 @@ func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
 
 @MainActor
 @Test("reconcile automation requests the live bridge and refreshes shell snapshot")
-func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async throws {
+func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async {
     let reconcileCalls = SendableBox(0)
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -428,19 +464,19 @@ func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async throws {
                     runningSlots: 1,
                     maxSlots: 2,
                     retryQueueCount: 0,
-                    workflowHealth: .ok
+                    workflowHealth: .ok,
                 ),
                 app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
                 projects: [],
                 sessions: [],
                 attention: [],
                 retryQueue: [],
-                warnings: []
+                warnings: [],
             )
         },
         reconcileAutomation: {
             reconcileCalls.value += 1
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -451,7 +487,7 @@ func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -465,23 +501,27 @@ func reconcileAutomationUsesLiveBridgeAndRefreshesSnapshot() async throws {
 
 @MainActor
 @Test("attention actions call the live bridge closures")
-func attentionActionsInvokeBridge() async throws {
+func attentionActionsInvokeBridge() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let resolved = SendableBox<[String]>([])
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        resolveAttention: { resolved.value.append($0) }
+        resolveAttention: { resolved.value.append($0) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -492,7 +532,7 @@ func attentionActionsInvokeBridge() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.resolveAttention("att_waiting"))
@@ -502,23 +542,27 @@ func attentionActionsInvokeBridge() async throws {
 
 @MainActor
 @Test("quick dispatch send calls the live bridge closure")
-func quickDispatchSendInvokesBridge() async throws {
+func quickDispatchSendInvokesBridge() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let sent = SendableBox<[(String, String?, String)]>([])
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        dispatchSend: { sent.value.append(($0, $1, $2)) }
+        dispatchSend: { sent.value.append(($0, $1, $2)) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -529,10 +573,14 @@ func quickDispatchSendInvokesBridge() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
-    await model.perform(.dispatchSend(targetSessionID: "ses_api", taskID: "task_ready", message: "run tests"))
+    await model.perform(.dispatchSend(
+        targetSessionID: "ses_api",
+        taskID: "task_ready",
+        message: "run tests",
+    ))
 
     #expect(sent.value.count == 1)
     #expect(sent.value.first?.0 == "ses_api")
@@ -546,7 +594,11 @@ func exportSnapshotWritesFile() async throws {
     let exportURL = FileManager.default.temporaryDirectory
         .appendingPathComponent("haneulchi-export-\(UUID().uuidString).json")
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -558,7 +610,7 @@ func exportSnapshotWritesFile() async throws {
         },
         stateSnapshotJSON: {
             #"{"meta":{"snapshot_rev":1,"runtime_rev":1,"projection_rev":1,"snapshot_at":"2026-03-23T00:00:00Z"}}"#
-        }
+        },
     )
 
     let model = AppShellModel(
@@ -570,7 +622,7 @@ func exportSnapshotWritesFile() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     setenv("HC_EXPORT_SNAPSHOT_PATH", exportURL.path, 1)
@@ -594,7 +646,7 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let registry = PresetRegistry(
         presets: [
@@ -605,9 +657,9 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
                 defaultArgs: ["--sandbox", "workspace-write"],
                 capabilityFlags: ["agent"],
                 requiresShellIntegration: false,
-                installState: .installed
-            )
-        ]
+                installState: .installed,
+            ),
+        ],
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -618,7 +670,7 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
         projectStore: .inMemory,
         restoreStore: restoreStore,
         preferencesStore: .inMemory,
-        presetRegistry: registry
+        presetRegistry: registry,
     )
 
     await model.perform(.presentNewSessionSheet)
@@ -635,12 +687,12 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
                 args: ["--sandbox", "workspace-write"],
                 currentDirectory: "/tmp/demo",
                 geometry: .defaultShell,
-                environment: [:]
+                environment: [:],
             ),
-            geometry: .defaultShell
+            geometry: .defaultShell,
         ),
         workspaceRoot: nil,
-        workflowSummary: nil
+        workflowSummary: nil,
     )
 
     await model.perform(.launchSession(descriptor))
@@ -666,7 +718,11 @@ private final class SnapshotBridgeState: @unchecked Sendable {
         snapshot = AppShellSnapshot(
             meta: snapshot.meta,
             ops: snapshot.ops,
-            app: .init(activeRoute: .projectFocus, focusedSessionID: sessionID, degradedFlags: snapshot.app.degradedFlags),
+            app: .init(
+                activeRoute: .projectFocus,
+                focusedSessionID: sessionID,
+                degradedFlags: snapshot.app.degradedFlags,
+            ),
             projects: snapshot.projects,
             sessions: snapshot.sessions.map { session in
                 .init(
@@ -690,14 +746,14 @@ private final class SnapshotBridgeState: @unchecked Sendable {
                     focusState: session.sessionID == sessionID ? .focused : .background,
                     canFocus: session.canFocus,
                     canTakeover: session.canTakeover,
-                    canReleaseTakeover: session.canReleaseTakeover
+                    canReleaseTakeover: session.canReleaseTakeover,
                 )
             },
             attention: snapshot.attention,
             retryQueue: snapshot.retryQueue,
             warnings: snapshot.warnings,
             workflow: snapshot.workflow,
-            tracker: snapshot.tracker
+            tracker: snapshot.tracker,
         )
     }
 
@@ -710,7 +766,7 @@ private final class SnapshotBridgeState: @unchecked Sendable {
 
 @MainActor
 @Test("jump to session uses bridge focus and refreshed snapshot state")
-func jumpToSessionUsesBridgeFocus() async throws {
+func jumpToSessionUsesBridgeFocus() async {
     let snapshotState = SnapshotBridgeState(
         snapshot: AppShellSnapshot(
             meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
@@ -727,7 +783,7 @@ func jumpToSessionUsesBridgeFocus() async throws {
                     manualControlState: .none,
                     dispatchState: .dispatchable,
                     unreadCount: 0,
-                    focusState: .focused
+                    focusState: .focused,
                 ),
                 .init(
                     sessionID: "ses_02",
@@ -738,17 +794,21 @@ func jumpToSessionUsesBridgeFocus() async throws {
                     manualControlState: .none,
                     dispatchState: .dispatchable,
                     unreadCount: 0,
-                    focusState: .background
+                    focusState: .background,
                 ),
             ],
             attention: [],
             retryQueue: [],
-            warnings: []
-        )
+            warnings: [],
+        ),
     )
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -758,7 +818,7 @@ func jumpToSessionUsesBridgeFocus() async throws {
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         stateSnapshot: { snapshotState.current() },
         sessionsList: { snapshotState.current().sessions },
-        focusSession: { sessionID in snapshotState.focus(sessionID) }
+        focusSession: { sessionID in snapshotState.focus(sessionID) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -769,7 +829,7 @@ func jumpToSessionUsesBridgeFocus() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -777,12 +837,13 @@ func jumpToSessionUsesBridgeFocus() async throws {
 
     #expect(model.selectedRoute == .projectFocus)
     #expect(model.shellSnapshot?.app.focusedSessionID == "ses_02")
-    #expect(model.shellSnapshot?.sessions.first(where: { $0.sessionID == "ses_02" })?.focusState == .focused)
+    #expect(model.shellSnapshot?.sessions.first(where: { $0.sessionID == "ses_02" })?
+        .focusState == .focused)
 }
 
 @MainActor
 @Test("workflow drawer action loads validate payload and reload updates state")
-func workflowDrawerUsesBridgeValidateAndReload() async throws {
+func workflowDrawerUsesBridgeValidateAndReload() async {
     let payloads = WorkflowPayloadRecorder(
         validatePayload: Data(
             #"""
@@ -801,7 +862,7 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
                 "hooks": ["after_create"]
               }
             }
-            """#.utf8
+            """#.utf8,
         ),
         reloadPayload: Data(
             #"""
@@ -820,17 +881,21 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
                 "hooks": ["after_create"]
               }
             }
-            """#.utf8
-        )
+            """#.utf8,
+        ),
     )
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -838,7 +903,7 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         workflowValidate: { _ in payloads.validatePayload },
-        workflowReload: { _ in payloads.reloadPayload }
+        workflowReload: { _ in payloads.reloadPayload },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -849,7 +914,7 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.presentWorkflowDrawer)
@@ -863,15 +928,19 @@ func workflowDrawerUsesBridgeValidateAndReload() async throws {
 
 @MainActor
 @Test("refresh shell snapshot syncs workflow status from the authoritative snapshot")
-func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
+func refreshShellSnapshotSynchronizesWorkflowStatus() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -881,7 +950,12 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
         stateSnapshot: {
             AppShellSnapshot(
                 meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
-                ops: .init(runningSlots: 0, maxSlots: 1, retryQueueCount: 0, workflowHealth: .reloadPending),
+                ops: .init(
+                    runningSlots: 0,
+                    maxSlots: 1,
+                    retryQueueCount: 0,
+                    workflowHealth: .reloadPending,
+                ),
                 app: .init(activeRoute: .projectFocus, focusedSessionID: nil, degradedFlags: []),
                 projects: [],
                 sessions: [],
@@ -893,11 +967,11 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
                     path: "/tmp/demo/WORKFLOW.md",
                     lastGoodHash: "sha256:abc123",
                     lastReloadAt: "2026-03-23T00:00:00Z",
-                    lastError: nil
+                    lastError: nil,
                 ),
-                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok"),
             )
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -908,7 +982,7 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -918,16 +992,22 @@ func refreshShellSnapshotSynchronizesWorkflowStatus() async throws {
 }
 
 @MainActor
-@Test("refresh shell snapshot clears stale workflow status when the selected project has no workflow")
-func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async throws {
+@Test(
+    "refresh shell snapshot clears stale workflow status when the selected project has no workflow",
+)
+func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async {
     let project = LauncherProject(
         projectID: "proj_no_workflow",
         name: "demo",
         rootPath: "/tmp/no-workflow",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -945,10 +1025,10 @@ func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async throw
                 retryQueue: [],
                 warnings: [],
                 workflow: nil,
-                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok"),
             )
         },
-        workflowValidate: { _ in Data(#"{"state":"none"}"#.utf8) }
+        workflowValidate: { _ in Data(#"{"state":"none"}"#.utf8) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -974,9 +1054,9 @@ func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async throw
                 allowedAgents: ["codex"],
                 hooks: [],
                 hookRuns: [:],
-                templateBody: nil
-            )
-        )
+                templateBody: nil,
+            ),
+        ),
     )
 
     await model.refreshShellSnapshot()
@@ -986,15 +1066,19 @@ func refreshShellSnapshotClearsWorkflowStatusWhenWorkflowIsMissing() async throw
 
 @MainActor
 @Test("task context drawer reuses workflow summary for the focused task")
-func taskContextDrawerUsesWorkflowSummary() async throws {
+func taskContextDrawerUsesWorkflowSummary() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1005,7 +1089,11 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
             AppShellSnapshot(
                 meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
                 ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
-                app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_01", degradedFlags: []),
+                app: .init(
+                    activeRoute: .projectFocus,
+                    focusedSessionID: "ses_01",
+                    degradedFlags: [],
+                ),
                 projects: [],
                 sessions: [
                     .init(
@@ -1024,7 +1112,7 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
                         branch: "feature/task-104",
                         latestSummary: "Awaiting operator answer",
                         focusState: .focused,
-                        canTakeover: true
+                        canTakeover: true,
                     ),
                 ],
                 attention: [],
@@ -1035,9 +1123,9 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
                     path: "/tmp/demo/WORKFLOW.md",
                     lastGoodHash: "sha256:abc123",
                     lastReloadAt: "2026-03-23T00:00:00Z",
-                    lastError: nil
+                    lastError: nil,
                 ),
-                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok")
+                tracker: .init(state: "local_only", lastSyncAt: nil, health: "ok"),
             )
         },
         workflowValidate: { _ in
@@ -1058,9 +1146,9 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
                     "hooks": ["after_create"]
                   }
                 }
-                """#.utf8
+                """#.utf8,
             )
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1071,7 +1159,7 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -1085,15 +1173,19 @@ func taskContextDrawerUsesWorkflowSummary() async throws {
 
 @MainActor
 @Test("open settings also loads the full workflow summary for the settings surface")
-func openSettingsLoadsWorkflowSummary() async throws {
+func openSettingsLoadsWorkflowSummary() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1118,9 +1210,9 @@ func openSettingsLoadsWorkflowSummary() async throws {
                     "hooks": ["after_create", "before_run"]
                   }
                 }
-                """#.utf8
+                """#.utf8,
             )
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1131,7 +1223,7 @@ func openSettingsLoadsWorkflowSummary() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.openSettings)
@@ -1140,11 +1232,14 @@ func openSettingsLoadsWorkflowSummary() async throws {
     #expect(model.workflowStatus?.workflow?.name == "Demo Workflow")
     #expect(model.workflowStatus?.workflow?.allowedAgents == ["codex", "claude"])
     #expect(model.settingsStatusViewModel?.workflowRow?.title == "Demo Workflow")
-    #expect(model.settingsStatusViewModel?.automationRows.first(where: { $0.id == .localAPI })?.statusLabel == "available")
+    #expect(model.settingsStatusViewModel?.automationRows.first(where: { $0.id == .localAPI })?
+        .statusLabel == "available")
 }
 
 @MainActor
-@Test("isolated launch materializes workspace, executes hooks, and writes a rendered prompt artifact")
+@Test(
+    "isolated launch materializes workspace, executes hooks, and writes a rendered prompt artifact",
+)
 func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
     let projectRoot = FileManager.default.temporaryDirectory
         .appendingPathComponent("isolated-launch-\(UUID().uuidString)", isDirectory: true)
@@ -1155,7 +1250,10 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
     #!/bin/sh
     echo after-create > "$PWD/after-create.txt"
     """.write(to: afterCreate, atomically: true, encoding: .utf8)
-    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: afterCreate.path)
+    try FileManager.default.setAttributes(
+        [.posixPermissions: 0o755],
+        ofItemAtPath: afterCreate.path,
+    )
 
     let beforeRun = projectRoot.appendingPathComponent("before-run.sh")
     try """
@@ -1168,10 +1266,14 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: projectRoot.path,
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1201,9 +1303,9 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
                     "template_body": "Project: {{project.name}}"
                   }
                 }
-                """#.utf8
+                """#.utf8,
             )
-        }
+        },
     )
     let restoreStore = TerminalSessionRestoreStore.inMemory
     let model = AppShellModel(
@@ -1215,7 +1317,7 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
         projectStore: .inMemory,
         restoreStore: restoreStore,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     let isolatedRoot = projectRoot
@@ -1232,8 +1334,8 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
             strategy: "worktree",
             baseRoot: ".",
             reviewChecklist: ["tests passed"],
-            allowedAgents: ["codex"]
-        )
+            allowedAgents: ["codex"],
+        ),
     )
 
     await model.perform(.launchSession(descriptor))
@@ -1244,13 +1346,16 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
     #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/after-create.txt"))
     #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/before-run.txt"))
     #expect(FileManager.default.fileExists(atPath: renderedPrompt))
-    #expect(try String(contentsOfFile: renderedPrompt, encoding: .utf8).contains("Project: demo") == true)
+    #expect(try String(contentsOfFile: renderedPrompt, encoding: .utf8)
+        .contains("Project: demo") == true)
     #expect(savedBundles.last?.launch.currentDirectory == isolatedRoot)
 }
 
 @MainActor
-@Test("AppShellModel has isInventoryPresented field and presentInventory / dismissInventory actions update it")
-func testPresentInventoryActionIsHandled() async throws {
+@Test(
+    "AppShellModel has isInventoryPresented field and presentInventory / dismissInventory actions update it",
+)
+func presentInventoryActionIsHandled() async {
     let model = AppShellModel(
         entrySurface: .shell,
         selectedRoute: .projectFocus,
@@ -1259,7 +1364,7 @@ func testPresentInventoryActionIsHandled() async throws {
         readinessReport: nil,
         projectStore: .inMemory,
         restoreStore: .inMemory,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     #expect(model.isInventoryPresented == false)
@@ -1273,15 +1378,19 @@ func testPresentInventoryActionIsHandled() async throws {
 
 @MainActor
 @Test("inventory overlay loads authoritative rows from the bridge inventory projection")
-func inventoryOverlayUsesInventoryRowsFromBridge() async throws {
+func inventoryOverlayUsesInventoryRowsFromBridge() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1303,10 +1412,10 @@ func inventoryOverlayUsesInventoryRowsFromBridge() async throws {
                     isPinned: false,
                     isDegraded: false,
                     sizeBytes: 2048,
-                    lastAccessedAt: "2026-03-25T00:00:00Z"
-                )
+                    lastAccessedAt: "2026-03-25T00:00:00Z",
+                ),
             ]
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1317,7 +1426,7 @@ func inventoryOverlayUsesInventoryRowsFromBridge() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.presentInventory)
@@ -1329,15 +1438,19 @@ func inventoryOverlayUsesInventoryRowsFromBridge() async throws {
 
 @MainActor
 @Test("open inventory task presents the task drawer for the matching task session")
-func openInventoryTaskPresentsTaskDrawer() async throws {
+func openInventoryTaskPresentsTaskDrawer() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1348,7 +1461,11 @@ func openInventoryTaskPresentsTaskDrawer() async throws {
             AppShellSnapshot(
                 meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
                 ops: .init(runningSlots: 1, maxSlots: 1, retryQueueCount: 0, workflowHealth: .ok),
-                app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_01", degradedFlags: []),
+                app: .init(
+                    activeRoute: .projectFocus,
+                    focusedSessionID: "ses_01",
+                    degradedFlags: [],
+                ),
                 projects: [],
                 sessions: [
                     .init(
@@ -1366,12 +1483,12 @@ func openInventoryTaskPresentsTaskDrawer() async throws {
                         baseRoot: ".",
                         branch: "hc/task-104",
                         focusState: .focused,
-                        canTakeover: true
-                    )
+                        canTakeover: true,
+                    ),
                 ],
                 attention: [],
                 retryQueue: [],
-                warnings: []
+                warnings: [],
             )
         },
         workflowValidate: { _ in
@@ -1388,9 +1505,9 @@ func openInventoryTaskPresentsTaskDrawer() async throws {
                     "allowed_agents": ["codex"]
                   }
                 }
-                """#.utf8
+                """#.utf8,
             )
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1401,7 +1518,7 @@ func openInventoryTaskPresentsTaskDrawer() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -1412,11 +1529,17 @@ func openInventoryTaskPresentsTaskDrawer() async throws {
 }
 
 @MainActor
-@Test("recovery pin action mutates the worktree through the bridge instead of only posting a notice")
-func recoveryPinActionMutatesWorktree() async throws {
+@Test(
+    "recovery pin action mutates the worktree through the bridge instead of only posting a notice",
+)
+func recoveryPinActionMutatesWorktree() async {
     let recordedPins = SendableBox<[(String, Bool)]>([])
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1425,7 +1548,7 @@ func recoveryPinActionMutatesWorktree() async throws {
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         setWorktreePinned: { worktreeID, isPinned in
             recordedPins.value.append((worktreeID, isPinned))
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1436,7 +1559,7 @@ func recoveryPinActionMutatesWorktree() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.triggerRecovery(issueCode: "pin:wt_task_104:true"))
@@ -1448,16 +1571,20 @@ func recoveryPinActionMutatesWorktree() async throws {
 
 @MainActor
 @Test("workflow recovery action requests a workflow reload")
-func workflowRecoveryReloadsWorkflow() async throws {
+func workflowRecoveryReloadsWorkflow() async {
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     let reloadCount = SendableBox(0)
     let bridge = CoreBridge(
-        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        runtimeInfo: { TerminalBackendDescriptor(
+            rendererID: "swiftterm",
+            transport: "ffi_c_abi",
+            demoMode: false,
+        ) },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
         writeSession: { _, _ in },
@@ -1467,7 +1594,7 @@ func workflowRecoveryReloadsWorkflow() async throws {
         workflowReload: { _ in
             reloadCount.value += 1
             return Data(#"{"state":"ok","path":"/tmp/demo/WORKFLOW.md"}"#.utf8)
-        }
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -1478,7 +1605,7 @@ func workflowRecoveryReloadsWorkflow() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.perform(.triggerRecovery(issueCode: "invalid_workflow_reload"))

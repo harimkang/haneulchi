@@ -1,6 +1,6 @@
 use std::os::unix::fs::PermissionsExt;
-use std::time::{SystemTime, UNIX_EPOCH};
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_control_plane::{reset_shared_control_plane_snapshot_for_tests, reset_task_board_for_tests};
 use hc_domain::{

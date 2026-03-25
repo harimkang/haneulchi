@@ -1,16 +1,35 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 private func makeTempWorkspace() throws -> URL {
     let root = FileManager.default.temporaryDirectory
         .appendingPathComponent("haneulchi-workspace-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
-    try "Hello".write(to: root.appendingPathComponent("README.md"), atomically: true, encoding: .utf8)
-    try "# Notes".write(to: root.appendingPathComponent("notes.markdown"), atomically: true, encoding: .utf8)
-    try #"{"ok":true}"#.write(to: root.appendingPathComponent("data.json"), atomically: true, encoding: .utf8)
-    try "name: demo".write(to: root.appendingPathComponent("config.yaml"), atomically: true, encoding: .utf8)
-    FileManager.default.createFile(atPath: root.appendingPathComponent("image.png").path, contents: Data([0x89, 0x50, 0x4E, 0x47]))
+    try "Hello".write(
+        to: root.appendingPathComponent("README.md"),
+        atomically: true,
+        encoding: .utf8,
+    )
+    try "# Notes".write(
+        to: root.appendingPathComponent("notes.markdown"),
+        atomically: true,
+        encoding: .utf8,
+    )
+    try #"{"ok":true}"#.write(
+        to: root.appendingPathComponent("data.json"),
+        atomically: true,
+        encoding: .utf8,
+    )
+    try "name: demo".write(
+        to: root.appendingPathComponent("config.yaml"),
+        atomically: true,
+        encoding: .utf8,
+    )
+    FileManager.default.createFile(
+        atPath: root.appendingPathComponent("image.png").path,
+        contents: Data([0x89, 0x50, 0x4E, 0x47]),
+    )
     return root
 }
 
@@ -18,8 +37,14 @@ private func makeTempWorkspace() throws -> URL {
 func workspaceStateTracksPresetAndFiltering() throws {
     let root = try makeTempWorkspace()
     let entries = [
-        ProjectFileIndex.Entry(relativePath: "README.md", absolutePath: root.appendingPathComponent("README.md").path),
-        ProjectFileIndex.Entry(relativePath: "notes.markdown", absolutePath: root.appendingPathComponent("notes.markdown").path),
+        ProjectFileIndex.Entry(
+            relativePath: "README.md",
+            absolutePath: root.appendingPathComponent("README.md").path,
+        ),
+        ProjectFileIndex.Entry(
+            relativePath: "notes.markdown",
+            absolutePath: root.appendingPathComponent("notes.markdown").path,
+        ),
     ]
 
     var state = ProjectFocusWorkspaceState(projectRoot: root.path)
@@ -47,7 +72,7 @@ func workspaceStateSupportsPreviewAndQuickEdit() throws {
     state.enterQuickEdit()
     state.editingText = "Updated"
     try state.saveQuickEdit()
-    #expect(try String(contentsOfFile: readme) == "Updated")
+    #expect(try String(contentsOfFile: readme, encoding: .utf8) == "Updated")
     #expect(state.isEditing == false)
 
     state.openFile(image)

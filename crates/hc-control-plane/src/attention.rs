@@ -2,7 +2,6 @@ use hc_domain::{
     AppSnapshot, AttentionSummary, RetryQueueEntry, SessionRuntimeState, SessionSummary,
     WorkflowHealth, WorkflowRuntimeStatus,
 };
-use hc_storage::WorktreeRecord;
 
 pub fn derive_attention(
     workflow: &WorkflowRuntimeStatus,
@@ -85,62 +84,6 @@ pub fn derive_attention(
             created_at: retry.due_at.clone(),
             severity: "warn".to_string(),
             action_hint: Some("open_retry_queue".to_string()),
-        });
-    }
-
-    items
-}
-
-/// Derive attention items that also include inventory signals (stale and degraded worktrees).
-/// The existing `derive_attention` signature is unchanged; this is an additive extension.
-pub fn derive_attention_with_inventory(
-    workflow: &WorkflowRuntimeStatus,
-    sessions: &[SessionSummary],
-    retry_queue: &[RetryQueueEntry],
-    stale_worktrees: &[WorktreeRecord],
-    degraded_worktrees: &[WorktreeRecord],
-) -> Vec<AttentionSummary> {
-    let mut items = derive_attention(workflow, sessions, retry_queue);
-
-    if !stale_worktrees.is_empty() {
-        items.push(AttentionSummary {
-            attention_id: "attention-stale-worktrees".to_string(),
-            kind: "cleanup_suggestion".to_string(),
-            project_id: stale_worktrees
-                .first()
-                .map(|wt| wt.project_id.clone())
-                .unwrap_or_default(),
-            session_id: None,
-            task_id: None,
-            title: "Stale worktrees ready for cleanup".to_string(),
-            summary: format!(
-                "{} stale worktree(s) can be safely removed.",
-                stale_worktrees.len()
-            ),
-            created_at: None,
-            severity: "info".to_string(),
-            action_hint: Some("open_inventory".to_string()),
-        });
-    }
-
-    if !degraded_worktrees.is_empty() {
-        items.push(AttentionSummary {
-            attention_id: "attention-degraded-worktrees".to_string(),
-            kind: "recovery_required".to_string(),
-            project_id: degraded_worktrees
-                .first()
-                .map(|wt| wt.project_id.clone())
-                .unwrap_or_default(),
-            session_id: None,
-            task_id: None,
-            title: "Worktrees require recovery".to_string(),
-            summary: format!(
-                "{} worktree(s) are in a degraded state.",
-                degraded_worktrees.len()
-            ),
-            created_at: None,
-            severity: "warn".to_string(),
-            action_hint: Some("open_inventory".to_string()),
         });
     }
 

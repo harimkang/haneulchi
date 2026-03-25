@@ -13,8 +13,9 @@ pub fn workflow_validate_json(project_root: &str) -> Result<String, String> {
             "last_error": serde_json::Value::Null
         }))
         .map_err(|error| error.to_string()),
-        None => serde_json::to_string(&json!({ "state": "none" }))
-            .map_err(|error| error.to_string()),
+        None => {
+            serde_json::to_string(&json!({ "state": "none" })).map_err(|error| error.to_string())
+        }
     }
 }
 

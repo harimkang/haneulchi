@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 private final class SendableBox<T>: @unchecked Sendable {
     var value: T
@@ -17,7 +17,7 @@ func appShellBootstrapsLauncherWhenNoProjectExists() throws {
     let model = try AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
-        preferencesStore: .inMemory
+        preferencesStore: .inMemory,
     )
 
     #expect(model.entrySurface == .welcome(.firstRun))
@@ -31,7 +31,7 @@ func appShellBootstrapsLauncherForDegradedRecovery() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -39,16 +39,28 @@ func appShellBootstrapsLauncherForDegradedRecovery() async throws {
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .blocked, headline: "Shell unavailable", detail: "Configured shell could not be determined.", nextAction: "Open Settings"),
-            .init(name: .workflow, status: .ready, headline: "Workflow contract detected", detail: "WORKFLOW.md is present.", nextAction: nil),
-        ]
+            .init(
+                name: .shell,
+                status: .blocked,
+                headline: "Shell unavailable",
+                detail: "Configured shell could not be determined.",
+                nextAction: "Open Settings",
+            ),
+            .init(
+                name: .workflow,
+                status: .ready,
+                headline: "Workflow contract detected",
+                detail: "WORKFLOW.md is present.",
+                nextAction: nil,
+            ),
+        ],
     )
 
     let model = try await AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        initialReport: report
+        initialReport: report,
     )
 
     #expect(model.entrySurface == .welcome(.degradedRecovery))
@@ -62,7 +74,7 @@ func appShellBootstrapsShellForInformationalReadinessGaps() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -70,23 +82,43 @@ func appShellBootstrapsShellForInformationalReadinessGaps() async throws {
     let report = ReadinessReport(
         project: project,
         checks: [
-            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "zsh available", nextAction: nil),
-            .init(name: .shellIntegration, status: .degraded, headline: "Shell integration not installed", detail: "Command markers are not configured yet.", nextAction: "Open Settings"),
-            .init(name: .workflow, status: .degraded, headline: "Workflow contract not found", detail: "Future launches can still use a generic shell.", nextAction: "Continue with Generic Shell"),
-        ]
+            .init(
+                name: .shell,
+                status: .ready,
+                headline: "Shell ready",
+                detail: "zsh available",
+                nextAction: nil,
+            ),
+            .init(
+                name: .shellIntegration,
+                status: .degraded,
+                headline: "Shell integration not installed",
+                detail: "Command markers are not configured yet.",
+                nextAction: "Open Settings",
+            ),
+            .init(
+                name: .workflow,
+                status: .degraded,
+                headline: "Workflow contract not found",
+                detail: "Future launches can still use a generic shell.",
+                nextAction: "Continue with Generic Shell",
+            ),
+        ],
     )
 
     let model = try await AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        initialReport: report
+        initialReport: report,
     )
 
     #expect(model.entrySurface == .shell)
 }
 
-@Test("live default keeps shell entry for a previously selected project when gaps are informational")
+@Test(
+    "live default keeps shell entry for a previously selected project when gaps are informational",
+)
 @MainActor
 func liveDefaultEvaluatesStartupReadiness() async throws {
     let store = ProjectLauncherStore.inMemory
@@ -94,7 +126,7 @@ func liveDefaultEvaluatesStartupReadiness() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -110,17 +142,17 @@ func liveDefaultEvaluatesStartupReadiness() async throws {
                 "which yazi": .failure("missing"),
                 "which lazygit": .failure("missing"),
                 "which git [shell:/bin/zsh]": .success("/opt/homebrew/bin/git\n"),
-            ]
+            ],
         ),
         keychainClient: .mock(isAvailable: true),
-        workflowProbe: .mock(.none)
+        workflowProbe: .mock(.none),
     )
 
     let model = AppShellModel.liveDefault(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        readinessRunner: runner
+        readinessRunner: runner,
     )
 
     await model.startupReadinessTask?.value
@@ -138,7 +170,7 @@ func bootstrapRestoresPersistedRoute() throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -147,7 +179,7 @@ func bootstrapRestoresPersistedRoute() throws {
     let model = try AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
-        preferencesStore: preferences
+        preferencesStore: preferences,
     )
 
     #expect(model.selectedRoute == .controlTower)
@@ -161,14 +193,18 @@ func liveDefaultCanUseCoreBridgeSnapshot() async throws {
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
 
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -180,7 +216,11 @@ func liveDefaultCanUseCoreBridgeSnapshot() async throws {
             AppShellSnapshot(
                 meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
                 ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
-                app: .init(activeRoute: .projectFocus, focusedSessionID: "bridge-session", degradedFlags: []),
+                app: .init(
+                    activeRoute: .projectFocus,
+                    focusedSessionID: "bridge-session",
+                    degradedFlags: [],
+                ),
                 projects: [],
                 sessions: [
                     .init(
@@ -192,21 +232,21 @@ func liveDefaultCanUseCoreBridgeSnapshot() async throws {
                         manualControlState: .none,
                         dispatchState: .dispatchable,
                         unreadCount: 0,
-                        focusState: .focused
-                    )
+                        focusState: .focused,
+                    ),
                 ],
                 attention: [],
                 retryQueue: [],
-                warnings: []
+                warnings: [],
             )
-        }
+        },
     )
 
     let model = AppShellModel.liveDefault(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.refreshShellSnapshot()
@@ -217,11 +257,15 @@ func liveDefaultCanUseCoreBridgeSnapshot() async throws {
 
 @MainActor
 @Test("app shell can request local control server startup through the bridge")
-func appShellRequestsLocalControlServerStartup() async throws {
+func appShellRequestsLocalControlServerStartup() async {
     let started = SendableBox<[Bool]>([])
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -229,7 +273,7 @@ func appShellRequestsLocalControlServerStartup() async throws {
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        startLocalControlServer: { started.value.append(true) }
+        startLocalControlServer: { started.value.append(true) },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -240,7 +284,7 @@ func appShellRequestsLocalControlServerStartup() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.startLocalControlServerIfNeeded()
@@ -250,10 +294,14 @@ func appShellRequestsLocalControlServerStartup() async throws {
 
 @MainActor
 @Test("local control server startup surfaces socket ownership diagnostics")
-func appShellSurfacesLocalControlServerStartupFailure() async throws {
+func appShellSurfacesLocalControlServerStartupFailure() async {
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -262,8 +310,9 @@ func appShellSurfacesLocalControlServerStartupFailure() async throws {
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         startLocalControlServer: {
-            throw CoreBridgeError.operationFailed("socket_already_owned:/tmp/haneulchi/control.sock")
-        }
+            throw CoreBridgeError
+                .operationFailed("socket_already_owned:/tmp/haneulchi/control.sock")
+        },
     )
     let model = AppShellModel(
         entrySurface: .shell,
@@ -274,7 +323,7 @@ func appShellSurfacesLocalControlServerStartupFailure() async throws {
         projectStore: .inMemory,
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     await model.startLocalControlServerIfNeeded()
@@ -285,13 +334,13 @@ func appShellSurfacesLocalControlServerStartupFailure() async throws {
 
 @MainActor
 @Test("bootstrap prefers Rust-persisted route over JSON preferences when bridge returns a state")
-func testBootstrapPrefersRustPersistedRoute() throws {
+func bootstrapPrefersRustPersistedRoute() throws {
     let store = ProjectLauncherStore.inMemory
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -303,7 +352,11 @@ func testBootstrapPrefersRustPersistedRoute() throws {
     // But the Rust bridge returns taskBoard
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -312,15 +365,20 @@ func testBootstrapPrefersRustPersistedRoute() throws {
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         loadAppState: {
-            AppStatePayload(activeRoute: "task_board", lastProjectId: "proj_demo", lastSessionId: nil, savedAt: nil)
-        }
+            AppStatePayload(
+                activeRoute: "task_board",
+                lastProjectId: "proj_demo",
+                lastSessionId: nil,
+                savedAt: nil,
+            )
+        },
     )
 
     let model = try AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: preferences,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     #expect(model.selectedRoute == .taskBoard)
@@ -328,13 +386,13 @@ func testBootstrapPrefersRustPersistedRoute() throws {
 
 @MainActor
 @Test("bootstrap falls back to JSON preferences when Rust state is absent")
-func testBootstrapFallsBackToJSONPreferencesWhenRustStateAbsent() throws {
+func bootstrapFallsBackToJSONPreferencesWhenRustStateAbsent() throws {
     let store = ProjectLauncherStore.inMemory
     let project = LauncherProject(
         projectID: "proj_demo",
         name: "demo",
         rootPath: "/tmp/demo",
-        lastOpenedAt: .now
+        lastOpenedAt: .now,
     )
     try store.recordOpen(project)
     try store.saveLastSelectedProject(project)
@@ -345,7 +403,11 @@ func testBootstrapFallsBackToJSONPreferencesWhenRustStateAbsent() throws {
     // Bridge returns nil — no Rust state
     let bridge = CoreBridge(
         runtimeInfo: {
-            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false,
+            )
         },
         spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
         drainSession: { _ in Data() },
@@ -353,14 +415,14 @@ func testBootstrapFallsBackToJSONPreferencesWhenRustStateAbsent() throws {
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        loadAppState: { nil }
+        loadAppState: { nil },
     )
 
     let model = try AppShellModel.bootstrap(
         projectStore: store,
         restoreStore: .inMemory,
         preferencesStore: preferences,
-        coreBridge: bridge
+        coreBridge: bridge,
     )
 
     #expect(model.selectedRoute == .controlTower)

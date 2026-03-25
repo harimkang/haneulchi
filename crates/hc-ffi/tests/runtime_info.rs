@@ -40,8 +40,8 @@ fn c_abi_returns_json_string_and_can_be_freed() {
 #[test]
 fn runtime_info_includes_socket_path_when_server_started() {
     let json = runtime_info_summary_json();
-    let value: Value = serde_json::from_str(&json)
-        .expect("runtime_info_summary_json must return valid JSON");
+    let value: Value =
+        serde_json::from_str(&json).expect("runtime_info_summary_json must return valid JSON");
 
     // The summary must always include these fields.
     assert!(

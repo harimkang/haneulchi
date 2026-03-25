@@ -57,7 +57,8 @@ struct TaskSearchProjectionStore: Sendable {
     private static var defaultFileURL: URL {
         let applicationSupport =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory())
+                .appendingPathComponent("Library/Application Support")
 
         return applicationSupport
             .appendingPathComponent("Haneulchi", isDirectory: true)
@@ -89,7 +90,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 automation_mode TEXT NOT NULL,
                 linked_session_id TEXT
             );
-            """
+            """,
         )
     }
 
@@ -119,7 +120,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                     state = excluded.state,
                     automation_mode = excluded.automation_mode,
                     linked_session_id = excluded.linked_session_id;
-                """
+                """,
             )
             defer { sqlite3_finalize(statement) }
 
@@ -132,7 +133,8 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 try bind(row.linkedSessionID, at: 6, in: statement)
 
                 guard sqlite3_step(statement) == SQLITE_DONE else {
-                    throw SQLiteTaskSearchError.statementFailed(message: Self.errorMessage(for: connection))
+                    throw SQLiteTaskSearchError
+                        .statementFailed(message: Self.errorMessage(for: connection))
                 }
 
                 sqlite3_reset(statement)
@@ -160,7 +162,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 FROM task_search_projection
                 ORDER BY title COLLATE NOCASE ASC
                 LIMIT 50;
-                """
+                """,
             )
         } else {
             statement = try prepare(
@@ -170,7 +172,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 WHERE lower(title) LIKE ? OR lower(task_id) LIKE ?
                 ORDER BY title COLLATE NOCASE ASC
                 LIMIT 50;
-                """
+                """,
             )
 
             let pattern = "%\(trimmedQuery)%"
@@ -195,7 +197,8 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 let state = TaskSearchState(rawValue: stateRaw),
                 let automationMode = TaskAutomationMode(rawValue: automationModeRaw)
             else {
-                throw SQLiteTaskSearchError.statementFailed(message: "Unexpected enum value in task_search_projection")
+                throw SQLiteTaskSearchError
+                    .statementFailed(message: "Unexpected enum value in task_search_projection")
             }
 
             results.append(.init(
@@ -204,7 +207,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
                 title: title,
                 state: state,
                 automationMode: automationMode,
-                linkedSessionID: linkedSessionID
+                linkedSessionID: linkedSessionID,
             ))
         }
 
@@ -219,7 +222,7 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
             title: title,
             state: .inbox,
             automationMode: .manual,
-            linkedSessionID: nil
+            linkedSessionID: nil,
         )
         try upsert([row])
         return row
@@ -249,7 +252,8 @@ private final class SQLiteTaskSearchDatabase: @unchecked Sendable {
     private func bind(_ value: String?, at index: Int32, in statement: OpaquePointer?) throws {
         guard let value else {
             guard sqlite3_bind_null(statement, index) == SQLITE_OK else {
-                throw SQLiteTaskSearchError.statementFailed(message: Self.errorMessage(for: connection))
+                throw SQLiteTaskSearchError
+                    .statementFailed(message: Self.errorMessage(for: connection))
             }
             return
         }
@@ -283,21 +287,24 @@ private extension TaskSearchProjectionStore {
             },
             createDraft: { title, projectID in
                 try database.createDraft(title: title, projectID: projectID)
-            }
+            },
         )
     }
 
     static func unavailableStore() -> Self {
         Self(
             search: { _ in
-                throw SQLiteTaskSearchError.statementFailed(message: "task search store unavailable")
+                throw SQLiteTaskSearchError
+                    .statementFailed(message: "task search store unavailable")
             },
             upsert: { _ in
-                throw SQLiteTaskSearchError.statementFailed(message: "task search store unavailable")
+                throw SQLiteTaskSearchError
+                    .statementFailed(message: "task search store unavailable")
             },
             createDraft: { _, _ in
-                throw SQLiteTaskSearchError.statementFailed(message: "task search store unavailable")
-            }
+                throw SQLiteTaskSearchError
+                    .statementFailed(message: "task search store unavailable")
+            },
         )
     }
 }

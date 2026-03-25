@@ -62,9 +62,10 @@ impl SessionRuntimeState {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum WorkflowHealth {
+    #[default]
     None,
     Ok,
     InvalidKeptLastGood,
@@ -88,12 +89,6 @@ impl WorkflowHealth {
             Self::InvalidKeptLastGood.as_str(),
             Self::ReloadPending.as_str(),
         ]
-    }
-}
-
-impl Default for WorkflowHealth {
-    fn default() -> Self {
-        Self::None
     }
 }
 

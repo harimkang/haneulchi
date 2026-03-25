@@ -1,7 +1,9 @@
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 
-use hc_api::{review_decision_json as api_review_decision_json, review_queue_json as api_review_queue_json};
+use hc_api::{
+    review_decision_json as api_review_decision_json, review_queue_json as api_review_queue_json,
+};
 
 use crate::HcString;
 
@@ -47,7 +49,8 @@ pub extern "C" fn hc_review_decision_json(
     task_id: *const c_char,
     decision: *const c_char,
 ) -> HcString {
-    let payload = read_c_string(task_id)
-        .and_then(|task_id| read_c_string(decision).and_then(|decision| review_decision_json(&task_id, &decision)));
+    let payload = read_c_string(task_id).and_then(|task_id| {
+        read_c_string(decision).and_then(|decision| review_decision_json(&task_id, &decision))
+    });
     string_to_hcstring(payload)
 }

@@ -11,7 +11,7 @@ struct AppShellView: View {
     init(
         model: @autoclosure @escaping () -> AppShellModel = AppShellModel.liveDefault(),
         projectFolderPicker: ProjectFolderPicker = .live,
-        demoWorkspaceScaffold: DemoWorkspaceScaffold = .liveDefault
+        demoWorkspaceScaffold: DemoWorkspaceScaffold = .liveDefault,
     ) {
         let resolvedModel = model()
         _shellModel = StateObject(wrappedValue: resolvedModel)
@@ -28,7 +28,9 @@ struct AppShellView: View {
                 shellLayout
             }
         }
-        .task(id: "\(shellModel.selectedProject?.projectID ?? "none"):\(shellModel.projectFocusRefreshToken)") {
+        .task(
+            id: "\(shellModel.selectedProject?.projectID ?? "none"):\(shellModel.projectFocusRefreshToken)",
+        ) {
             await MainActor.run {
                 guard shellModel.entrySurface == .shell else {
                     return
@@ -36,7 +38,7 @@ struct AppShellView: View {
 
                 projectFocusModel = AppShellView.bootstrapProjectFocusModel(
                     selectedProjectRoot: shellModel.selectedProject?.rootPath,
-                    recoverableSessions: shellModel.recoverableSessions()
+                    recoverableSessions: shellModel.recoverableSessions(),
                 )
             }
         }
@@ -64,22 +66,24 @@ struct AppShellView: View {
                     items: NotificationDrawerModel(
                         snapshot: shellModel.shellSnapshot ?? AppShellSnapshot.empty(
                             activeRoute: shellModel.selectedRoute,
-                            selectedProject: shellModel.selectedProject
-                        )
+                            selectedProject: shellModel.selectedProject,
+                        ),
                     ).items,
                     onAction: { action in
                         Task {
                             await shellModel.perform(.dismissNotificationDrawer)
                             await shellModel.perform(action)
                         }
-                    }
+                    },
                 )
                 .padding(.top, 64)
                 .padding(.trailing, HaneulchiChrome.Spacing.screenPadding)
             }
         }
         .overlay {
-            if shellModel.entrySurface == .shell, let quickDispatchComposer = shellModel.quickDispatchComposer {
+            if shellModel.entrySurface == .shell,
+               let quickDispatchComposer = shellModel.quickDispatchComposer
+            {
                 ZStack {
                     Color.black.opacity(0.18)
                         .ignoresSafeArea()
@@ -92,13 +96,13 @@ struct AppShellView: View {
                             performAction(
                                 .submitQuickDispatch(
                                     targetID: targetSessionID,
-                                    message: message
-                                )
+                                    message: message,
+                                ),
                             )
                         },
                         onClose: {
                             performAction(.dismissQuickDispatch)
-                        }
+                        },
                     )
                     .frame(maxWidth: 520)
                 }
@@ -112,7 +116,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissNewSessionSheet)
                     }
                 }
-            }
+            },
         )) {
             if let viewModel = shellModel.newSessionSheetViewModel {
                 NewSessionSheetView(viewModel: viewModel) { descriptor in
@@ -130,7 +134,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissWorkflowDrawer)
                     }
                 }
-            }
+            },
         )) {
             WorkflowDrawerView(status: shellModel.workflowStatus) {
                 Task {
@@ -146,7 +150,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissTaskContextDrawer)
                     }
                 }
-            }
+            },
         )) {
             TaskContextDrawerView(
                 model: shellModel.taskContextDrawerModel,
@@ -154,7 +158,7 @@ struct AppShellView: View {
                     Task {
                         await shellModel.perform(.presentQuickDispatch(shellModel.selectedRoute))
                     }
-                }
+                },
             )
         }
         .sheet(isPresented: Binding(
@@ -165,7 +169,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissInventory)
                     }
                 }
-            }
+            },
         )) {
             if let inventoryViewModel = shellModel.inventoryViewModel {
                 WorktreeInventoryView(
@@ -179,7 +183,7 @@ struct AppShellView: View {
                         Task {
                             await shellModel.perform(.dismissInventory)
                         }
-                    }
+                    },
                 )
             }
         }
@@ -188,18 +192,18 @@ struct AppShellView: View {
     private var shellLayout: some View {
         let snapshot = shellModel.shellSnapshot ?? AppShellSnapshot.empty(
             activeRoute: shellModel.selectedRoute,
-            selectedProject: shellModel.selectedProject
+            selectedProject: shellModel.selectedProject,
         )
         let chrome = AppShellChromeState(
             snapshot: snapshot,
             selectedProjectName: shellModel.selectedProject?.name,
-            transientNotice: shellModel.transientNotice
+            transientNotice: shellModel.transientNotice,
         )
 
         return AppShellChromeView(
             chrome: chrome,
             destination: shellModel.selectedRoute,
-            onAction: performAction
+            onAction: performAction,
         ) {
             RouteDestinationView(
                 route: shellModel.selectedRoute,
@@ -207,7 +211,7 @@ struct AppShellView: View {
                 projectFocusModel: projectFocusModel,
                 settingsStatusViewModel: shellModel.settingsStatusViewModel ?? .empty,
                 queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
-                onAction: performAction
+                onAction: performAction,
             )
         }
     }
@@ -225,19 +229,19 @@ struct AppShellView: View {
             reopenProject: reopenProject,
             continueWithGenericShell: continueWithGenericShell,
             openSettings: openSettings,
-            retry: retryReadiness
+            retry: retryReadiness,
         )
     }
 
     private static func bootstrapProjectFocusModel(
         selectedProjectRoot: String? = nil,
         restoreStore: TerminalSessionRestoreStore = .liveDefault,
-        recoverableSessions: [RecoverableSessionPayload] = []
+        recoverableSessions: [RecoverableSessionPayload] = [],
     ) -> ProjectFocusView.Model {
         (try? ProjectFocusView.Model.bootstrap(
             selectedProjectRoot: selectedProjectRoot,
             restoreStore: restoreStore,
-            recoverableSessions: recoverableSessions
+            recoverableSessions: recoverableSessions,
         )) ?? .demo
     }
 
@@ -245,7 +249,7 @@ struct AppShellView: View {
         launcherNotice = nil
         projectFocusModel = AppShellView.bootstrapProjectFocusModel(
             selectedProjectRoot: shellModel.selectedProject?.rootPath,
-            recoverableSessions: shellModel.recoverableSessions()
+            recoverableSessions: shellModel.recoverableSessions(),
         )
         shellModel.setSelectedRoute(.projectFocus)
         shellModel.presentShell()
@@ -296,7 +300,7 @@ struct AppShellView: View {
             projectID: UUID().uuidString,
             name: url.lastPathComponent,
             rootPath: url.path,
-            lastOpenedAt: .now
+            lastOpenedAt: .now,
         )
         selectProjectAndRefreshReadiness(project)
     }

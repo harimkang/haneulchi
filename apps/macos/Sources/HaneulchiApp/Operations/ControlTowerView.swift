@@ -53,39 +53,39 @@ struct ControlTowerView: View {
                 HStack(spacing: HaneulchiChrome.Spacing.itemGap) {
                     HaneulchiMetricTile(
                         label: "cadence",
-                        value: model.opsModel.cadenceLabel
+                        value: model.opsModel.cadenceLabel,
                     )
                     HaneulchiMetricTile(
                         label: "last tick",
-                        value: model.opsModel.lastTickLabel
+                        value: model.opsModel.lastTickLabel,
                     )
                     HaneulchiMetricTile(
                         label: "next tick",
-                        value: model.opsModel.nextTickLabel
+                        value: model.opsModel.nextTickLabel,
                     )
                     HaneulchiMetricTile(
                         label: "reconcile",
-                        value: model.opsModel.lastReconcileLabel
+                        value: model.opsModel.lastReconcileLabel,
                     )
                     HaneulchiMetricTile(
                         label: "slots",
-                        value: model.opsModel.slotLabel
+                        value: model.opsModel.slotLabel,
                     )
                     HaneulchiMetricTile(
                         label: "workflow",
-                        value: model.opsModel.workflowHealth
+                        value: model.opsModel.workflowHealth,
                     )
                     HaneulchiMetricTile(
                         label: "tracker",
-                        value: model.opsModel.trackerHealth
+                        value: model.opsModel.trackerHealth,
                     )
                     HaneulchiMetricTile(
                         label: "queue",
-                        value: model.opsModel.queueLabel
+                        value: model.opsModel.queueLabel,
                     )
                     HaneulchiMetricTile(
                         label: "paused",
-                        value: model.opsModel.paused ? "yes" : "no"
+                        value: model.opsModel.paused ? "yes" : "no",
                     )
                 }
             }

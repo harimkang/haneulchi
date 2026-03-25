@@ -54,9 +54,7 @@ pub fn reconcile_snapshot(snapshot: &mut AppSnapshot) -> ReconcileReport {
             session.claim_state = ClaimState::Released;
             session.dispatch_state = "not_dispatchable".to_string();
             session.dispatch_reason = Some("session_exited".to_string());
-            report
-                .cleaned_exited_ids
-                .push(session.session_id.clone());
+            report.cleaned_exited_ids.push(session.session_id.clone());
             continue;
         }
 
@@ -105,7 +103,10 @@ pub fn reconcile_snapshot(snapshot: &mut AppSnapshot) -> ReconcileReport {
                 .map(|entry| entry.project_id.clone())
                 .unwrap_or_default(),
             session_id: None,
-            task_id: snapshot.retry_queue.first().map(|entry| entry.task_id.clone()),
+            task_id: snapshot
+                .retry_queue
+                .first()
+                .map(|entry| entry.task_id.clone()),
             title: "Retry due".to_string(),
             summary: "Retry queue has due work.".to_string(),
             created_at: Some(now_iso8601()),

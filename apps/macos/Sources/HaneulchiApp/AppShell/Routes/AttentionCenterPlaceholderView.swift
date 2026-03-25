@@ -11,8 +11,8 @@ struct AttentionCenterPlaceholderView: View {
                 openTarget: onAction,
                 resolveAttention: { onAction(.resolveAttention($0)) },
                 dismissAttention: { onAction(.dismissAttention($0)) },
-                snoozeAttention: { onAction(.snoozeAttention($0)) }
-            )
+                snoozeAttention: { onAction(.snoozeAttention($0)) },
+            ),
         )
     }
 }

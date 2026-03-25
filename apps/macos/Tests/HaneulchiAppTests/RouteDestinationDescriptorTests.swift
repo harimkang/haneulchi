@@ -1,13 +1,17 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("placeholder descriptor reflects route-specific shell summary")
 func placeholderDescriptorUsesRouteAndSnapshot() {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 0, workflowHealth: .ok),
-        app: .init(activeRoute: .attentionCenter, focusedSessionID: "restore-1", degradedFlags: [.degraded]),
+        app: .init(
+            activeRoute: .attentionCenter,
+            focusedSessionID: "restore-1",
+            degradedFlags: [.degraded],
+        ),
         projects: [
             .init(
                 projectID: "proj_demo",
@@ -16,8 +20,8 @@ func placeholderDescriptorUsesRouteAndSnapshot() {
                 status: .active,
                 workflowState: .ok,
                 sessionCount: 1,
-                attentionCount: 1
-            )
+                attentionCount: 1,
+            ),
         ],
         sessions: [
             .init(
@@ -28,8 +32,8 @@ func placeholderDescriptorUsesRouteAndSnapshot() {
                 runtimeState: .running,
                 manualControlState: .none,
                 dispatchState: .notDispatchable,
-                unreadCount: 0
-            )
+                unreadCount: 0,
+            ),
         ],
         attention: [
             .init(
@@ -37,14 +41,17 @@ func placeholderDescriptorUsesRouteAndSnapshot() {
                 headline: "Manual input required",
                 severity: .degraded,
                 targetRoute: .attentionCenter,
-                targetSessionID: "restore-1"
-            )
+                targetSessionID: "restore-1",
+            ),
         ],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
-    let descriptor = RouteDestinationDescriptor.placeholder(for: .attentionCenter, snapshot: snapshot)
+    let descriptor = RouteDestinationDescriptor.placeholder(
+        for: .attentionCenter,
+        snapshot: snapshot,
+    )
 
     #expect(descriptor.title == "Attention Center")
     #expect(descriptor.summary.contains("1 attention"))

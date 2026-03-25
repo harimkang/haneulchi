@@ -11,7 +11,8 @@ enum CoreBridgeError: Error, Equatable {
 }
 
 struct CoreBridge: Sendable {
-    let provisionTaskWorkspace: @Sendable (String, String, String?) throws -> ProvisionedTaskWorkspace
+    let provisionTaskWorkspace: @Sendable (String, String, String?) throws
+        -> ProvisionedTaskWorkspace
     let runtimeInfo: @Sendable () throws -> TerminalBackendDescriptor
     let spawnSession: @Sendable (TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot
     let drainSession: @Sendable (String) throws -> Data
@@ -46,11 +47,13 @@ struct CoreBridge: Sendable {
     let updateWorktreeLifecycle: @Sendable (String, String) throws -> Void
 
     init(
-        provisionTaskWorkspace: @escaping @Sendable (String, String, String?) throws -> ProvisionedTaskWorkspace = { _, _, _ in
-            throw CoreBridgeError.operationFailed("task_workspace_provision_unavailable")
-        },
+        provisionTaskWorkspace: @escaping @Sendable (String, String, String?) throws
+            -> ProvisionedTaskWorkspace = { _, _, _ in
+                throw CoreBridgeError.operationFailed("task_workspace_provision_unavailable")
+            },
         runtimeInfo: @escaping @Sendable () throws -> TerminalBackendDescriptor,
-        spawnSession: @escaping @Sendable (TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot,
+        spawnSession: @escaping @Sendable (TerminalSessionLaunchRequest) throws
+            -> TerminalSessionSnapshot,
         drainSession: @escaping @Sendable (String) throws -> Data,
         writeSession: @escaping @Sendable (String, Data) throws -> Void,
         resizeSession: @escaping @Sendable (String, TerminalGridSize) throws -> Void,
@@ -86,7 +89,7 @@ struct CoreBridge: Sendable {
         dispatchSend: @escaping @Sendable (String, String?, String) throws -> Void = { _, _, _ in
             throw CoreBridgeError.operationFailed("dispatch_send_unavailable")
         },
-        startLocalControlServer: @escaping @Sendable () throws -> Void = { },
+        startLocalControlServer: @escaping @Sendable () throws -> Void = {},
         reconcileAutomation: @escaping @Sendable () throws -> Void = {
             throw CoreBridgeError.operationFailed("reconcile_unavailable")
         },
@@ -109,18 +112,21 @@ struct CoreBridge: Sendable {
         runtimeInfoSummary: @escaping @Sendable () throws -> RuntimeInfoSummaryPayload = {
             throw CoreBridgeError.operationFailed("runtime_info_summary_unavailable")
         },
-        listDegradedIssues: @escaping @Sendable (RecoveryContextPayload) throws -> [DegradedIssuePayload] = { _ in
-            throw CoreBridgeError.operationFailed("list_degraded_issues_unavailable")
-        },
+        listDegradedIssues: @escaping @Sendable (RecoveryContextPayload) throws
+            -> [DegradedIssuePayload] = { _ in
+                throw CoreBridgeError.operationFailed("list_degraded_issues_unavailable")
+            },
         loadAppState: @escaping @Sendable () throws -> AppStatePayload? = {
             nil
         },
-        saveAppState: @escaping @Sendable (String, String?, String?) throws -> Void = { _, _, _ in },
-        listRecoverableSessions: @escaping @Sendable (String) throws -> [RecoverableSessionPayload] = { _ in
-            []
+        saveAppState: @escaping @Sendable (String, String?, String?) throws -> Void = { _, _, _ in
         },
+        listRecoverableSessions: @escaping @Sendable (String) throws
+            -> [RecoverableSessionPayload] = { _ in
+                []
+            },
         setWorktreePinned: @escaping @Sendable (String, Bool) throws -> Void = { _, _ in },
-        updateWorktreeLifecycle: @escaping @Sendable (String, String) throws -> Void = { _, _ in }
+        updateWorktreeLifecycle: @escaping @Sendable (String, String) throws -> Void = { _, _ in },
     ) {
         self.provisionTaskWorkspace = provisionTaskWorkspace
         self.runtimeInfo = runtimeInfo
@@ -167,12 +173,16 @@ struct CoreBridge: Sendable {
                         let base = try CStringBox(baseRoot)
                         return try base.withPointer { basePointer in
                             try stringPayloadData(
-                                hc_task_provision_workspace_json(rootPointer, taskPointer, basePointer)
+                                hc_task_provision_workspace_json(
+                                    rootPointer,
+                                    taskPointer,
+                                    basePointer,
+                                ),
                             )
                         }
                     }
                     return try stringPayloadData(
-                        hc_task_provision_workspace_json(rootPointer, taskPointer, nil)
+                        hc_task_provision_workspace_json(rootPointer, taskPointer, nil),
                     )
                 }
             }
@@ -181,7 +191,10 @@ struct CoreBridge: Sendable {
         runtimeInfo: {
             let data = try stringPayloadData(hc_runtime_info_json())
 
-            guard let descriptor = try? JSONDecoder().decode(TerminalBackendDescriptor.self, from: data) else {
+            guard let descriptor = try? JSONDecoder().decode(
+                TerminalBackendDescriptor.self,
+                from: data,
+            ) else {
                 throw CoreBridgeError.invalidRuntimeInfo
             }
 
@@ -223,7 +236,7 @@ struct CoreBridge: Sendable {
                     hc_terminal_session_write(
                         pointer,
                         rawBuffer.baseAddress?.assumingMemoryBound(to: UInt8.self),
-                        rawBuffer.count
+                        rawBuffer.count,
                     )
                 }
             }
@@ -238,7 +251,7 @@ struct CoreBridge: Sendable {
                 hc_terminal_session_resize(
                     $0,
                     UInt16(geometry.cols),
-                    UInt16(geometry.rows)
+                    UInt16(geometry.rows),
                 )
             }
 
@@ -321,12 +334,17 @@ struct CoreBridge: Sendable {
                     if let task {
                         return try task.withPointer { taskPointer in
                             try stringPayloadData(
-                                hc_dispatch_send_json(sessionPointer, taskPointer, true, payloadPointer)
+                                hc_dispatch_send_json(
+                                    sessionPointer,
+                                    taskPointer,
+                                    true,
+                                    payloadPointer,
+                                ),
                             )
                         }
                     }
                     return try stringPayloadData(
-                        hc_dispatch_send_json(sessionPointer, nil, true, payloadPointer)
+                        hc_dispatch_send_json(sessionPointer, nil, true, payloadPointer),
                     )
                 }
             }
@@ -354,7 +372,8 @@ struct CoreBridge: Sendable {
             let data = try pid.withPointer { pointer in
                 try stringPayloadData(hc_inventory_summary_json(pointer))
             }
-            guard let payload = try? JSONDecoder().decode(InventorySummaryPayload.self, from: data) else {
+            guard let payload = try? JSONDecoder().decode(InventorySummaryPayload.self, from: data)
+            else {
                 throw CoreBridgeError.operationFailed("inventory_summary_decode_failed")
             }
             return payload
@@ -364,14 +383,16 @@ struct CoreBridge: Sendable {
             let data = try pid.withPointer { pointer in
                 try stringPayloadData(hc_inventory_list_json(pointer))
             }
-            guard let payload = try? JSONDecoder().decode([InventoryRowPayload].self, from: data) else {
+            guard let payload = try? JSONDecoder().decode([InventoryRowPayload].self, from: data)
+            else {
                 throw CoreBridgeError.operationFailed("inventory_list_decode_failed")
             }
             return payload
         },
         terminalSettings: {
             let data = try stringPayloadData(hc_terminal_settings_json())
-            guard let payload = try? JSONDecoder().decode(TerminalSettingsPayload.self, from: data) else {
+            guard let payload = try? JSONDecoder().decode(TerminalSettingsPayload.self, from: data)
+            else {
                 throw CoreBridgeError.operationFailed("terminal_settings_decode_failed")
             }
             return payload
@@ -385,7 +406,9 @@ struct CoreBridge: Sendable {
         },
         runtimeInfoSummary: {
             let data = try stringPayloadData(hc_runtime_info_summary_json())
-            guard let payload = try? JSONDecoder().decode(RuntimeInfoSummaryPayload.self, from: data) else {
+            guard let payload = try? JSONDecoder()
+                .decode(RuntimeInfoSummaryPayload.self, from: data)
+            else {
                 throw CoreBridgeError.operationFailed("runtime_info_summary_decode_failed")
             }
             return payload
@@ -404,7 +427,11 @@ struct CoreBridge: Sendable {
             return try? JSONDecoder().decode(AppStatePayload.self, from: data)
         },
         saveAppState: { route, projectId, sessionId in
-            let payload = serde_encode_app_state(route: route, projectId: projectId, sessionId: sessionId)
+            let payload = serde_encode_app_state(
+                route: route,
+                projectId: projectId,
+                sessionId: sessionId,
+            )
             let box = try CStringBox(payload)
             _ = try box.withPointer { pointer in
                 try stringPayloadData(hc_save_app_state_json(pointer))
@@ -428,10 +455,13 @@ struct CoreBridge: Sendable {
             let lifecycle = try CStringBox(state)
             _ = try worktree.withPointer { worktreePointer in
                 try lifecycle.withPointer { statePointer in
-                    try stringPayloadData(hc_update_worktree_lifecycle_json(worktreePointer, statePointer))
+                    try stringPayloadData(hc_update_worktree_lifecycle_json(
+                        worktreePointer,
+                        statePointer,
+                    ))
                 }
             }
-        }
+        },
     )
 
     static func mockLiveSession(outputChunks: [String]) -> Self {
@@ -444,14 +474,14 @@ struct CoreBridge: Sendable {
                     worktreeID: "wt_\(taskID)",
                     workspaceRoot: "\(projectRoot)/worktrees/\(taskID)",
                     baseRoot: baseRoot ?? ".",
-                    branchName: "hc/\(taskID)"
+                    branchName: "hc/\(taskID)",
                 )
             },
             runtimeInfo: {
                 TerminalBackendDescriptor(
                     rendererID: "swiftterm",
                     transport: "ffi_c_abi",
-                    demoMode: false
+                    demoMode: false,
                 )
             },
             spawnSession: { request in
@@ -488,12 +518,18 @@ struct CoreBridge: Sendable {
             dismissAttention: { _ in },
             snoozeAttention: { _ in },
             dispatchSend: { _, _, _ in },
-            startLocalControlServer: { },
-            reconcileAutomation: { },
+            startLocalControlServer: {},
+            reconcileAutomation: {},
             workflowValidate: { _ in Data("{}".utf8) },
             workflowReload: { _ in Data("{}".utf8) },
             inventorySummary: { _ in
-                InventorySummaryPayload(total: 0, inUse: 0, recoverable: 0, safeToDelete: 0, stale: 0)
+                InventorySummaryPayload(
+                    total: 0,
+                    inUse: 0,
+                    recoverable: 0,
+                    safeToDelete: 0,
+                    stale: 0,
+                )
             },
             inventoryList: { _ in [] },
             terminalSettings: {
@@ -504,29 +540,36 @@ struct CoreBridge: Sendable {
                     scrollbackLines: 5000,
                     fontName: "",
                     theme: "",
-                    cursorStyle: ""
+                    cursorStyle: "",
                 )
             },
             resolveLaunchEnvironment: { [:] },
             runtimeInfoSummary: {
-                RuntimeInfoSummaryPayload(socketPath: nil, transport: "ffi_c_abi", status: "running")
+                RuntimeInfoSummaryPayload(
+                    socketPath: nil,
+                    transport: "ffi_c_abi",
+                    status: "running",
+                )
             },
             listDegradedIssues: { _ in [] },
             loadAppState: { nil },
             saveAppState: { _, _, _ in },
             listRecoverableSessions: { _ in [] },
             setWorktreePinned: { _, _ in },
-            updateWorktreeLifecycle: { _, _ in }
+            updateWorktreeLifecycle: { _, _ in },
         )
     }
 }
 
-private func serde_encode_app_state(route: String, projectId: String?, sessionId: String?) -> String {
+private func serde_encode_app_state(route: String, projectId: String?,
+                                    sessionId: String?) -> String
+{
     var dict: [String: Any] = ["route": route]
     if let projectId { dict["last_project_id"] = projectId }
     if let sessionId { dict["last_session_id"] = sessionId }
     if let data = try? JSONSerialization.data(withJSONObject: dict),
-       let json = String(data: data, encoding: .utf8) {
+       let json = String(data: data, encoding: .utf8)
+    {
         return json
     }
     return "{}"
@@ -573,7 +616,8 @@ private func decodeAppShellSnapshot(from data: Data) throws -> AppShellSnapshot 
 }
 
 private func decodeProvisionedTaskWorkspace(from data: Data) throws -> ProvisionedTaskWorkspace {
-    guard let workspace = try? JSONDecoder().decode(ProvisionedTaskWorkspace.self, from: data) else {
+    guard let workspace = try? JSONDecoder().decode(ProvisionedTaskWorkspace.self, from: data)
+    else {
         throw CoreBridgeError.invalidRuntimeInfo
     }
 
@@ -581,7 +625,10 @@ private func decodeProvisionedTaskWorkspace(from data: Data) throws -> Provision
 }
 
 private func decodeSessionSummaries(from data: Data) throws -> [AppShellSnapshot.SessionSummary] {
-    guard let sessions = try? JSONDecoder().decode([AppShellSnapshot.SessionSummary].self, from: data) else {
+    guard let sessions = try? JSONDecoder().decode(
+        [AppShellSnapshot.SessionSummary].self,
+        from: data,
+    ) else {
         throw CoreBridgeError.invalidRuntimeInfo
     }
 
@@ -612,7 +659,7 @@ private struct CStringBox {
     private let storage: [CChar]
 
     init(_ string: String) throws {
-        self.storage = Array(string.utf8CString)
+        storage = Array(string.utf8CString)
     }
 
     func withPointer<T>(_ body: (UnsafePointer<CChar>) throws -> T) rethrows -> T {
@@ -628,7 +675,7 @@ private final class MockLiveSessionState: @unchecked Sendable {
     private var pendingChunks: [Data]
 
     init(outputChunks: [String]) {
-        self.pendingChunks = outputChunks.map { Data($0.utf8) }
+        pendingChunks = outputChunks.map { Data($0.utf8) }
     }
 
     func spawn(_ request: TerminalSessionLaunchRequest) throws -> TerminalSessionSnapshot {
@@ -637,7 +684,7 @@ private final class MockLiveSessionState: @unchecked Sendable {
             launch: request,
             geometry: request.geometry,
             running: true,
-            exitCode: nil
+            exitCode: nil,
         )
 
         lock.lock()
@@ -686,7 +733,7 @@ private final class MockLiveSessionState: @unchecked Sendable {
             launch: snapshot.launch,
             geometry: geometry,
             running: snapshot.running,
-            exitCode: snapshot.exitCode
+            exitCode: snapshot.exitCode,
         )
         self.snapshot = snapshot
     }
@@ -704,7 +751,7 @@ private final class MockLiveSessionState: @unchecked Sendable {
             launch: snapshot.launch,
             geometry: snapshot.geometry,
             running: false,
-            exitCode: 0
+            exitCode: 0,
         )
         self.snapshot = snapshot
     }

@@ -53,8 +53,7 @@ fn cold_restore_replays_launch_descriptor_with_latest_geometry() {
 #[test]
 fn restore_point_environment_is_excluded_from_serialization() {
     // Build a launch config that carries a secret env var.
-    let config = TerminalLaunchConfig::shell(None)
-        .with_env("SECRET_KEY", "secret_value");
+    let config = TerminalLaunchConfig::shell(None).with_env("SECRET_KEY", "secret_value");
 
     let restore = TerminalRestorePoint::new(config, TerminalGeometry::new(80, 24));
     let json = serde_json::to_string(&restore).expect("serialize restore point");

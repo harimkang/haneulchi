@@ -25,6 +25,6 @@ struct WorkflowPresenceProbe: Sendable {
             }
 
             return FileManager.default.isReadableFile(atPath: fileURL.path) ? .present : .unreadable
-        }
+        },
     )
 }

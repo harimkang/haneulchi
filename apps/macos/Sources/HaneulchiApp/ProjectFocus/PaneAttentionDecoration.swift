@@ -11,8 +11,8 @@ struct PaneAttentionDecoration: ViewModifier {
                     hasAttention
                         ? HaneulchiChrome.Colors.warning.opacity(0.55)
                         : (hasUnread ? HaneulchiChrome.Colors.unread.opacity(0.45) : .clear),
-                    lineWidth: hasAttention || hasUnread ? 2 : 0
-                )
+                    lineWidth: hasAttention || hasUnread ? 2 : 0,
+                ),
         )
     }
 }

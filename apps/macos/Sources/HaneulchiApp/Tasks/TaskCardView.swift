@@ -13,7 +13,7 @@ struct TaskCardView: View {
                     Spacer()
                     HaneulchiStatusBadge(
                         state: badgeState(for: task.column),
-                        label: task.column.title
+                        label: task.column.title,
                     )
                 }
 
@@ -61,7 +61,7 @@ struct TaskCardView: View {
                     RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.small)
                         .fill(HaneulchiChrome.State.success.opacity(0.5))
                         .frame(width: geo.size.width * 0.6)
-                }
+                },
             )
     }
 
@@ -77,12 +77,12 @@ struct TaskCardView: View {
 
     private func badgeState(for column: TaskBoardColumnID) -> HaneulchiStatusBadge.State {
         switch column {
-        case .inbox: return .idle
-        case .ready: return .idle
-        case .running: return .active
-        case .review: return .reviewReady
-        case .blocked: return .blocked
-        case .done: return .done
+        case .inbox: .idle
+        case .ready: .idle
+        case .running: .active
+        case .review: .reviewReady
+        case .blocked: .blocked
+        case .done: .done
         }
     }
 }

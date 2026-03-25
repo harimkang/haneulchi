@@ -5,8 +5,10 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
     match args.first().map(String::as_str) {
         Some("send") => {
             let task_id = value_after(args, "--task");
-            let target = value_after(args, "--target").ok_or_else(|| "missing --target".to_string())?;
-            let message = value_after(args, "--message").ok_or_else(|| "missing --message".to_string())?;
+            let target =
+                value_after(args, "--target").ok_or_else(|| "missing --target".to_string())?;
+            let message =
+                value_after(args, "--message").ok_or_else(|| "missing --message".to_string())?;
             let body = format!(
                 r#"{{"target_session_id":"{target}","task_id":{},"target_live":true,"payload":"{message}"}}"#,
                 task_id

@@ -7,18 +7,18 @@ struct TerminalDeckView: View {
 
         static let demo = Self(
             layout: .singleDemo,
-            showsSplitControls: false
+            showsSplitControls: false,
         )
 
         static let runtimeDemo = Self(
             layout: .singleLiveDemo,
-            showsSplitControls: false
+            showsSplitControls: false,
         )
 
         static func restored(_ bundle: TerminalRestoreBundle) -> Self {
             Self(
                 layout: .singleLive(bundle),
-                showsSplitControls: false
+                showsSplitControls: false,
             )
         }
     }
@@ -39,7 +39,7 @@ struct TerminalDeckView: View {
         model: Model,
         signalPresentation: SessionSignalPresentation? = nil,
         onQuickDispatch: (() -> Void)? = nil,
-        onSessionReady: ((String) -> Void)? = nil
+        onSessionReady: ((String) -> Void)? = nil,
     ) {
         self.model = model
         self.signalPresentation = signalPresentation
@@ -62,7 +62,7 @@ struct TerminalDeckView: View {
             }
 
             keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-                return deckCoordinator.handleKeyDown(event) ? nil : event
+                deckCoordinator.handleKeyDown(event) ? nil : event
             }
         }
         .onDisappear {
@@ -76,16 +76,16 @@ struct TerminalDeckView: View {
     private func render(node: TerminalDeckNode) -> AnyView {
         switch node {
         case let .pane(pane):
-            return AnyView(paneView(pane))
+            AnyView(paneView(pane))
         case let .split(_, axis, _, first, second):
             switch axis {
             case .horizontal:
-                return AnyView(HSplitView {
+                AnyView(HSplitView {
                     render(node: first)
                     render(node: second)
                 })
             case .vertical:
-                return AnyView(VSplitView {
+                AnyView(VSplitView {
                     render(node: first)
                     render(node: second)
                 })
@@ -105,12 +105,12 @@ struct TerminalDeckView: View {
                     .foregroundStyle(
                         isFocused
                             ? HaneulchiChrome.Label.primary
-                            : HaneulchiChrome.Label.secondary
+                            : HaneulchiChrome.Label.secondary,
                     )
                 if isFocused, let signalPresentation {
                     HaneulchiStatusBadge(
                         state: signalPresentation.badgeState,
-                        label: signalPresentation.label
+                        label: signalPresentation.label,
                     )
                 }
                 Spacer()
@@ -121,7 +121,7 @@ struct TerminalDeckView: View {
             .background(
                 isFocused
                     ? HaneulchiChrome.Surface.foundation
-                    : HaneulchiChrome.Surface.recess
+                    : HaneulchiChrome.Surface.recess,
             )
             .contentShape(Rectangle())
             .onTapGesture {
@@ -136,7 +136,7 @@ struct TerminalDeckView: View {
                 paneID: pane.id,
                 deckCoordinator: deckCoordinator,
                 isFocused: isFocused,
-                onSessionReady: onSessionReady
+                onSessionReady: onSessionReady,
             )
             .background(HaneulchiChrome.Surface.recess)
         }
@@ -148,18 +148,18 @@ struct TerminalDeckView: View {
                     isFocused
                         ? HaneulchiChrome.Gradient.primaryEnd.opacity(0.45)
                         : Color.clear,
-                    lineWidth: 1
-                )
+                    lineWidth: 1,
+                ),
         )
         .paneAttentionDecoration(
             hasAttention: isFocused && signalPresentation?.tone == .strong,
-            hasUnread: isFocused && signalPresentation?.tone == .weak
+            hasUnread: isFocused && signalPresentation?.tone == .weak,
         )
         .frame(
             minWidth: max(320, reservedSessionStackWidth),
             maxWidth: .infinity,
             maxHeight: .infinity,
-            alignment: .topLeading
+            alignment: .topLeading,
         )
         .accessibilityLabel("terminal-pane-\(pane.id)-inspector-\(Int(reservedInspectorWidth))")
     }

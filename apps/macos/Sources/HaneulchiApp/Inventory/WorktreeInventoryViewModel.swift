@@ -3,9 +3,9 @@ import Foundation
 struct WorktreeInventoryViewModel: Equatable, Sendable {
     enum Disposition: String, Equatable, Sendable, Codable {
         case inUse = "in_use"
-        case recoverable = "recoverable"
+        case recoverable
         case safeToDelete = "safe_to_delete"
-        case stale = "stale"
+        case stale
     }
 
     struct Row: Equatable, Identifiable, Sendable {
@@ -20,19 +20,36 @@ struct WorktreeInventoryViewModel: Equatable, Sendable {
         let sizeBytes: Int?
         let lastAccessedAt: String?
 
-        var id: String { worktreeId }
+        var id: String {
+            worktreeId
+        }
 
-        // Action gating — what actions are available for this row?
-        var canDelete: Bool { disposition == .safeToDelete || disposition == .stale }
-        var canRecover: Bool { disposition == .recoverable }
-        var canPin: Bool { disposition != .inUse }
-        var canOpenFinder: Bool { !path.isEmpty }
+        /// Action gating — what actions are available for this row?
+        var canDelete: Bool {
+            disposition == .safeToDelete || disposition == .stale
+        }
+
+        var canRecover: Bool {
+            disposition == .recoverable
+        }
+
+        var canPin: Bool {
+            disposition != .inUse
+        }
+
+        var canOpenFinder: Bool {
+            !path.isEmpty
+        }
+
         /// `.inUse` rows navigate to the running session.
         /// `.recoverable` rows restore/recover the crashed session.
         var canOpenSession: Bool {
             (disposition == .inUse || disposition == .recoverable) && !path.isEmpty
         }
-        var canOpenTask: Bool { !taskID.isEmpty }
+
+        var canOpenTask: Bool {
+            !taskID.isEmpty
+        }
 
         init(
             worktreeId: String,
@@ -44,7 +61,7 @@ struct WorktreeInventoryViewModel: Equatable, Sendable {
             isPinned: Bool,
             isDegraded: Bool,
             sizeBytes: Int?,
-            lastAccessedAt: String?
+            lastAccessedAt: String?,
         ) {
             self.worktreeId = worktreeId
             self.taskID = taskID
@@ -80,17 +97,17 @@ struct WorktreeInventoryViewModel: Equatable, Sendable {
         let safeToDelete = rows.filter { $0.disposition == .safeToDelete }
         let stale = rows.filter { $0.disposition == .stale }
 
-        self.inUseRows = inUse
-        self.recoverableRows = recoverable
-        self.safeToDeleteRows = safeToDelete
-        self.staleRows = stale
+        inUseRows = inUse
+        recoverableRows = recoverable
+        safeToDeleteRows = safeToDelete
+        staleRows = stale
 
-        self.summaryCard = SummaryCard(
+        summaryCard = SummaryCard(
             total: rows.count,
             inUse: inUse.count,
             recoverable: recoverable.count,
             safeToDelete: safeToDelete.count,
-            stale: stale.count
+            stale: stale.count,
         )
     }
 }

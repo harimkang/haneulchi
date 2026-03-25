@@ -10,10 +10,14 @@ fn inventory_summary_json_returns_valid_json() {
         Ok(json) => json,
         Err(error) => serde_json::json!({ "error": error }).to_string(),
     };
-    let value: Value = serde_json::from_str(&raw).expect("inventory_summary_json must return valid JSON");
+    let value: Value =
+        serde_json::from_str(&raw).expect("inventory_summary_json must return valid JSON");
     // If the result is an ok summary it should have the expected fields.
     if value.get("error").is_none() {
-        assert!(value.get("total").is_some(), "summary should have 'total' field");
+        assert!(
+            value.get("total").is_some(),
+            "summary should have 'total' field"
+        );
     }
 }
 
@@ -24,10 +28,14 @@ fn inventory_list_json_returns_array() {
         Ok(json) => json,
         Err(error) => serde_json::json!({ "error": error }).to_string(),
     };
-    let value: Value = serde_json::from_str(&raw).expect("inventory_list_json must return valid JSON");
+    let value: Value =
+        serde_json::from_str(&raw).expect("inventory_list_json must return valid JSON");
     // When storage is empty the result is an empty array; on error it is an object.
     if value.get("error").is_none() {
-        assert!(value.is_array(), "inventory_list_json should return a JSON array");
+        assert!(
+            value.is_array(),
+            "inventory_list_json should return a JSON array"
+        );
     }
 }
 
@@ -41,6 +49,6 @@ fn set_worktree_pinned_json_returns_ok() {
         Ok(json) => json,
         Err(error) => serde_json::json!({ "error": error }).to_string(),
     };
-    let _value: Value = serde_json::from_str(&raw)
-        .expect("set_worktree_pinned_json must return valid JSON");
+    let _value: Value =
+        serde_json::from_str(&raw).expect("set_worktree_pinned_json must return valid JSON");
 }

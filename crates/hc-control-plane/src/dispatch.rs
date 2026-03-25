@@ -101,7 +101,9 @@ pub fn dispatch_snapshot(
     }
 
     let events = dispatch_to_session(session, target_live, payload);
-    if let Some(failure) = events.last().filter(|event| event.state == DispatchLifecycleState::Failed)
+    if let Some(failure) = events
+        .last()
+        .filter(|event| event.state == DispatchLifecycleState::Failed)
     {
         snapshot.attention.push(hc_domain::AttentionSummary {
             attention_id: format!("attention-dispatch-{}", target_session_id),

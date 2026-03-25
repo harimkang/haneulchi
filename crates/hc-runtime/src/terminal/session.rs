@@ -5,7 +5,7 @@ use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
-use portable_pty::{native_pty_system, Child, CommandBuilder, ExitStatus, MasterPty};
+use portable_pty::{Child, CommandBuilder, ExitStatus, MasterPty, native_pty_system};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -171,12 +171,9 @@ impl TerminalSession {
         Ok(filter_shell_markers(drained, &mut metadata, &mut remainder))
     }
 
-    pub fn wait_and_drain(
-        &mut self,
-        timeout: Duration,
-    ) -> Result<Vec<u8>, TerminalSessionError> {
+    pub fn wait_and_drain(&mut self, timeout: Duration) -> Result<Vec<u8>, TerminalSessionError> {
         let _ = self.wait_for_exit(timeout)?;
-        Ok(self.drain_output()?)
+        self.drain_output()
     }
 
     pub fn resize(&mut self, geometry: TerminalGeometry) -> Result<(), TerminalSessionError> {
@@ -219,10 +216,7 @@ impl TerminalSession {
         Ok(metadata.clone())
     }
 
-    fn wait_for_exit(
-        &mut self,
-        timeout: Duration,
-    ) -> Result<&ExitStatus, TerminalSessionError> {
+    fn wait_for_exit(&mut self, timeout: Duration) -> Result<&ExitStatus, TerminalSessionError> {
         if self.exit_status.is_some() {
             return Ok(self.exit_status.as_ref().expect("checked is_some"));
         }

@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("preferences store persists the last active route and defaults to project focus")
 func preferencesStorePersistsLastActiveRoute() throws {

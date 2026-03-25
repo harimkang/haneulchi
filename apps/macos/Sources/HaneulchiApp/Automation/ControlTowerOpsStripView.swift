@@ -10,7 +10,7 @@ struct ControlTowerOpsStripView: View {
         model: AutomationPanelViewModel,
         onRefresh: (() -> Void)? = nil,
         onReconcile: (() -> Void)? = nil,
-        onReload: (() -> Void)? = nil
+        onReload: (() -> Void)? = nil,
     ) {
         self.model = model
         self.onRefresh = onRefresh

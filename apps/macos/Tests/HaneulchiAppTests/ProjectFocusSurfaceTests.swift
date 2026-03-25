@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("project focus demo boots with one hosted surface and split disabled")
 func projectFocusDemoSurfaceContract() {
@@ -35,10 +35,11 @@ func bootstrapProjectFocusModelUsesRestoreBundleIfPresent() throws {
 func projectFocusBootstrapFallsBackToSelectedProjectRoot() throws {
     let model = try ProjectFocusView.Model.bootstrap(
         selectedProjectRoot: "/tmp/auth-service",
-        restoreStore: .inMemory
+        restoreStore: .inMemory,
     )
 
-    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/auth-service")
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch
+        .currentDirectory == "/tmp/auth-service")
 }
 
 @Test("selected project root overrides a stale restore bundle from another repo")
@@ -48,13 +49,16 @@ func selectedProjectRootOverridesRestoreBundle() throws {
 
     let model = try ProjectFocusView.Model.bootstrap(
         selectedProjectRoot: "/tmp/auth-service",
-        restoreStore: store
+        restoreStore: store,
     )
 
-    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/auth-service")
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch
+        .currentDirectory == "/tmp/auth-service")
 }
 
-@Test("project focus bootstrap falls back to recoverable session metadata when no restore bundle exists")
+@Test(
+    "project focus bootstrap falls back to recoverable session metadata when no restore bundle exists",
+)
 func projectFocusBootstrapUsesRecoverableSessions() throws {
     let model = try ProjectFocusView.Model.bootstrap(
         selectedProjectRoot: "/tmp/demo",
@@ -67,12 +71,13 @@ func projectFocusBootstrapUsesRecoverableSessions() throws {
                 cwd: "/tmp/demo/worktrees/task-104",
                 branch: "hc/task-104",
                 lastActiveAt: "2026-03-25T00:00:00Z",
-                isRecoverable: true
-            )
-        ]
+                isRecoverable: true,
+            ),
+        ],
     )
 
-    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/demo/worktrees/task-104")
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch
+        .currentDirectory == "/tmp/demo/worktrees/task-104")
 }
 
 @Test("live project focus layouts can retarget focus deterministically")
@@ -107,7 +112,7 @@ func sessionStackRowsReflectSnapshotVocabulary() {
                 branch: "main",
                 latestSummary: "Running tests",
                 focusState: .background,
-                canTakeover: false
+                canTakeover: false,
             ),
             .init(
                 sessionID: "ses_02",
@@ -121,12 +126,12 @@ func sessionStackRowsReflectSnapshotVocabulary() {
                 branch: "feature/task-104",
                 latestSummary: "Awaiting operator answer",
                 focusState: .focused,
-                canTakeover: true
+                canTakeover: true,
             ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     let rows = SessionStackView.rows(from: snapshot)
@@ -155,7 +160,7 @@ func sessionSignalsExposeSemanticBadgeStates() {
         manualControlState: .none,
         dispatchState: .dispatchable,
         unreadCount: 0,
-        focusState: .background
+        focusState: .background,
     )
     let waitingInput = AppShellSnapshot.SessionSummary(
         sessionID: "ses_waiting",
@@ -166,7 +171,7 @@ func sessionSignalsExposeSemanticBadgeStates() {
         manualControlState: .none,
         dispatchState: .dispatchable,
         unreadCount: 0,
-        focusState: .background
+        focusState: .background,
     )
     let blocked = AppShellSnapshot.SessionSummary(
         sessionID: "ses_blocked",
@@ -177,12 +182,15 @@ func sessionSignalsExposeSemanticBadgeStates() {
         manualControlState: .none,
         dispatchState: .notDispatchable,
         unreadCount: 0,
-        focusState: .background
+        focusState: .background,
     )
 
-    #expect(SessionSignalPresentation.from(session: reviewReady, isFocused: false)?.badgeState == .reviewReady)
-    #expect(SessionSignalPresentation.from(session: waitingInput, isFocused: false)?.badgeState == .waitingInput)
-    #expect(SessionSignalPresentation.from(session: blocked, isFocused: false)?.badgeState == .blocked)
+    #expect(SessionSignalPresentation.from(session: reviewReady, isFocused: false)?
+        .badgeState == .reviewReady)
+    #expect(SessionSignalPresentation.from(session: waitingInput, isFocused: false)?
+        .badgeState == .waitingInput)
+    #expect(SessionSignalPresentation.from(session: blocked, isFocused: false)?
+        .badgeState == .blocked)
 }
 
 @Test("inspector resolves the focused session instead of the first session")
@@ -209,7 +217,7 @@ func inspectorUsesFocusedSessionContext() {
                 branch: "main",
                 latestSummary: "Running tests",
                 focusState: .background,
-                canTakeover: false
+                canTakeover: false,
             ),
             .init(
                 sessionID: "ses_02",
@@ -227,12 +235,12 @@ func inspectorUsesFocusedSessionContext() {
                 branch: "feature/task-104",
                 latestSummary: "Awaiting operator answer",
                 focusState: .focused,
-                canTakeover: true
+                canTakeover: true,
             ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
 
     let focusedSession = InspectorPanelView.focusedSession(from: snapshot)
@@ -242,7 +250,9 @@ func inspectorUsesFocusedSessionContext() {
 }
 
 @MainActor
-@Test("presenting the task drawer uses the focused session binding rather than inferred local state")
+@Test(
+    "presenting the task drawer uses the focused session binding rather than inferred local state",
+)
 func taskDrawerUsesFocusedSessionBinding() async {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 4, runtimeRev: 4, projectionRev: 4, snapshotAt: .now),
@@ -263,7 +273,7 @@ func taskDrawerUsesFocusedSessionBinding() async {
                 taskID: "task_01",
                 workspaceRoot: "/tmp/demo/.haneulchi/task_01",
                 baseRoot: ".",
-                focusState: .background
+                focusState: .background,
             ),
             .init(
                 sessionID: "ses_02",
@@ -278,12 +288,12 @@ func taskDrawerUsesFocusedSessionBinding() async {
                 taskID: "task_ready",
                 workspaceRoot: "/tmp/demo/worktrees/task_ready",
                 baseRoot: "Sources",
-                focusState: .focused
+                focusState: .focused,
             ),
         ],
         attention: [],
         retryQueue: [],
-        warnings: []
+        warnings: [],
     )
     let workflow = WorkflowStatusPayload(
         state: .ok,
@@ -299,8 +309,8 @@ func taskDrawerUsesFocusedSessionBinding() async {
             allowedAgents: ["codex"],
             hooks: [],
             hookRuns: [:],
-            templateBody: nil
-        )
+            templateBody: nil,
+        ),
     )
 
     let model = AppShellModel(
@@ -313,7 +323,7 @@ func taskDrawerUsesFocusedSessionBinding() async {
         restoreStore: .inMemory,
         preferencesStore: .inMemory,
         shellSnapshot: snapshot,
-        workflowStatus: workflow
+        workflowStatus: workflow,
     )
 
     await model.perform(.presentTaskContextDrawer)

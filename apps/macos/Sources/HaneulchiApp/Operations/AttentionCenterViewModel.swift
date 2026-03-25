@@ -22,7 +22,7 @@ struct AttentionCenterViewModel {
         openTarget: @escaping (AppShellAction) -> Void,
         resolveAttention: @escaping (String) -> Void,
         dismissAttention: @escaping (String) -> Void,
-        snoozeAttention: @escaping (String) -> Void
+        snoozeAttention: @escaping (String) -> Void,
     ) {
         let rank: (String, WarningFlag) -> Int = { stateLabel, severity in
             if stateLabel == "manual takeover" {
@@ -50,7 +50,7 @@ struct AttentionCenterViewModel {
                     summary: session.latestSummary ?? "Operator takeover active.",
                     severity: .failed,
                     targetRoute: .projectFocus,
-                    targetSessionID: session.sessionID
+                    targetSessionID: session.sessionID,
                 )
             }
             if session.dispatchState == .dispatchFailed {
@@ -59,11 +59,11 @@ struct AttentionCenterViewModel {
                     headline: session.title,
                     stateLabel: "dispatch_failed",
                     summary: [session.latestSummary, session.dispatchReason]
-                        .compactMap { $0 }
+                        .compactMap(\.self)
                         .joined(separator: " · "),
                     severity: .failed,
                     targetRoute: .projectFocus,
-                    targetSessionID: session.sessionID
+                    targetSessionID: session.sessionID,
                 )
             }
             return nil
@@ -77,24 +77,24 @@ struct AttentionCenterViewModel {
                 summary: attention.summary,
                 severity: attention.severity,
                 targetRoute: attention.targetRoute,
-                targetSessionID: attention.targetSessionID
+                targetSessionID: attention.targetSessionID,
             )
         }
 
-        self.items = (sessionItems + attentionItems)
+        items = (sessionItems + attentionItems)
             .sorted { lhs, rhs in
                 rank(lhs.stateLabel, lhs.severity) < rank(rhs.stateLabel, rhs.severity)
             }
-        self.openTargetAction = openTarget
-        self.resolveAttentionAction = resolveAttention
-        self.dismissAttentionAction = dismissAttention
-        self.snoozeAttentionAction = snoozeAttention
+        openTargetAction = openTarget
+        resolveAttentionAction = resolveAttention
+        dismissAttentionAction = dismissAttention
+        snoozeAttentionAction = snoozeAttention
     }
 
     func open(_ item: Item) {
         openTargetAction(
             item.targetSessionID.map(AppShellAction.jumpToSession)
-                ?? .selectRoute(item.targetRoute)
+                ?? .selectRoute(item.targetRoute),
         )
     }
 

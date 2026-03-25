@@ -1,6 +1,6 @@
+use hc_domain::TaskAutomationMode;
 use hc_domain::inventory::{InventoryDisposition, WorktreeLifecycleState};
 use hc_storage::{NewTaskRecord, NewWorktreeRecord, SqliteStore};
-use hc_domain::TaskAutomationMode;
 
 fn make_store() -> SqliteStore {
     SqliteStore::in_memory().expect("in-memory store")
@@ -47,9 +47,8 @@ fn inventory_groups_in_use_worktrees_correctly() {
     seed_worktree(&store, "wt_in_use", "task_in_use", "proj_test");
     // lifecycle_state defaults to "in_use" on insert
 
-    let rows =
-        hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
-            .expect("inventory");
+    let rows = hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
+        .expect("inventory");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].task_id, "task_in_use");
     assert_eq!(rows[0].disposition, InventoryDisposition::InUse);
@@ -66,9 +65,8 @@ fn inventory_groups_recoverable_worktrees_correctly() {
         .update_lifecycle("wt_recoverable", "recoverable", "2026-03-25T00:01:00Z")
         .expect("update lifecycle");
 
-    let rows =
-        hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
-            .expect("inventory");
+    let rows = hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
+        .expect("inventory");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].disposition, InventoryDisposition::Recoverable);
     assert_eq!(rows[0].lifecycle_state, WorktreeLifecycleState::Recoverable);
@@ -84,12 +82,14 @@ fn inventory_groups_safe_to_delete_correctly() {
         .update_lifecycle("wt_safe", "safe_to_delete", "2026-03-25T00:01:00Z")
         .expect("update lifecycle");
 
-    let rows =
-        hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
-            .expect("inventory");
+    let rows = hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
+        .expect("inventory");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].disposition, InventoryDisposition::SafeToDelete);
-    assert_eq!(rows[0].lifecycle_state, WorktreeLifecycleState::SafeToDelete);
+    assert_eq!(
+        rows[0].lifecycle_state,
+        WorktreeLifecycleState::SafeToDelete
+    );
 }
 
 #[test]
@@ -102,9 +102,8 @@ fn inventory_groups_stale_worktrees_correctly() {
         .update_lifecycle("wt_stale", "stale", "2026-03-25T00:01:00Z")
         .expect("update lifecycle");
 
-    let rows =
-        hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
-            .expect("inventory");
+    let rows = hc_control_plane::inventory::build_inventory_for_project(&store, "proj_test")
+        .expect("inventory");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0].disposition, InventoryDisposition::Stale);
     assert_eq!(rows[0].lifecycle_state, WorktreeLifecycleState::Stale);

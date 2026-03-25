@@ -5,7 +5,7 @@ struct DemoWorkspaceScaffold {
 
     static func fileBacked(
         baseDirectory: URL,
-        fileManager: FileManager = .default
+        fileManager: FileManager = .default,
     ) -> Self {
         Self(
             materialize: {
@@ -15,34 +15,35 @@ struct DemoWorkspaceScaffold {
 
                 try fileManager.createDirectory(
                     at: demoRoot,
-                    withIntermediateDirectories: true
+                    withIntermediateDirectories: true,
                 )
 
                 try writeIfMissing(
                     DemoWorkspaceTemplate.readme,
                     to: demoRoot.appendingPathComponent("README.md"),
-                    fileManager: fileManager
+                    fileManager: fileManager,
                 )
                 try writeIfMissing(
                     DemoWorkspaceTemplate.workflow,
                     to: demoRoot.appendingPathComponent("WORKFLOW.md"),
-                    fileManager: fileManager
+                    fileManager: fileManager,
                 )
 
                 return LauncherProject(
                     projectID: "proj_demo_workspace",
                     name: "Demo Workspace",
                     rootPath: demoRoot.path,
-                    lastOpenedAt: .now
+                    lastOpenedAt: .now,
                 )
-            }
+            },
         )
     }
 
     static var liveDefault: Self {
         let applicationSupport =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory())
+                .appendingPathComponent("Library/Application Support")
         return fileBacked(baseDirectory: applicationSupport)
     }
 }
@@ -75,7 +76,7 @@ private enum DemoWorkspaceTemplate {
 private func writeIfMissing(
     _ contents: String,
     to url: URL,
-    fileManager: FileManager
+    fileManager: FileManager,
 ) throws {
     guard !fileManager.fileExists(atPath: url.path) else {
         return

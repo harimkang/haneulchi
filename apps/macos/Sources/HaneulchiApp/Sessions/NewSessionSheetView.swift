@@ -13,9 +13,11 @@ struct NewSessionSheetView: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(workflowSummary.name)
                         .font(.headline)
-                    Text("Strategy: \(workflowSummary.strategy) · Base root: \(workflowSummary.baseRoot)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Text(
+                        "Strategy: \(workflowSummary.strategy) · Base root: \(workflowSummary.baseRoot)",
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
             }
 

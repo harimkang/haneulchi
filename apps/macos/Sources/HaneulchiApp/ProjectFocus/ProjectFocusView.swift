@@ -15,7 +15,7 @@ struct ProjectFocusView: View {
         static func bootstrap(
             selectedProjectRoot: String? = nil,
             restoreStore: TerminalSessionRestoreStore,
-            recoverableSessions: [RecoverableSessionPayload] = []
+            recoverableSessions: [RecoverableSessionPayload] = [],
         ) throws -> Self {
             let bundles = try restoreStore.load()
             let recoverableBundles = recoverableSessions
@@ -26,7 +26,10 @@ struct ProjectFocusView: View {
                 if let bundle = compatibleBundle(for: selectedProjectRoot, bundles: bundles) {
                     return .restored(bundle)
                 }
-                if let bundle = compatibleBundle(for: selectedProjectRoot, bundles: recoverableBundles) {
+                if let bundle = compatibleBundle(
+                    for: selectedProjectRoot,
+                    bundles: recoverableBundles,
+                ) {
                     return .restored(bundle)
                 }
                 return .restored(.genericShell(at: selectedProjectRoot))
@@ -44,7 +47,7 @@ struct ProjectFocusView: View {
 
         private static func compatibleBundle(
             for selectedProjectRoot: String,
-            bundles: [TerminalRestoreBundle]
+            bundles: [TerminalRestoreBundle],
         ) -> TerminalRestoreBundle? {
             bundles.first(where: { bundle in
                 guard let currentDirectory = bundle.launch.currentDirectory else {
@@ -67,13 +70,14 @@ struct ProjectFocusView: View {
         model: Model,
         snapshot: AppShellSnapshot? = nil,
         queuedFilePath: String? = nil,
-        onAction: @escaping (AppShellAction) -> Void = { _ in }
+        onAction: @escaping (AppShellAction) -> Void = { _ in },
     ) {
         self.model = model
         self.snapshot = snapshot
         self.queuedFilePath = queuedFilePath
         self.onAction = onAction
-        _workspaceState = State(initialValue: ProjectFocusWorkspaceState(projectRoot: model.projectRoot))
+        _workspaceState =
+            State(initialValue: ProjectFocusWorkspaceState(projectRoot: model.projectRoot))
     }
 
     var body: some View {
@@ -84,7 +88,7 @@ struct ProjectFocusView: View {
                 if let snapshot, !snapshot.sessions.isEmpty {
                     SessionStackView(
                         rows: SessionStackView.rows(from: snapshot),
-                        onAction: onAction
+                        onAction: onAction,
                     )
                 }
 
@@ -100,9 +104,9 @@ struct ProjectFocusView: View {
                     },
                     onSessionReady: { sessionID in
                         onAction(.terminalSessionReady(sessionID))
-                    }
+                    },
                 )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 if workspaceState.layoutPreset == .explorerTerminalInspector {
                     VStack(spacing: 0) {
@@ -119,7 +123,7 @@ struct ProjectFocusView: View {
                         InspectorPanelView(
                             workspaceState: $workspaceState,
                             snapshot: snapshot,
-                            onAction: onAction
+                            onAction: onAction,
                         )
                     }
                 }
@@ -132,7 +136,7 @@ struct ProjectFocusView: View {
             }
 
             workspaceState.layoutPreset = .explorerTerminalInspector
-            workspaceState.fileEntries = (try? await fileIndex.index(rootPath: projectRoot)) ?? []
+            workspaceState.fileEntries = await (try? fileIndex.index(rootPath: projectRoot)) ?? []
         }
         .onChange(of: queuedFilePath) { _, queuedFilePath in
             guard let queuedFilePath else {

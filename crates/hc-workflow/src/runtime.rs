@@ -1,10 +1,10 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::contract::LoadedWorkflow;
+use crate::WorkflowError;
 use crate::bootstrap::BootstrapStatusSummary;
+use crate::contract::LoadedWorkflow;
 use crate::loader::{LoadWorkflowRequest, WorkflowLoader};
 use crate::watch::WorkflowWatchState;
-use crate::WorkflowError;
 use time::OffsetDateTime;
 use time::format_description::well_known::Rfc3339;
 
@@ -85,8 +85,12 @@ impl WorkflowRuntime {
         let now_millis = current_time_millis();
         let modified_millis = workflow_modified_millis(&self.request);
 
-        self.watch_state.observe_modified(modified_millis, now_millis);
-        if self.watch_state.should_reload(now_millis, WATCH_DEBOUNCE_MILLIS) {
+        self.watch_state
+            .observe_modified(modified_millis, now_millis);
+        if self
+            .watch_state
+            .should_reload(now_millis, WATCH_DEBOUNCE_MILLIS)
+        {
             return self.reload();
         }
 

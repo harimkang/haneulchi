@@ -53,9 +53,7 @@ pub fn update_worktree_lifecycle_json(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn hc_inventory_summary_json(project_id: *const c_char) -> HcString {
-    string_to_hcstring(
-        read_c_string(project_id).and_then(|id| inventory_summary_json(&id)),
-    )
+    string_to_hcstring(read_c_string(project_id).and_then(|id| inventory_summary_json(&id)))
 }
 
 #[unsafe(no_mangle)]
@@ -69,8 +67,7 @@ pub extern "C" fn hc_set_worktree_pinned_json(
     is_pinned: i32,
 ) -> HcString {
     string_to_hcstring(
-        read_c_string(worktree_id)
-            .and_then(|id| set_worktree_pinned_json(&id, is_pinned != 0)),
+        read_c_string(worktree_id).and_then(|id| set_worktree_pinned_json(&id, is_pinned != 0)),
     )
 }
 

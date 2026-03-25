@@ -66,8 +66,7 @@ pub fn shared_save_app_state(
     last_session_id: Option<&str>,
 ) -> Result<(), ControlPlaneError> {
     let saved_at = now_iso8601();
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .save_app_state(route, last_project_id, last_session_id, &saved_at)
@@ -75,8 +74,7 @@ pub fn shared_save_app_state(
 }
 
 pub fn shared_load_app_state() -> Result<Option<AppStateRecord>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .load_app_state()
@@ -87,8 +85,7 @@ pub fn shared_load_app_state() -> Result<Option<AppStateRecord>, ControlPlaneErr
 pub fn shared_upsert_session_metadata(
     record: SessionMetadataRecord,
 ) -> Result<(), ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .upsert_session_metadata(session_metadata_to_row(record))
@@ -98,8 +95,7 @@ pub fn shared_upsert_session_metadata(
 pub fn shared_list_recoverable_sessions(
     project_id: &str,
 ) -> Result<Vec<SessionMetadataRecord>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .list_recoverable_sessions(project_id)
@@ -108,8 +104,7 @@ pub fn shared_list_recoverable_sessions(
 }
 
 pub fn shared_upsert_layout(record: LayoutRecord) -> Result<(), ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .upsert_layout(layout_to_row(record))
@@ -119,8 +114,7 @@ pub fn shared_upsert_layout(record: LayoutRecord) -> Result<(), ControlPlaneErro
 pub fn shared_load_latest_layout(
     project_id: &str,
 ) -> Result<Option<LayoutRecord>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .persistence()
         .load_latest_layout(project_id)

@@ -75,6 +75,9 @@ fn reconcile_bridge_returns_live_control_plane_payload() {
     hc_string_free(c_payload);
 
     let c_value: serde_json::Value = serde_json::from_str(&c_json).expect("c json");
-    assert_eq!(c_value["result"]["launched_task_ids"], serde_json::json!([]));
+    assert_eq!(
+        c_value["result"]["launched_task_ids"],
+        serde_json::json!([])
+    );
     assert_eq!(c_value["snapshot"]["attention"][0]["kind"], "retry_due");
 }

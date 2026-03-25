@@ -11,10 +11,10 @@ use hc_domain::{
     WorkflowHealth, WorkflowRuntimeStatus,
 };
 use hc_ffi::{
-    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_state_snapshot_json,
-    hc_string_free, hc_sessions_list_json, session_focus, session_release_takeover,
-    session_takeover, state_snapshot_json, sessions_list_json, terminal_session_spawn_json,
-    workflow_reload_json, reset_test_state,
+    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
+    hc_state_snapshot_json, hc_string_free, reset_test_state, session_focus,
+    session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
+    terminal_session_spawn_json, workflow_reload_json,
 };
 use serde_json::Value;
 
@@ -124,9 +124,7 @@ fn session_commands_mutate_exported_snapshot() {
         }"#,
     )
     .expect("spawned session");
-    let session_id = serde_json::from_str::<Value>(&spawned)
-        .expect("spawn response")
-        ["session_id"]
+    let session_id = serde_json::from_str::<Value>(&spawned).expect("spawn response")["session_id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -172,11 +170,9 @@ fn c_abi_exports_state_and_session_command_surface() {
     )
     .expect("spawned session");
     let session_id = CString::new(
-        serde_json::from_str::<Value>(&spawned)
-            .expect("spawn response")
-            ["session_id"]
+        serde_json::from_str::<Value>(&spawned).expect("spawn response")["session_id"]
             .as_str()
-            .unwrap()
+            .unwrap(),
     )
     .unwrap();
     assert_eq!(hc_session_focus(session_id.as_ptr()), 0);
@@ -197,9 +193,7 @@ fn state_snapshot_reflects_spawned_runtime_sessions_instead_of_sample_stub() {
         }"#,
     )
     .expect("spawned session");
-    let spawned_id = serde_json::from_str::<Value>(&spawned)
-        .expect("spawn response")
-        ["session_id"]
+    let spawned_id = serde_json::from_str::<Value>(&spawned).expect("spawn response")["session_id"]
         .as_str()
         .unwrap()
         .to_string();
@@ -208,8 +202,16 @@ fn state_snapshot_reflects_spawned_runtime_sessions_instead_of_sample_stub() {
         serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid json");
     let sessions = snapshot["sessions"].as_array().expect("sessions array");
 
-    assert!(sessions.iter().any(|session| session["session_id"] == spawned_id));
-    assert!(!sessions.iter().any(|session| session["session_id"] == "ses_01"));
+    assert!(
+        sessions
+            .iter()
+            .any(|session| session["session_id"] == spawned_id)
+    );
+    assert!(
+        !sessions
+            .iter()
+            .any(|session| session["session_id"] == "ses_01")
+    );
 }
 
 #[test]
@@ -229,7 +231,10 @@ fn state_snapshot_keeps_last_known_good_after_auto_polled_invalid_reload() {
         &workflow_reload_json(root.to_str().expect("utf8 path")).expect("initial reload"),
     )
     .expect("valid json");
-    let initial_hash = initial_reload["last_good_hash"].as_str().unwrap().to_string();
+    let initial_hash = initial_reload["last_good_hash"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     let spawn_payload = format!(
         r#"{{
@@ -253,7 +258,10 @@ fn state_snapshot_keeps_last_known_good_after_auto_polled_invalid_reload() {
     let snapshot: Value =
         serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid json");
 
-    assert_eq!(snapshot["ops"]["workflow"]["state"], "invalid_kept_last_good");
+    assert_eq!(
+        snapshot["ops"]["workflow"]["state"],
+        "invalid_kept_last_good"
+    );
     assert_eq!(snapshot["ops"]["workflow"]["last_good_hash"], initial_hash);
 }
 

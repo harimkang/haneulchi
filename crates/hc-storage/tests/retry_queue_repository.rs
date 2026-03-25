@@ -8,8 +8,8 @@ use hc_domain::{
     TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
 };
 use hc_storage::{
-    NewRetryQueueEntry, NewTaskRecord, RetryFailureClass, SqliteStore,
-    advance_retry_state, schedule_retry_entry,
+    NewRetryQueueEntry, NewTaskRecord, RetryFailureClass, SqliteStore, advance_retry_state,
+    schedule_retry_entry,
 };
 
 #[test]

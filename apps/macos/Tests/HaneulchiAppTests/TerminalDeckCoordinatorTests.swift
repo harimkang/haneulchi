@@ -1,6 +1,6 @@
 import AppKit
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @MainActor
 private final class RecordingHostHandle: TerminalHostHandle {
@@ -31,7 +31,7 @@ private final class RecordingHostHandle: TerminalHostHandle {
         selectAllCalls += 1
     }
 
-    func handleKeyDown(_ event: NSEvent) {
+    func handleKeyDown(_: NSEvent) {
         keyDownCalls += 1
     }
 }
@@ -88,8 +88,8 @@ func deckCoordinatorRoutesKeyEventsToFocusedPane() throws {
             characters: "a",
             charactersIgnoringModifiers: "a",
             isARepeat: false,
-            keyCode: 0
-        )
+            keyCode: 0,
+        ),
     )
 
     let handled = coordinator.handleKeyDown(event)

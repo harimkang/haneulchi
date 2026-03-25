@@ -5,8 +5,9 @@ struct ReviewQueueView: View {
     @StateObject private var viewModel: ReviewQueueViewModel
 
     init(
-        summary: String = "Review Queue reads Rust-owned evidence summaries for review-ready tasks.",
-        viewModel: ReviewQueueViewModel = ReviewQueueViewModel()
+        summary: String =
+            "Review Queue reads Rust-owned evidence summaries for review-ready tasks.",
+        viewModel: ReviewQueueViewModel = ReviewQueueViewModel(),
     ) {
         self.summary = summary
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -30,14 +31,17 @@ struct ReviewQueueView: View {
                     .padding(HaneulchiMetrics.Padding.card)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .background(HaneulchiChrome.Surface.base)
-                    .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+                    .clipShape(RoundedRectangle(
+                        cornerRadius: HaneulchiMetrics.Radius.large,
+                        style: .continuous,
+                    ))
             } else {
                 HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
                     // Left panel: queue list
                     VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
                         HaneulchiSectionHeader(
                             title: "Ready for Review",
-                            count: viewModel.items.count
+                            count: viewModel.items.count,
                         )
                         ForEach(viewModel.items) { item in
                             reviewReadyRow(item: item)
@@ -133,16 +137,22 @@ struct ReviewQueueView: View {
             .padding(HaneulchiMetrics.Padding.card)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(isSelected ? HaneulchiChrome.Surface.raised : HaneulchiChrome.Surface.base)
-            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+            .clipShape(RoundedRectangle(
+                cornerRadius: HaneulchiMetrics.Radius.large,
+                style: .continuous,
+            ))
             .overlay(
                 RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large)
                     .strokeBorder(
                         isSelected ? HaneulchiChrome.Stroke.ghost : Color.clear,
-                        lineWidth: 1
-                    )
+                        lineWidth: 1,
+                    ),
             )
         }
         .buttonStyle(.plain)
-        .animation(.easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection), value: isSelected)
+        .animation(
+            .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
+            value: isSelected,
+        )
     }
 }

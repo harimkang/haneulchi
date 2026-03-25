@@ -1,8 +1,8 @@
 use std::fs;
 use std::path::PathBuf;
 
-use crate::contract::{parse_workflow_file, LoadedWorkflow};
 use crate::WorkflowError;
+use crate::contract::{LoadedWorkflow, parse_workflow_file};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct LoadWorkflowRequest {

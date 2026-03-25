@@ -17,14 +17,7 @@ fn snapshot() -> AppSnapshot {
         last_sync_at: None,
         health: "ok".to_string(),
     };
-    let project = ProjectSummary::new(
-        "proj_demo",
-        "demo",
-        "/tmp/demo",
-        WorkflowHealth::Ok,
-        2,
-        1,
-    );
+    let project = ProjectSummary::new("proj_demo", "demo", "/tmp/demo", WorkflowHealth::Ok, 2, 1);
 
     let mut waiting = SessionSummary::new("ses_waiting", "proj_demo", "Needs input");
     waiting.runtime_state = SessionRuntimeState::WaitingInput;
@@ -79,7 +72,10 @@ fn control_tower_projection_builds_project_card_heat_strip_and_recent_artifacts(
     assert_eq!(card.state, "attention");
     assert_eq!(card.heat_strip.running, 1);
     assert_eq!(card.heat_strip.waiting_input, 1);
-    assert_eq!(card.latest_summary.as_deref(), Some("Awaiting operator answer"));
+    assert_eq!(
+        card.latest_summary.as_deref(),
+        Some("Awaiting operator answer")
+    );
     assert_eq!(
         card.latest_commentary.as_deref(),
         Some("Need a schema confirmation.")

@@ -14,9 +14,18 @@ struct TerminalSettingsSection: View {
                     labeledRow(label: "Default columns", value: "\(row.defaultCols)")
                     labeledRow(label: "Default rows", value: "\(row.defaultRows)")
                     labeledRow(label: "Scrollback lines", value: "\(row.scrollbackLines)")
-                    labeledRow(label: "Font", value: row.fontName.isEmpty ? "System default" : row.fontName)
-                    labeledRow(label: "Theme", value: row.theme.isEmpty ? "System default" : row.theme)
-                    labeledRow(label: "Cursor style", value: row.cursorStyle.isEmpty ? "Block (default)" : row.cursorStyle)
+                    labeledRow(
+                        label: "Font",
+                        value: row.fontName.isEmpty ? "System default" : row.fontName,
+                    )
+                    labeledRow(
+                        label: "Theme",
+                        value: row.theme.isEmpty ? "System default" : row.theme,
+                    )
+                    labeledRow(
+                        label: "Cursor style",
+                        value: row.cursorStyle.isEmpty ? "Block (default)" : row.cursorStyle,
+                    )
                 }
             } else {
                 Text("No terminal settings configured.")
@@ -28,7 +37,6 @@ struct TerminalSettingsSection: View {
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
-    @ViewBuilder
     private func labeledRow(label: String, value: String) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(label)

@@ -68,10 +68,7 @@ impl<'connection> CacheRepository<'connection> {
         })
     }
 
-    pub fn list_entries(
-        &self,
-        cache_root_id: &str,
-    ) -> Result<Vec<CacheEntryRecord>, StorageError> {
+    pub fn list_entries(&self, cache_root_id: &str) -> Result<Vec<CacheEntryRecord>, StorageError> {
         let mut statement = self.connection.prepare(
             r#"
             SELECT id, cache_root_id, path, size_bytes, last_accessed_at, content_hash

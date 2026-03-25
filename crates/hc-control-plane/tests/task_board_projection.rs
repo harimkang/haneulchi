@@ -59,11 +59,16 @@ fn project_filter_and_move_mutation_update_storage_backed_projection() {
 fn review_ready_queue_only_lists_pending_review_items() {
     let service = ReviewQueueService::demo().expect("review queue");
 
-    let projection = service.review_ready_projection().expect("review queue projection");
+    let projection = service
+        .review_ready_projection()
+        .expect("review queue projection");
 
     assert_eq!(projection.items.len(), 1);
     assert_eq!(projection.items[0].task_id, "task_review");
-    assert_eq!(projection.items[0].touched_files, vec!["Sources/Auth.swift", "Tests/AuthTests.swift"]);
+    assert_eq!(
+        projection.items[0].touched_files,
+        vec!["Sources/Auth.swift", "Tests/AuthTests.swift"]
+    );
     assert_eq!(
         projection.items[0].warnings,
         vec!["after_run_failed", "snapshot drift"]
@@ -109,21 +114,29 @@ fn timeline_accept_request_changes_manual_continue_and_follow_up_update_projecti
         .apply_decision("task_review", ReviewDecision::ManualContinue)
         .expect("manual continue");
     assert_eq!(manual_continue.task.column, TaskColumn::Running);
-    assert_eq!(manual_continue.task.linked_session_id.as_deref(), Some("ses_02"));
+    assert_eq!(
+        manual_continue.task.linked_session_id.as_deref(),
+        Some("ses_02")
+    );
 
     let follow_up = ReviewQueueService::demo()
         .expect("review queue")
         .apply_decision("task_review", ReviewDecision::FollowUp)
         .expect("follow up");
-    assert_eq!(follow_up.follow_up_task.as_ref().expect("follow up").column, TaskColumn::Inbox);
+    assert_eq!(
+        follow_up.follow_up_task.as_ref().expect("follow up").column,
+        TaskColumn::Inbox
+    );
 
     let timeline = follow_up.timeline;
     assert!(timeline.iter().any(|item| item.kind == "task_created"));
     assert!(timeline.iter().any(|item| item.kind == "review_decided"));
     assert!(timeline.iter().any(|item| item.kind == "follow_up_created"));
-    assert!(timeline
-        .iter()
-        .any(|item| item.summary.contains("Follow-up task created")));
+    assert!(
+        timeline
+            .iter()
+            .any(|item| item.summary.contains("Follow-up task created"))
+    );
 }
 
 #[test]
@@ -150,7 +163,7 @@ fn eligibility_policy_pack_and_automation_mode_projection_block_invalid_dispatch
         )
         .expect("automation details");
 
-    assert_eq!(details.policy_pack.require_review, true);
+    assert!(details.policy_pack.require_review);
     assert_eq!(details.policy_pack.max_runtime_minutes, Some(45));
     assert_eq!(details.policy_pack.allowed_agents, vec!["codex"]);
     assert_eq!(
@@ -211,5 +224,10 @@ fn shared_board_and_review_projections_mutate_one_authoritative_store() {
         .iter()
         .find(|column| column.column == TaskColumn::Done)
         .expect("done column");
-    assert!(done_column.tasks.iter().any(|task| task.id == "task_review"));
+    assert!(
+        done_column
+            .tasks
+            .iter()
+            .any(|task| task.id == "task_review")
+    );
 }

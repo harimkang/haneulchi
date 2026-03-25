@@ -84,10 +84,7 @@ impl<'connection> PersistenceRepository<'connection> {
             .map_err(Into::into)
     }
 
-    pub fn upsert_session_metadata(
-        &self,
-        row: SessionMetadataRow,
-    ) -> Result<(), StorageError> {
+    pub fn upsert_session_metadata(&self, row: SessionMetadataRow) -> Result<(), StorageError> {
         self.connection.execute(
             r#"
             INSERT INTO session_metadata (
@@ -162,10 +159,7 @@ impl<'connection> PersistenceRepository<'connection> {
         Ok(())
     }
 
-    pub fn load_latest_layout(
-        &self,
-        project_id: &str,
-    ) -> Result<Option<LayoutRow>, StorageError> {
+    pub fn load_latest_layout(&self, project_id: &str) -> Result<Option<LayoutRow>, StorageError> {
         let mut statement = self.connection.prepare(
             r#"
             SELECT id, project_id, data_json, saved_at

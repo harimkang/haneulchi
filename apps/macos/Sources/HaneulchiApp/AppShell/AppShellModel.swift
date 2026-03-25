@@ -85,7 +85,7 @@ final class AppShellModel: ObservableObject {
         commandPaletteViewModel: CommandPaletteViewModel? = nil,
         transientNotice: String? = nil,
         isInventoryPresented: Bool = false,
-        inventoryViewModel: WorktreeInventoryViewModel? = nil
+        inventoryViewModel: WorktreeInventoryViewModel? = nil,
     ) {
         self.entrySurface = entrySurface
         self.selectedRoute = selectedRoute
@@ -114,7 +114,9 @@ final class AppShellModel: ObservableObject {
         self.projectStore = projectStore
         self.restoreStore = restoreStore
         self.preferencesStore = preferencesStore
-        self.snapshotSource = snapshotSource ?? LocalAppShellSnapshotSource(restoreStore: restoreStore)
+        self
+            .snapshotSource = snapshotSource ??
+            LocalAppShellSnapshotSource(restoreStore: restoreStore)
         self.readinessRunner = readinessRunner
         self.projectFileIndex = projectFileIndex
         self.taskSearchProjectionStore = taskSearchProjectionStore
@@ -124,12 +126,16 @@ final class AppShellModel: ObservableObject {
             self.inventorySearchProjectionStore = InventorySearchProjectionStore(
                 inventoryList: { projectID in
                     try coreBridge.inventoryList(projectID)
-                }
+                },
             )
         } else {
-            self.inventorySearchProjectionStore = InventorySearchProjectionStore(restoreStore: restoreStore)
+            self
+                .inventorySearchProjectionStore =
+                InventorySearchProjectionStore(restoreStore: restoreStore)
         }
-        self.presetRegistry = presetRegistry ?? (try? PresetRegistry.loadDefault()) ?? PresetRegistry(presets: [])
+        self
+            .presetRegistry = presetRegistry ?? (try? PresetRegistry.loadDefault()) ??
+            PresetRegistry(presets: [])
         self.coreBridge = coreBridge
     }
 
@@ -138,7 +144,7 @@ final class AppShellModel: ObservableObject {
         restoreStore: TerminalSessionRestoreStore,
         preferencesStore: AppShellPreferencesStore,
         readinessRunner: ReadinessProbeRunner = .live,
-        coreBridge: CoreBridge? = nil
+        coreBridge: CoreBridge? = nil,
     ) throws -> AppShellModel {
         let selectedProject = try projectStore.loadLastSelectedProject()
         let recentProjects = try projectStore.loadRecentProjects()
@@ -148,7 +154,8 @@ final class AppShellModel: ObservableObject {
         if selectedProject != nil,
            let bridge = coreBridge,
            let appState = try? bridge.loadAppState(),
-           let route = Route(rawValue: appState.activeRoute) {
+           let route = Route(rawValue: appState.activeRoute)
+        {
             activeRoute = route
         } else {
             let preferences = try preferencesStore.load()
@@ -165,7 +172,7 @@ final class AppShellModel: ObservableObject {
             restoreStore: restoreStore,
             preferencesStore: preferencesStore,
             readinessRunner: readinessRunner,
-            coreBridge: coreBridge
+            coreBridge: coreBridge,
         )
     }
 
@@ -174,13 +181,13 @@ final class AppShellModel: ObservableObject {
         restoreStore: TerminalSessionRestoreStore = .liveDefault,
         preferencesStore: AppShellPreferencesStore = .liveDefault,
         readinessRunner: ReadinessProbeRunner = .live,
-        coreBridge: CoreBridge? = nil
+        coreBridge: CoreBridge? = nil,
     ) -> AppShellModel {
         let model = (try? bootstrap(
             projectStore: projectStore,
             restoreStore: restoreStore,
             preferencesStore: preferencesStore,
-            readinessRunner: readinessRunner
+            readinessRunner: readinessRunner,
         ))
             ?? AppShellModel(
                 entrySurface: .welcome(.firstRun),
@@ -192,7 +199,7 @@ final class AppShellModel: ObservableObject {
                 restoreStore: restoreStore,
                 preferencesStore: preferencesStore,
                 readinessRunner: readinessRunner,
-                coreBridge: coreBridge
+                coreBridge: coreBridge,
             )
 
         if model.coreBridge == nil, let coreBridge {
@@ -225,7 +232,7 @@ final class AppShellModel: ObservableObject {
                 commandPaletteViewModel: model.commandPaletteViewModel,
                 transientNotice: model.transientNotice,
                 isInventoryPresented: model.isInventoryPresented,
-                inventoryViewModel: model.inventoryViewModel
+                inventoryViewModel: model.inventoryViewModel,
             )
             bridgedModel.refreshStartupReadiness(using: readinessRunner)
             Task { await bridgedModel.refreshShellSnapshot() }
@@ -245,23 +252,23 @@ final class AppShellModel: ObservableObject {
         preferencesStore: AppShellPreferencesStore,
         readinessRunner: ReadinessProbeRunner = .live,
         coreBridge: CoreBridge? = nil,
-        initialReport: ReadinessReport
+        initialReport: ReadinessReport,
     ) async throws -> AppShellModel {
         let selectedProject = try projectStore.loadLastSelectedProject()
         let preferences = try preferencesStore.load()
 
         if selectedProject != nil, initialReport.requiresRecoverySurface {
-            return AppShellModel(
+            return try AppShellModel(
                 entrySurface: .welcome(.degradedRecovery),
                 selectedRoute: preferences.lastActiveRoute,
                 selectedProject: selectedProject,
-                recentProjects: try projectStore.loadRecentProjects(),
+                recentProjects: projectStore.loadRecentProjects(),
                 readinessReport: initialReport,
                 projectStore: projectStore,
                 restoreStore: restoreStore,
                 preferencesStore: preferencesStore,
                 readinessRunner: readinessRunner,
-                coreBridge: coreBridge
+                coreBridge: coreBridge,
             )
         }
 
@@ -270,7 +277,7 @@ final class AppShellModel: ObservableObject {
             restoreStore: restoreStore,
             preferencesStore: preferencesStore,
             readinessRunner: readinessRunner,
-            coreBridge: coreBridge
+            coreBridge: coreBridge,
         )
     }
 
@@ -312,7 +319,7 @@ final class AppShellModel: ObservableObject {
             activeRoute: selectedRoute,
             selectedProject: selectedProject,
             readinessReport: readinessReport,
-            recentProjects: recentProjects
+            recentProjects: recentProjects,
         )
         if let coreBridge, let bridgeSnapshot = try? coreBridge.stateSnapshot() {
             let merged = mergedSnapshot(local: localSnapshot, bridge: bridgeSnapshot)
@@ -335,14 +342,24 @@ final class AppShellModel: ObservableObject {
         case .refreshShellSnapshot:
             break
         case .openSettings:
-            if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
-                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            if let selectedProject, let coreBridge,
+               let payload = try? coreBridge.workflowValidate(selectedProject.rootPath)
+            {
+                workflowStatus = try? JSONDecoder().decode(
+                    WorkflowStatusPayload.self,
+                    from: payload,
+                )
             }
             settingsStatusViewModel = makeSettingsStatusViewModel()
             setSelectedRoute(.settings)
         case .presentWorkflowDrawer:
-            if let selectedProject, let coreBridge, let payload = try? coreBridge.workflowValidate(selectedProject.rootPath) {
-                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+            if let selectedProject, let coreBridge,
+               let payload = try? coreBridge.workflowValidate(selectedProject.rootPath)
+            {
+                workflowStatus = try? JSONDecoder().decode(
+                    WorkflowStatusPayload.self,
+                    from: payload,
+                )
             }
             isWorkflowDrawerPresented = true
         case .dismissWorkflowDrawer:
@@ -365,7 +382,10 @@ final class AppShellModel: ObservableObject {
                 return
             }
             if let payload = try? coreBridge.workflowReload(selectedProject.rootPath) {
-                workflowStatus = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+                workflowStatus = try? JSONDecoder().decode(
+                    WorkflowStatusPayload.self,
+                    from: payload,
+                )
             }
             if selectedRoute == .settings {
                 settingsStatusViewModel = makeSettingsStatusViewModel()
@@ -384,7 +404,10 @@ final class AppShellModel: ObservableObject {
             transientNotice = "Snoozed attention: \(attentionID)"
         case let .presentQuickDispatch(origin):
             if let snapshot = shellSnapshot {
-                quickDispatchComposer = QuickDispatchComposerViewModel(snapshot: snapshot, origin: origin)
+                quickDispatchComposer = QuickDispatchComposerViewModel(
+                    snapshot: snapshot,
+                    origin: origin,
+                )
                 quickDispatchOrigin = origin
                 quickDispatchTaskID = resolveQuickDispatchTaskID(origin: origin, snapshot: snapshot)
             }
@@ -400,7 +423,7 @@ final class AppShellModel: ObservableObject {
                 quickDispatchTaskID = nil
                 pendingQuickDispatchReplay = PendingQuickDispatchReplay(
                     taskID: taskID,
-                    message: message
+                    message: message,
                 )
                 presentNewSessionSheet(prefillPresetID: presetID(for: String(adapterKind)))
                 transientNotice = "Open a new \(adapterKind) session, then continue quick dispatch."
@@ -417,7 +440,7 @@ final class AppShellModel: ObservableObject {
                 try? coreBridge?.dispatchSend(
                     sessionID,
                     pendingQuickDispatchReplay.taskID,
-                    pendingQuickDispatchReplay.message
+                    pendingQuickDispatchReplay.message,
                 )
                 self.pendingQuickDispatchReplay = nil
                 transientNotice = "Dispatch sent to \(sessionID)"
@@ -434,7 +457,7 @@ final class AppShellModel: ObservableObject {
                 let exportURL = snapshotExportURL()
                 try? FileManager.default.createDirectory(
                     at: exportURL.deletingLastPathComponent(),
-                    withIntermediateDirectories: true
+                    withIntermediateDirectories: true,
                 )
                 try? payload.write(to: exportURL, atomically: true, encoding: .utf8)
                 transientNotice = "Snapshot exported to \(exportURL.lastPathComponent)"
@@ -482,7 +505,10 @@ final class AppShellModel: ObservableObject {
             transientNotice = "File queued for Project Focus: \(path)"
         case let .createTaskDraft(title):
             do {
-                let row = try taskSearchProjectionStore.createDraft(title, selectedProject?.projectID)
+                let row = try taskSearchProjectionStore.createDraft(
+                    title,
+                    selectedProject?.projectID,
+                )
                 setSelectedRoute(.taskBoard)
                 transientNotice = "Task draft created: \(row.title)"
             } catch {
@@ -521,7 +547,7 @@ final class AppShellModel: ObservableObject {
             }
         case .retryReadiness:
             await retryStartupReadiness()
-        case .triggerRecovery(let issueCode):
+        case let .triggerRecovery(issueCode):
             await handleRecovery(issueCode: issueCode)
         case .presentInventory:
             isInventoryPresented = true
@@ -535,7 +561,9 @@ final class AppShellModel: ObservableObject {
                 transientNotice = "Session not available for this worktree."
                 return
             }
-            if let sessionID = shellSnapshot?.sessions.first(where: { $0.taskID == taskID })?.sessionID {
+            if let sessionID = shellSnapshot?.sessions.first(where: { $0.taskID == taskID })?
+                .sessionID
+            {
                 await perform(.jumpToSession(sessionID))
             } else {
                 transientNotice = "Session not available for task \(taskID)."
@@ -552,7 +580,7 @@ final class AppShellModel: ObservableObject {
                 : "Opened task \(taskID)"
         }
 
-        if action != .dismissCommandPalette && action != .toggleCommandPalette {
+        if action != .dismissCommandPalette, action != .toggleCommandPalette {
             await refreshShellSnapshot()
         }
 
@@ -602,19 +630,18 @@ final class AppShellModel: ObservableObject {
     func refreshCommandPaletteViewModel() async {
         let snapshot = shellSnapshot ?? AppShellSnapshot.empty(
             activeRoute: selectedRoute,
-            selectedProject: selectedProject
+            selectedProject: selectedProject,
         )
-        let files: [ProjectFileIndex.Entry]
-        if let rootPath = selectedProject?.rootPath {
-            files = (try? await projectFileIndex.index(rootPath: rootPath)) ?? []
+        let files: [ProjectFileIndex.Entry] = if let rootPath = selectedProject?.rootPath {
+            await (try? projectFileIndex.index(rootPath: rootPath)) ?? []
         } else {
-            files = []
+            []
         }
 
         let tasks = (try? taskSearchProjectionStore.search("")) ?? []
-        let inventory = (try? await inventorySearchProjectionStore.load(
+        let inventory = await (try? inventorySearchProjectionStore.load(
             selectedProjectID: selectedProject?.projectID,
-            selectedProjectRoot: selectedProject?.rootPath
+            selectedProjectRoot: selectedProject?.rootPath,
         )) ?? []
 
         commandPaletteViewModel = CommandPaletteViewModel(
@@ -622,8 +649,8 @@ final class AppShellModel: ObservableObject {
                 snapshot: snapshot,
                 files: files,
                 tasks: tasks,
-                inventory: inventory
-            )
+                inventory: inventory,
+            ),
         )
     }
 
@@ -635,20 +662,23 @@ final class AppShellModel: ObservableObject {
             return WorktreeInventoryViewModel(rows: [])
         }
         let rows = payloads.compactMap { payload -> WorktreeInventoryViewModel.Row? in
-            guard let disposition = WorktreeInventoryViewModel.Disposition(rawValue: payload.disposition) else {
+            guard let disposition = WorktreeInventoryViewModel
+                .Disposition(rawValue: payload.disposition)
+            else {
                 return nil
             }
             return WorktreeInventoryViewModel.Row(
                 worktreeId: payload.worktreeId,
                 taskID: payload.taskId,
                 path: payload.path,
-                projectName: payload.projectName.isEmpty ? selectedProject.name : payload.projectName,
+                projectName: payload.projectName.isEmpty ? selectedProject.name : payload
+                    .projectName,
                 branch: payload.branch,
                 disposition: disposition,
                 isPinned: payload.isPinned,
                 isDegraded: payload.isDegraded,
                 sizeBytes: payload.sizeBytes,
-                lastAccessedAt: payload.lastAccessedAt
+                lastAccessedAt: payload.lastAccessedAt,
             )
         }
         return WorktreeInventoryViewModel(rows: rows)
@@ -664,7 +694,9 @@ final class AppShellModel: ObservableObject {
     }
 
     private func fetchWorkflowStatus(for project: LauncherProject) -> WorkflowStatusPayload? {
-        guard let coreBridge, let payload = try? coreBridge.workflowValidate(project.rootPath) else {
+        guard let coreBridge,
+              let payload = try? coreBridge.workflowValidate(project.rootPath)
+        else {
             return nil
         }
 
@@ -676,7 +708,7 @@ final class AppShellModel: ObservableObject {
         let runtimeSummary = try? coreBridge?.runtimeInfoSummary()
         let context = RecoveryContextPayload(
             workflowHealth: shellSnapshot?.ops.workflowHealth.rawValue ?? "unknown",
-            staleClaims: []
+            staleClaims: [],
         )
         let degradedIssues = (try? coreBridge?.listDegradedIssues(context)) ?? []
         return SettingsStatusViewModel(
@@ -687,7 +719,7 @@ final class AppShellModel: ObservableObject {
             snapshot: shellSnapshot,
             terminalSettings: termSettings ?? nil,
             runtimeInfoSummary: runtimeSummary,
-            degradedIssues: degradedIssues
+            degradedIssues: degradedIssues,
         )
     }
 
@@ -710,7 +742,7 @@ final class AppShellModel: ObservableObject {
             lastGoodHash: workflow.lastGoodHash,
             lastReloadAt: workflow.lastReloadAt,
             lastError: workflow.lastError,
-            workflow: summary
+            workflow: summary,
         )
 
         if selectedRoute == .settings {
@@ -735,14 +767,14 @@ final class AppShellModel: ObservableObject {
                 lastGoodHash: resolved.lastGoodHash ?? fetchedWorkflowStatus?.lastGoodHash,
                 lastReloadAt: resolved.lastReloadAt ?? fetchedWorkflowStatus?.lastReloadAt,
                 lastError: resolved.lastError ?? fetchedWorkflowStatus?.lastError,
-                workflow: resolved.workflow ?? fetchedWorkflowStatus?.workflow
+                workflow: resolved.workflow ?? fetchedWorkflowStatus?.workflow,
             )
         }
 
         return TaskDrawerModel.resolve(
             from: snapshot,
             workflowStatus: mergedWorkflowStatus,
-            targetTaskID: targetTaskID
+            targetTaskID: targetTaskID,
         )
     }
 
@@ -786,14 +818,13 @@ final class AppShellModel: ObservableObject {
 
         if issueCode.hasPrefix("clean:") {
             let worktreeID = String(issueCode.dropFirst("clean:".count))
-            let nextState: String
-            switch inventoryRow(worktreeID: worktreeID)?.disposition {
+            let nextState = switch inventoryRow(worktreeID: worktreeID)?.disposition {
             case .safeToDelete:
-                nextState = "stale"
+                "stale"
             case .stale:
-                nextState = "stale"
+                "stale"
             default:
-                nextState = "safe_to_delete"
+                "safe_to_delete"
             }
             do {
                 try coreBridge.updateWorktreeLifecycle(worktreeID, nextState)
@@ -844,7 +875,7 @@ final class AppShellModel: ObservableObject {
                     strategy: $0.strategy ?? "worktree",
                     baseRoot: $0.baseRoot ?? ".",
                     reviewChecklist: $0.reviewChecklist,
-                    allowedAgents: $0.allowedAgents
+                    allowedAgents: $0.allowedAgents,
                 )
             }
         }
@@ -861,13 +892,13 @@ final class AppShellModel: ObservableObject {
                 return try coreBridge.provisionTaskWorkspace(
                     projectRoot,
                     taskID,
-                    resolvedWorkflowSummary?.baseRoot
+                    resolvedWorkflowSummary?.baseRoot,
                 )
             },
             resolveSecretEnv: { [coreBridge] in
                 // TODO(sprint-6): pass project_id as scope_filter once project context is threaded through launch
                 try coreBridge?.resolveLaunchEnvironment() ?? [:]
-            }
+            },
         )
         isNewSessionSheetPresented = true
     }
@@ -884,7 +915,9 @@ final class AppShellModel: ObservableObject {
         }
     }
 
-    private func focusedSession(from snapshot: AppShellSnapshot) -> AppShellSnapshot.SessionSummary? {
+    private func focusedSession(from snapshot: AppShellSnapshot) -> AppShellSnapshot
+        .SessionSummary?
+    {
         snapshot.sessions.first(where: {
             $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
         })
@@ -919,7 +952,8 @@ final class AppShellModel: ObservableObject {
             return presetRegistry.preset(id: "gemini") != nil ? "gemini" : nil
         }
         return presetRegistry.presets.first(where: { preset in
-            normalized.contains(preset.id.lowercased()) || preset.id.lowercased().contains(normalized)
+            normalized.contains(preset.id.lowercased()) || preset.id.lowercased()
+                .contains(normalized)
         })?.id
     }
 
@@ -928,7 +962,9 @@ final class AppShellModel: ObservableObject {
         let message: String
     }
 
-    private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws -> SessionLaunchDescriptor {
+    private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws
+        -> SessionLaunchDescriptor
+    {
         guard descriptor.mode == .isolated, let selectedProject else {
             return descriptor
         }
@@ -947,14 +983,17 @@ final class AppShellModel: ObservableObject {
             sessionCwdURL = workspaceURL
         } else {
             sessionCwdURL = workspaceURL.appendingPathComponent(baseRoot, isDirectory: true)
-            try FileManager.default.createDirectory(at: sessionCwdURL, withIntermediateDirectories: true)
+            try FileManager.default.createDirectory(
+                at: sessionCwdURL,
+                withIntermediateDirectories: true,
+            )
         }
 
         try runHookIfPresent(workflowStatus?.workflow?.hookRuns["after_create"], cwd: sessionCwdURL)
         try writeRenderedPrompt(
             workflowStatus: workflowStatus,
             project: selectedProject,
-            sessionCwdURL: sessionCwdURL
+            sessionCwdURL: sessionCwdURL,
         )
         try runHookIfPresent(workflowStatus?.workflow?.hookRuns["before_run"], cwd: sessionCwdURL)
 
@@ -964,7 +1003,7 @@ final class AppShellModel: ObservableObject {
             presetID: descriptor.presetID,
             restoreBundle: .genericShell(at: sessionCwdURL.path),
             workspaceRoot: workspaceURL.path,
-            workflowSummary: descriptor.workflowSummary
+            workflowSummary: descriptor.workflowSummary,
         )
     }
 
@@ -986,21 +1025,26 @@ final class AppShellModel: ObservableObject {
     private func writeRenderedPrompt(
         workflowStatus: WorkflowStatusPayload?,
         project: LauncherProject,
-        sessionCwdURL: URL
+        sessionCwdURL: URL,
     ) throws {
         let template = workflowStatus?.workflow?.templateBody ?? "Project: {{project.name}}"
         let rendered = template
             .replacingOccurrences(of: "{{project.name}}", with: project.name)
             .replacingOccurrences(of: "{{project.repo_root}}", with: project.rootPath)
-            .replacingOccurrences(of: "{{workflow.name}}", with: workflowStatus?.workflow?.name ?? "")
+            .replacingOccurrences(
+                of: "{{workflow.name}}",
+                with: workflowStatus?.workflow?.name ?? "",
+            )
         try rendered.write(
             to: sessionCwdURL.appendingPathComponent("prompt.rendered.md"),
             atomically: true,
-            encoding: .utf8
+            encoding: .utf8,
         )
     }
 
-    private func mergedSnapshot(local: AppShellSnapshot?, bridge: AppShellSnapshot) -> AppShellSnapshot {
+    private func mergedSnapshot(local: AppShellSnapshot?,
+                                bridge: AppShellSnapshot) -> AppShellSnapshot
+    {
         guard let local else {
             return bridge
         }
@@ -1011,7 +1055,7 @@ final class AppShellModel: ObservableObject {
             app: .init(
                 activeRoute: selectedRoute,
                 focusedSessionID: bridge.app.focusedSessionID ?? local.app.focusedSessionID,
-                degradedFlags: Array(Set(local.app.degradedFlags + bridge.app.degradedFlags))
+                degradedFlags: Array(Set(local.app.degradedFlags + bridge.app.degradedFlags)),
             ),
             projects: bridge.projects.isEmpty ? local.projects : bridge.projects,
             sessions: bridge.sessions.isEmpty ? local.sessions : bridge.sessions,
@@ -1019,7 +1063,7 @@ final class AppShellModel: ObservableObject {
             retryQueue: bridge.retryQueue.isEmpty ? local.retryQueue : bridge.retryQueue,
             warnings: local.warnings,
             workflow: bridge.workflow ?? local.workflow,
-            tracker: bridge.tracker ?? local.tracker
+            tracker: bridge.tracker ?? local.tracker,
         )
     }
 
@@ -1029,7 +1073,10 @@ final class AppShellModel: ObservableObject {
         }
 
         return FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent("Library/Application Support/Haneulchi/evidence", isDirectory: true)
+            .appendingPathComponent(
+                "Library/Application Support/Haneulchi/evidence",
+                isDirectory: true,
+            )
             .appendingPathComponent("exported-snapshot.json")
     }
 }

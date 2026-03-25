@@ -31,7 +31,8 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             }
             let data = extract_data(&json)?;
             let sessions = data.as_array().cloned().unwrap_or_default();
-            let mut lines = vec!["SESSION PROJECT MODE STATE TASK BRANCH UNREAD SUMMARY".to_string()];
+            let mut lines =
+                vec!["SESSION PROJECT MODE STATE TASK BRANCH UNREAD SUMMARY".to_string()];
             for session in sessions {
                 lines.push(format!(
                     "{} {} {} {} {} {} {} {}",
@@ -48,7 +49,9 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             Ok(lines.join("\n"))
         }
         Some("get") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
             let json = client.get_json(&format!("/v1/sessions/{session_id}"))?;
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
@@ -61,16 +64,22 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             ))
         }
         Some("focus") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
-            let json =
-                client.post_json(&format!("/v1/sessions/{session_id}/focus"), Some(r#"{"activate_app":true}"#))?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
+            let json = client.post_json(
+                &format!("/v1/sessions/{session_id}/focus"),
+                Some(r#"{"activate_app":true}"#),
+            )?;
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
             }
             Ok(format!("Focus requested for session {session_id}."))
         }
         Some("takeover") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
             let json = client.post_json(
                 &format!("/v1/sessions/{session_id}/takeover"),
                 Some(r#"{"reason":"manual review"}"#),
@@ -81,7 +90,9 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             Ok(format!("Takeover enabled for session {session_id}."))
         }
         Some("release-takeover") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
             let json = client.post_json(
                 &format!("/v1/sessions/{session_id}/release-takeover"),
                 Some(r#"{"resume_mode":"normal"}"#),
@@ -92,8 +103,11 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             Ok(format!("Takeover released for session {session_id}."))
         }
         Some("attach-task") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
-            let task_id = value_after(args, "--task").ok_or_else(|| "missing --task".to_string())?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
+            let task_id =
+                value_after(args, "--task").ok_or_else(|| "missing --task".to_string())?;
             let json = client.post_json(
                 &format!("/v1/sessions/{session_id}/attach-task"),
                 Some(&format!(r#"{{"task_id":"{task_id}"}}"#)),
@@ -104,8 +118,13 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
             Ok(format!("Attached task {task_id} to session {session_id}."))
         }
         Some("detach-task") => {
-            let session_id = args.get(1).ok_or_else(|| "missing session id".to_string())?;
-            let json = client.post_json(&format!("/v1/sessions/{session_id}/detach-task"), Some("{}"))?;
+            let session_id = args
+                .get(1)
+                .ok_or_else(|| "missing session id".to_string())?;
+            let json = client.post_json(
+                &format!("/v1/sessions/{session_id}/detach-task"),
+                Some("{}"),
+            )?;
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
             }

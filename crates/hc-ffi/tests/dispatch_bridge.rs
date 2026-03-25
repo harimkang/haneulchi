@@ -1,7 +1,10 @@
 use std::sync::Mutex;
 
 use hc_control_plane::reset_shared_control_plane_snapshot_for_tests;
-use hc_domain::{AppSnapshot, SessionRuntimeState, SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus};
+use hc_domain::{
+    AppSnapshot, SessionRuntimeState, SessionSummary, TrackerStatus, WorkflowHealth,
+    WorkflowRuntimeStatus,
+};
 use hc_ffi::{dispatch_send_json, reset_test_state, state_snapshot_json};
 use serde_json::Value;
 
@@ -38,7 +41,8 @@ fn dispatch_bridge_updates_snapshot_and_attention_for_failed_target() {
     assert_eq!(response_value["events"][2]["state"], "failed");
 
     let snapshot_value: Value =
-        serde_json::from_str(&state_snapshot_json().expect("snapshot json")).expect("valid snapshot");
+        serde_json::from_str(&state_snapshot_json().expect("snapshot json"))
+            .expect("valid snapshot");
     assert_eq!(snapshot_value["attention"][0]["kind"], "session_error");
     assert_eq!(snapshot_value["attention"][0]["session_id"], "ses_stale");
 }

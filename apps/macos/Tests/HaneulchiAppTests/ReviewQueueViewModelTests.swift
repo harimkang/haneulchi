@@ -1,5 +1,5 @@
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @MainActor
 @Test("review queue view model only surfaces review-ready items and keeps evidence summary visible")
@@ -16,10 +16,10 @@ func reviewQueueViewModelUsesReviewReadyProjection() throws {
                 testsSummary: "12 passing",
                 commandSummary: "cargo test -p hc-workflow",
                 warnings: ["snapshot drift"],
-                evidenceManifestPath: "evidence/reviews/task_review/review_01/manifest.json"
-            )
+                evidenceManifestPath: "evidence/reviews/task_review/review_01/manifest.json",
+            ),
         ],
-        degradedReason: nil
+        degradedReason: nil,
     )
     let viewModel = ReviewQueueViewModel(loadProjection: { projection })
 
@@ -34,7 +34,10 @@ func reviewQueueViewModelUsesReviewReadyProjection() throws {
 @MainActor
 @Test("review queue view model makes empty and degraded states explicit")
 func reviewQueueViewModelExposesEmptyAndDegradedStates() throws {
-    let degraded = ReviewQueueProjectionPayload(items: [], degradedReason: "review_evidence_unavailable")
+    let degraded = ReviewQueueProjectionPayload(
+        items: [],
+        degradedReason: "review_evidence_unavailable",
+    )
     let viewModel = ReviewQueueViewModel(loadProjection: { degraded })
 
     try viewModel.reload()

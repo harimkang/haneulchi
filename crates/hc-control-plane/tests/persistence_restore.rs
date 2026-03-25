@@ -3,7 +3,7 @@
 /// These tests operate directly against `SqliteStore::in_memory()` via the
 /// `PersistenceRepository` so they are hermetic and do not touch the
 /// shared global store.
-use hc_storage::{AppStateRow, LayoutRow, SessionMetadataRow, SqliteStore};
+use hc_storage::{LayoutRow, SessionMetadataRow, SqliteStore};
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 

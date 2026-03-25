@@ -1,6 +1,6 @@
 import Foundation
-import Testing
 @testable import HaneulchiApp
+import Testing
 
 @Test("spawn response can decode a session identifier before fetching a snapshot")
 func spawnResponseDecodesSessionIdentifier() throws {
@@ -9,7 +9,9 @@ func spawnResponseDecodesSessionIdentifier() throws {
     #expect(try decodeSpawnSessionID(from: payload) == "session-0001")
 }
 
-@Test("session snapshots can decode when launch geometry is omitted and top-level geometry is present")
+@Test(
+    "session snapshots can decode when launch geometry is omitted and top-level geometry is present",
+)
 func sessionSnapshotDecodesWithoutLaunchGeometry() throws {
     let payload = Data(
         #"""
@@ -27,7 +29,7 @@ func sessionSnapshotDecodesWithoutLaunchGeometry() throws {
           "running": true,
           "exit_code": null
         }
-        """#.utf8
+        """#.utf8,
     )
 
     let snapshot = try JSONDecoder().decode(TerminalSessionSnapshot.self, from: payload)
@@ -39,14 +41,14 @@ func sessionSnapshotDecodesWithoutLaunchGeometry() throws {
 }
 
 @Test("core bridge mock has inventory summary call")
-func testCoreBridgeHasInventorySummaryCall() throws {
+func coreBridgeHasInventorySummaryCall() throws {
     let bridge = CoreBridge.mockLiveSession(outputChunks: [])
     let summary = try bridge.inventorySummary("proj_test")
     #expect(summary.total >= 0)
 }
 
 @Test("core bridge mock has terminal settings call")
-func testCoreBridgeHasSettingsCalls() throws {
+func coreBridgeHasSettingsCalls() throws {
     let bridge = CoreBridge.mockLiveSession(outputChunks: [])
     let settings = try bridge.terminalSettings()
     #expect(settings?.shell.isEmpty == false)
@@ -92,7 +94,7 @@ func bridgeDecodesStateSnapshotPayload() throws {
           "retry_queue": [],
           "warnings": []
         }
-        """#.utf8
+        """#.utf8,
     )
 
     let snapshot = try JSONDecoder().decode(AppShellSnapshot.self, from: payload)

@@ -17,7 +17,7 @@ struct FilesPanelView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(workspaceState.filteredEntries) { entry in
                         HaneulchiTableRow(
-                            isSelected: workspaceState.selectedFilePath == entry.absolutePath
+                            isSelected: workspaceState.selectedFilePath == entry.absolutePath,
                         ) {
                             Button {
                                 workspaceState.openFile(entry.absolutePath)
@@ -42,7 +42,7 @@ struct FilesPanelView: View {
             minWidth: HaneulchiMetrics.Panel.explorerMin,
             maxWidth: HaneulchiMetrics.Panel.explorerMax,
             maxHeight: .infinity,
-            alignment: .topLeading
+            alignment: .topLeading,
         )
         .background(HaneulchiChrome.Surface.base)
     }

@@ -94,18 +94,38 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     assert_eq!(value["ok"], true);
     assert!(value["data"]["sessions"].is_array());
 
-    let (status, project_state) = request("GET", "/v1/state?project_id=proj_demo&view=compact", None);
+    let (status, project_state) =
+        request("GET", "/v1/state?project_id=proj_demo&view=compact", None);
     assert_eq!(status, 200);
-    assert_eq!(project_state["data"]["sessions"].as_array().expect("sessions").len(), 1);
-    assert_eq!(project_state["data"]["sessions"][0]["project_id"], "proj_demo");
+    assert_eq!(
+        project_state["data"]["sessions"]
+            .as_array()
+            .expect("sessions")
+            .len(),
+        1
+    );
+    assert_eq!(
+        project_state["data"]["sessions"][0]["project_id"],
+        "proj_demo"
+    );
 
     let (status, sessions) = request("GET", "/v1/sessions", None);
     assert_eq!(status, 200);
     assert_eq!(sessions["data"][0]["session_id"], "ses_api");
 
-    let (status, filtered_sessions) = request("GET", "/v1/sessions?project_id=proj_demo&state=running", None);
+    let (status, filtered_sessions) = request(
+        "GET",
+        "/v1/sessions?project_id=proj_demo&state=running",
+        None,
+    );
     assert_eq!(status, 200);
-    assert_eq!(filtered_sessions["data"].as_array().expect("sessions").len(), 1);
+    assert_eq!(
+        filtered_sessions["data"]
+            .as_array()
+            .expect("sessions")
+            .len(),
+        1
+    );
     assert_eq!(filtered_sessions["data"][0]["session_id"], "ses_api");
 
     let (status, session_details) = request("GET", "/v1/sessions/ses_api", None);
@@ -153,7 +173,10 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
         Some(r#"{"project_id":"proj_demo","title":"API created task"}"#),
     );
     assert_eq!(status, 200);
-    let created_task_id = created_task["data"]["id"].as_str().expect("task id").to_string();
+    let created_task_id = created_task["data"]["id"]
+        .as_str()
+        .expect("task id")
+        .to_string();
 
     let (status, _) = request(
         "POST",
@@ -172,7 +195,9 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     let (status, dispatch) = request(
         "POST",
         "/v1/dispatch",
-        Some(r#"{"target_session_id":"ses_api","task_id":"task_ready","target_live":true,"payload":"run tests"}"#),
+        Some(
+            r#"{"target_session_id":"ses_api","task_id":"task_ready","target_live":true,"payload":"run tests"}"#,
+        ),
     );
     assert_eq!(status, 200);
     assert_eq!(dispatch["data"]["events"][2]["state"], "sent");
@@ -180,7 +205,10 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     let (status, workflow_validate) = request(
         "POST",
         "/v1/workflow/validate",
-        Some(&format!(r#"{{"project_root":"{}"}}"#, workflow_root.display())),
+        Some(&format!(
+            r#"{{"project_root":"{}"}}"#,
+            workflow_root.display()
+        )),
     );
     assert_eq!(status, 200);
     assert_eq!(workflow_validate["data"]["state"], "ok");
@@ -188,12 +216,19 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     let (status, workflow_reload) = request(
         "POST",
         "/v1/workflow/reload",
-        Some(&format!(r#"{{"project_root":"{}"}}"#, workflow_root.display())),
+        Some(&format!(
+            r#"{{"project_root":"{}"}}"#,
+            workflow_root.display()
+        )),
     );
     assert_eq!(status, 200);
     assert!(workflow_reload["data"]["state"].is_string());
 
-    let (status, reconcile) = request("POST", "/v1/reconcile", Some(r#"{"project_id":"proj_demo"}"#));
+    let (status, reconcile) = request(
+        "POST",
+        "/v1/reconcile",
+        Some(r#"{"project_id":"proj_demo"}"#),
+    );
     assert_eq!(status, 200);
     assert_eq!(reconcile["data"]["ok"], true);
     assert_eq!(reconcile["data"]["project_id"], "proj_demo");
@@ -242,12 +277,13 @@ fn uds_bind_rejects_live_socket_owner_and_recovers_stale_socket() {
     let _ = std::fs::remove_file(&live_socket_path);
 
     let stale_socket_path = temp_socket_path();
-    let stale_listener = std::os::unix::net::UnixListener::bind(&stale_socket_path)
-        .expect("create stale socket");
+    let stale_listener =
+        std::os::unix::net::UnixListener::bind(&stale_socket_path).expect("create stale socket");
     drop(stale_listener);
     assert!(stale_socket_path.exists());
 
-    let rebound = hc_api::server::ApiServer::bind(&stale_socket_path).expect("bind after stale cleanup");
+    let rebound =
+        hc_api::server::ApiServer::bind(&stale_socket_path).expect("bind after stale cleanup");
     drop(rebound);
     let _ = std::fs::remove_file(stale_socket_path);
 }
@@ -285,7 +321,9 @@ fn uds_server_returns_typed_status_codes_for_domain_failures() {
     let (status, conflict) = request(
         "POST",
         "/v1/dispatch",
-        Some(r#"{"target_session_id":"ses_api","task_id":"task_ready","target_live":false,"payload":"run tests"}"#),
+        Some(
+            r#"{"target_session_id":"ses_api","task_id":"task_ready","target_live":false,"payload":"run tests"}"#,
+        ),
     );
     assert_eq!(status, 409);
     assert_eq!(conflict["ok"], false);

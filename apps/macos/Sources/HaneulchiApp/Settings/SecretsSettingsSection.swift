@@ -9,9 +9,11 @@ struct SecretsSettingsSection: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Manage Keychain-backed secret refs")
                     .font(.headline)
-                Text("Secrets are stored in the macOS Keychain. Only labels and Keychain key references are shown here — secret values are never displayed.")
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
-                    .font(.body)
+                Text(
+                    "Secrets are stored in the macOS Keychain. Only labels and Keychain key references are shown here — secret values are never displayed.",
+                )
+                .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                .font(.body)
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)

@@ -22,7 +22,9 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
     let envelope: serde_json::Value =
         serde_json::from_str(&json).map_err(|error| error.to_string())?;
     let value = extract_data(&json)?;
-    let snapshot_rev = envelope["meta"]["snapshot_rev"].as_u64().unwrap_or_default();
+    let snapshot_rev = envelope["meta"]["snapshot_rev"]
+        .as_u64()
+        .unwrap_or_default();
     let running_slots = value["ops"]["automation"]["running_slots"]
         .as_u64()
         .unwrap_or_default();

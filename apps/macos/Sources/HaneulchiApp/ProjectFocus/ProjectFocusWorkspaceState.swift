@@ -33,15 +33,15 @@ struct ProjectFocusWorkspaceState: Equatable, Sendable {
 
     init(projectRoot: String?) {
         self.projectRoot = projectRoot
-        self.layoutPreset = .fullTerminal
-        self.fileEntries = []
-        self.searchQuery = ""
-        self.selectedFilePath = nil
-        self.previewMode = .empty
-        self.previewText = nil
-        self.isEditing = false
-        self.editingText = ""
-        self.activeInspectorSection = .commentary
+        layoutPreset = .fullTerminal
+        fileEntries = []
+        searchQuery = ""
+        selectedFilePath = nil
+        previewMode = .empty
+        previewText = nil
+        isEditing = false
+        editingText = ""
+        activeInspectorSection = .commentary
     }
 
     var filteredEntries: [ProjectFileIndex.Entry] {

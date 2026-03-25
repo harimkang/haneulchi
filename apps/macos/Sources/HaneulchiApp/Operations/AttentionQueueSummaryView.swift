@@ -21,7 +21,7 @@ struct AttentionQueueSummaryView: View {
                     HaneulchiMetricTile(
                         label: "Total",
                         value: "\(items.count)",
-                        state: items.count > 0 ? .waitingInput : .idle
+                        state: items.count > 0 ? .waitingInput : .idle,
                     )
                 }
 
@@ -35,7 +35,10 @@ struct AttentionQueueSummaryView: View {
                                 HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
                                     HaneulchiStatusBadge(state: .waitingInput, label: "ATTN")
 
-                                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xxs,
+                                    ) {
                                         Text(item.headline)
                                             .font(HaneulchiTypography.body)
                                             .foregroundStyle(HaneulchiChrome.Label.primary)
@@ -64,6 +67,9 @@ struct AttentionQueueSummaryView: View {
         }
         .padding(HaneulchiMetrics.Padding.card)
         .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
+        .clipShape(RoundedRectangle(
+            cornerRadius: HaneulchiMetrics.Radius.large,
+            style: .continuous,
+        ))
     }
 }

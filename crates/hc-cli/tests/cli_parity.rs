@@ -80,56 +80,108 @@ fn cli_parity_covers_state_session_task_workflow_reconcile_and_dispatch_commands
     assert!(state_human.contains("snapshot_rev="));
     assert!(state_human.contains("slots="));
 
-    let compact_state = run(&["state".into(), "--json".into(), "--compact".into(), "--project".into(), "proj_demo".into()])
-        .expect("compact state json");
+    let compact_state = run(&[
+        "state".into(),
+        "--json".into(),
+        "--compact".into(),
+        "--project".into(),
+        "proj_demo".into(),
+    ])
+    .expect("compact state json");
     assert!(compact_state.contains("\"project_id\":\"proj_demo\""));
     assert!(!compact_state.contains("\"project_id\":\"proj_other\""));
 
-    let session_list = run(&["session".into(), "list".into(), "--json".into()]).expect("session list");
+    let session_list =
+        run(&["session".into(), "list".into(), "--json".into()]).expect("session list");
     assert!(session_list.contains("\"ses_cli\""));
     let session_list_human = run(&["session".into(), "list".into()]).expect("session list human");
     assert!(session_list_human.contains("SESSION"));
     assert!(session_list_human.contains("ses_cli"));
 
-    let filtered_session_list = run(
-        &[
-            "session".into(),
-            "list".into(),
-            "--json".into(),
-            "--project".into(),
-            "proj_demo".into(),
-            "--state".into(),
-            "running".into(),
-        ],
-    )
+    let filtered_session_list = run(&[
+        "session".into(),
+        "list".into(),
+        "--json".into(),
+        "--project".into(),
+        "proj_demo".into(),
+        "--state".into(),
+        "running".into(),
+    ])
     .expect("filtered session list");
     assert!(filtered_session_list.contains("\"ses_cli\""));
 
-    let session_get = run(&["session".into(), "get".into(), "ses_cli".into(), "--json".into()])
-        .expect("session get");
+    let session_get = run(&[
+        "session".into(),
+        "get".into(),
+        "ses_cli".into(),
+        "--json".into(),
+    ])
+    .expect("session get");
     assert!(session_get.contains("\"session_id\":\"ses_cli\""));
 
     let focus = run(&["session".into(), "focus".into(), "ses_cli".into()]).expect("session focus");
     assert!(focus.contains("Focus requested"));
     let takeover = run(&["session".into(), "takeover".into(), "ses_cli".into()]).expect("takeover");
     assert!(takeover.contains("Takeover enabled"));
-    let release = run(&["session".into(), "release-takeover".into(), "ses_cli".into()]).expect("release");
+    let release = run(&[
+        "session".into(),
+        "release-takeover".into(),
+        "ses_cli".into(),
+    ])
+    .expect("release");
     assert!(release.contains("Takeover released"));
-    let attach = run(&["session".into(), "attach-task".into(), "ses_cli".into(), "--task".into(), "task_ready".into()]).expect("attach");
+    let attach = run(&[
+        "session".into(),
+        "attach-task".into(),
+        "ses_cli".into(),
+        "--task".into(),
+        "task_ready".into(),
+    ])
+    .expect("attach");
     assert!(attach.contains("Attached task"));
     let detach = run(&["session".into(), "detach-task".into(), "ses_cli".into()]).expect("detach");
     assert!(detach.contains("Detached task"));
 
-    let created = run(&["task".into(), "create".into(), "--project".into(), "proj_demo".into(), "--title".into(), "CLI created".into(), "--priority".into(), "high".into()])
-        .expect("task create");
+    let created = run(&[
+        "task".into(),
+        "create".into(),
+        "--project".into(),
+        "proj_demo".into(),
+        "--title".into(),
+        "CLI created".into(),
+        "--priority".into(),
+        "high".into(),
+    ])
+    .expect("task create");
     assert!(created.contains("Created task"));
     assert!(created.contains("high"));
 
-    let moved = run(&["task".into(), "move".into(), "task_ready".into(), "--column".into(), "Review".into()]).expect("move");
+    let moved = run(&[
+        "task".into(),
+        "move".into(),
+        "task_ready".into(),
+        "--column".into(),
+        "Review".into(),
+    ])
+    .expect("move");
     assert!(moved.contains("Moved task"));
-    let assigned = run(&["task".into(), "assign".into(), "task_ready".into(), "--session".into(), "ses_cli".into()]).expect("assign");
+    let assigned = run(&[
+        "task".into(),
+        "assign".into(),
+        "task_ready".into(),
+        "--session".into(),
+        "ses_cli".into(),
+    ])
+    .expect("assign");
     assert!(assigned.contains("Assigned task"));
-    let automation_mode = run(&["task".into(), "automation-mode".into(), "task_ready".into(), "--mode".into(), "assisted".into()]).expect("automation mode");
+    let automation_mode = run(&[
+        "task".into(),
+        "automation-mode".into(),
+        "task_ready".into(),
+        "--mode".into(),
+        "assisted".into(),
+    ])
+    .expect("automation mode");
     assert!(automation_mode.contains("Automation mode"));
 
     let workflow_root = std::env::temp_dir().join("hc-cli-workflow-contract");
@@ -139,23 +191,56 @@ fn cli_parity_covers_state_session_task_workflow_reconcile_and_dispatch_commands
         "---\nworkflow:\n  name: CLI Workflow\n---\n{{task.title}}\n",
     )
     .expect("workflow file");
-    let validate = run(&["workflow".into(), "validate".into(), "--project".into(), workflow_root.display().to_string()]).expect("workflow validate");
+    let validate = run(&[
+        "workflow".into(),
+        "validate".into(),
+        "--project".into(),
+        workflow_root.display().to_string(),
+    ])
+    .expect("workflow validate");
     assert!(validate.contains("Workflow state: ok"));
-    let reload = run(&["workflow".into(), "reload".into(), "--project".into(), workflow_root.display().to_string()]).expect("workflow reload");
+    let reload = run(&[
+        "workflow".into(),
+        "reload".into(),
+        "--project".into(),
+        workflow_root.display().to_string(),
+    ])
+    .expect("workflow reload");
     assert!(reload.contains("Workflow state:"));
 
-    let reconcile = run(&["reconcile".into(), "now".into(), "--project".into(), "proj_demo".into()]).expect("reconcile");
+    let reconcile = run(&[
+        "reconcile".into(),
+        "now".into(),
+        "--project".into(),
+        "proj_demo".into(),
+    ])
+    .expect("reconcile");
     assert!(reconcile.contains("Reconcile requested"));
     assert!(reconcile.contains("proj_demo"));
-    let dispatch = run(&["dispatch".into(), "send".into(), "--task".into(), "task_ready".into(), "--target".into(), "ses_cli".into(), "--message".into(), "run tests".into()]).expect("dispatch");
+    let dispatch = run(&[
+        "dispatch".into(),
+        "send".into(),
+        "--task".into(),
+        "task_ready".into(),
+        "--target".into(),
+        "ses_cli".into(),
+        "--message".into(),
+        "run tests".into(),
+    ])
+    .expect("dispatch");
     assert!(dispatch.contains("Dispatch sent"));
 
     let missing_focus = run(&["session".into(), "focus".into(), "ses_missing".into()])
         .expect_err("missing session should fail");
     assert!(missing_focus.contains("session_not_found"));
 
-    let missing_focus_json = run(&["session".into(), "focus".into(), "ses_missing".into(), "--json".into()])
-        .expect_err("missing session json should fail");
+    let missing_focus_json = run(&[
+        "session".into(),
+        "focus".into(),
+        "ses_missing".into(),
+        "--json".into(),
+    ])
+    .expect_err("missing session json should fail");
     assert!(missing_focus_json.contains("\"code\":\"session_not_found\""));
     handle.join().expect("server join");
 }

@@ -12,7 +12,7 @@ struct ProjectLauncherStore: Sendable {
             loadRecentProjects: { try storage.loadRecentProjects() },
             recordOpen: { try storage.recordOpen($0) },
             loadLastSelectedProject: { try storage.loadLastSelectedProject() },
-            saveLastSelectedProject: { try storage.saveLastSelectedProject($0) }
+            saveLastSelectedProject: { try storage.saveLastSelectedProject($0) },
         )
     }
 
@@ -31,7 +31,7 @@ struct ProjectLauncherStore: Sendable {
             saveLastSelectedProject: { project in
                 let storage = FileBackedProjectLauncherStorage(fileURL: fileURL)
                 try storage.saveLastSelectedProject(project)
-            }
+            },
         )
     }
 
@@ -42,7 +42,8 @@ struct ProjectLauncherStore: Sendable {
     private static var defaultFileURL: URL {
         let applicationSupport =
             FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
+                ?? URL(fileURLWithPath: NSHomeDirectory())
+                .appendingPathComponent("Library/Application Support")
 
         return applicationSupport
             .appendingPathComponent("Haneulchi", isDirectory: true)
@@ -74,7 +75,7 @@ private final class InMemoryProjectLauncherStorage: @unchecked Sendable {
             projectID: project.projectID,
             name: project.name,
             rootPath: project.rootPath,
-            lastOpenedAt: Date()
+            lastOpenedAt: Date(),
         )
         state.recentProjects.removeAll { $0.rootPath == refreshed.rootPath }
         state.recentProjects.insert(refreshed, at: 0)
@@ -106,7 +107,7 @@ private struct FileBackedProjectLauncherStorage {
             projectID: project.projectID,
             name: project.name,
             rootPath: project.rootPath,
-            lastOpenedAt: Date()
+            lastOpenedAt: Date(),
         )
         state.recentProjects.removeAll { $0.rootPath == refreshed.rootPath }
         state.recentProjects.insert(refreshed, at: 0)
@@ -138,7 +139,7 @@ private struct FileBackedProjectLauncherStorage {
         let data = try encoder.encode(state)
         try FileManager.default.createDirectory(
             at: fileURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
+            withIntermediateDirectories: true,
         )
         try data.write(to: fileURL, options: .atomic)
     }

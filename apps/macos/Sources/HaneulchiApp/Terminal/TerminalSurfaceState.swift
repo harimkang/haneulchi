@@ -45,15 +45,15 @@ enum TerminalSurfaceState: Equatable, Sendable {
     var message: String? {
         switch self {
         case .ready:
-            return nil
+            nil
         case .live:
-            return nil
+            nil
         case .empty:
-            return "No transcript fixture configured for this hosted surface."
+            "No transcript fixture configured for this hosted surface."
         case let .degraded(_, message):
-            return message
+            message
         case let .failed(message):
-            return message
+            message
         }
     }
 

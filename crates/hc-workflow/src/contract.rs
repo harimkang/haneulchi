@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 use sha2::{Digest, Sha256};
 
-use crate::template::validate_template_variables;
 use crate::WorkflowError;
+use crate::template::validate_template_variables;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HookPhase {

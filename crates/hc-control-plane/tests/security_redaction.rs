@@ -8,8 +8,7 @@ use hc_control_plane::{
     RecoveryContext, SnapshotSeed, build_authoritative_snapshot, detect_degraded_issues,
 };
 use hc_domain::{
-    SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
-    settings::{DegradedIssue, SecretRef},
+    SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus, settings::SecretRef,
 };
 
 const CANARY: &str = "SECRET_VALUE_12345";

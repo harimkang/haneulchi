@@ -118,7 +118,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             projectionRev = try container.decode(Int.self, forKey: .projectionRev)
             snapshotAt = try SnapshotDateParser.decodeRequiredDate(
                 from: container,
-                forKey: .snapshotAt
+                forKey: .snapshotAt,
             )
         }
     }
@@ -150,7 +150,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         }
 
         init(
-            cadenceMs: Int = 15_000,
+            cadenceMs: Int = 15000,
             lastTickAt: String? = nil,
             lastReconcileAt: String? = nil,
             runningSlots: Int,
@@ -159,7 +159,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             queuedClaimCount: Int = 0,
             workflowHealth: WorkflowHealth,
             trackerHealth: String = "ok",
-            paused: Bool = false
+            paused: Bool = false,
         ) {
             self.cadenceMs = cadenceMs
             self.lastTickAt = lastTickAt
@@ -175,17 +175,21 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
-            cadenceMs = try container.decodeIfPresent(Int.self, forKey: .cadenceMs) ?? 15_000
+            cadenceMs = try container.decodeIfPresent(Int.self, forKey: .cadenceMs) ?? 15000
             lastTickAt = try container.decodeIfPresent(String.self, forKey: .lastTickAt)
             lastReconcileAt = try container.decodeIfPresent(String.self, forKey: .lastReconcileAt)
             runningSlots = try container.decode(Int.self, forKey: .runningSlots)
             maxSlots = try container.decode(Int.self, forKey: .maxSlots)
             retryQueueCount =
                 try container.decodeIfPresent(Int.self, forKey: .retryQueueCount)
-                ?? container.decodeIfPresent(Int.self, forKey: .retryDueCount)
-                ?? 0
-            queuedClaimCount = try container.decodeIfPresent(Int.self, forKey: .queuedClaimCount) ?? 0
-            workflowHealth = try container.decodeIfPresent(WorkflowHealth.self, forKey: .workflowHealth) ?? .none
+                    ?? container.decodeIfPresent(Int.self, forKey: .retryDueCount)
+                    ?? 0
+            queuedClaimCount = try container
+                .decodeIfPresent(Int.self, forKey: .queuedClaimCount) ?? 0
+            workflowHealth = try container.decodeIfPresent(
+                WorkflowHealth.self,
+                forKey: .workflowHealth,
+            ) ?? .none
             trackerHealth = try container.decodeIfPresent(String.self, forKey: .trackerHealth) ?? "ok"
             paused = try container.decodeIfPresent(Bool.self, forKey: .paused) ?? false
         }
@@ -232,7 +236,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             workflowState: WorkflowHealth,
             sessionCount: Int,
             attentionCount: Int,
-            taskCounts: [String: Int] = [:]
+            taskCounts: [String: Int] = [:],
         ) {
             self.projectID = projectID
             self.name = name
@@ -244,7 +248,9 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             self.attentionCount = attentionCount
         }
 
-        var id: String { projectID }
+        var id: String {
+            projectID
+        }
     }
 
     struct SessionSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -339,7 +345,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             focusState: SessionFocusState = .background,
             canFocus: Bool = true,
             canTakeover: Bool = false,
-            canReleaseTakeover: Bool = false
+            canReleaseTakeover: Bool = false,
         ) {
             self.sessionID = sessionID
             self.projectID = projectID
@@ -372,7 +378,9 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             self.canReleaseTakeover = canReleaseTakeover
         }
 
-        var id: String { sessionID }
+        var id: String {
+            sessionID
+        }
     }
 
     struct AttentionSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -411,7 +419,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             taskID: String? = nil,
             summary: String? = nil,
             createdAt: String? = nil,
-            actionHint: String? = nil
+            actionHint: String? = nil,
         ) {
             self.attentionID = attentionID
             self.headline = headline
@@ -431,7 +439,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             headline = try container.decodeIfPresent(String.self, forKey: .headline)
                 ?? container.decode(String.self, forKey: .title)
             severity = try container.decode(WarningFlag.self, forKey: .severity)
-            targetRoute = try container.decodeIfPresent(Route.self, forKey: .targetRoute) ?? .attentionCenter
+            targetRoute = try container
+                .decodeIfPresent(Route.self, forKey: .targetRoute) ?? .attentionCenter
             targetSessionID = try container.decodeIfPresent(String.self, forKey: .targetSessionID)
             projectID = try container.decodeIfPresent(String.self, forKey: .projectID)
             taskID = try container.decodeIfPresent(String.self, forKey: .taskID)
@@ -440,7 +449,9 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             actionHint = try container.decodeIfPresent(String.self, forKey: .actionHint)
         }
 
-        var id: String { attentionID }
+        var id: String {
+            attentionID
+        }
     }
 
     struct RetryQueueSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -469,7 +480,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             reasonCode: String,
             dueAt: String?,
             backoffMs: Int,
-            claimState: ClaimState = .none
+            claimState: ClaimState = .none,
         ) {
             self.taskID = taskID
             self.projectID = projectID
@@ -488,10 +499,13 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             reasonCode = try container.decode(String.self, forKey: .reasonCode)
             dueAt = try container.decodeIfPresent(String.self, forKey: .dueAt)
             backoffMs = try container.decode(Int.self, forKey: .backoffMs)
-            claimState = try container.decodeIfPresent(ClaimState.self, forKey: .claimState) ?? .none
+            claimState = try container
+                .decodeIfPresent(ClaimState.self, forKey: .claimState) ?? .none
         }
 
-        var id: String { "\(projectID):\(taskID):\(attempt)" }
+        var id: String {
+            "\(projectID):\(taskID):\(attempt)"
+        }
     }
 
     struct RecentArtifactSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -514,7 +528,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             projectID: String,
             summary: String,
             jumpTarget: String,
-            manifestPath: String?
+            manifestPath: String?,
         ) {
             self.taskID = taskID
             self.projectID = projectID
@@ -523,7 +537,9 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             self.manifestPath = manifestPath
         }
 
-        var id: String { "\(projectID):\(taskID):\(jumpTarget)" }
+        var id: String {
+            "\(projectID):\(taskID):\(jumpTarget)"
+        }
     }
 
     struct WarningSummary: Decodable, Equatable, Identifiable, Sendable {
@@ -539,7 +555,9 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             case nextAction = "next_action"
         }
 
-        var id: String { warningID }
+        var id: String {
+            warningID
+        }
     }
 
     let meta: Meta
@@ -586,7 +604,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         warnings: [WarningSummary],
         workflow: WorkflowRuntimeStatus? = nil,
         tracker: TrackerStatus? = nil,
-        recentArtifacts: [RecentArtifactSummary] = []
+        recentArtifacts: [RecentArtifactSummary] = [],
     ) {
         self.meta = meta
         self.ops = ops
@@ -605,12 +623,21 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         meta = try container.decode(Meta.self, forKey: .meta)
 
-        if let opsContainer = try? container.nestedContainer(keyedBy: OpsEnvelopeKeys.self, forKey: .ops),
-           opsContainer.contains(.automation)
+        if let opsContainer = try? container.nestedContainer(
+            keyedBy: OpsEnvelopeKeys.self,
+            forKey: .ops,
+        ),
+            opsContainer.contains(.automation)
         {
             let automation = try opsContainer.decode(OpsSummary.self, forKey: .automation)
-            let decodedWorkflow = try opsContainer.decodeIfPresent(WorkflowRuntimeStatus.self, forKey: .workflow)
-            let decodedTracker = try opsContainer.decodeIfPresent(TrackerStatus.self, forKey: .tracker)
+            let decodedWorkflow = try opsContainer.decodeIfPresent(
+                WorkflowRuntimeStatus.self,
+                forKey: .workflow,
+            )
+            let decodedTracker = try opsContainer.decodeIfPresent(
+                TrackerStatus.self,
+                forKey: .tracker,
+            )
             workflow = decodedWorkflow
             tracker = decodedTracker
             app = try opsContainer.decodeIfPresent(AppState.self, forKey: .app)
@@ -625,7 +652,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
                 queuedClaimCount: automation.queuedClaimCount,
                 workflowHealth: decodedWorkflow?.state ?? automation.workflowHealth,
                 trackerHealth: decodedTracker?.health ?? automation.trackerHealth,
-                paused: automation.paused
+                paused: automation.paused,
             )
         } else {
             ops = try container.decode(OpsSummary.self, forKey: .ops)
@@ -641,7 +668,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
         warnings = try container.decode([WarningSummary].self, forKey: .warnings)
         recentArtifacts =
             try container.decodeIfPresent([RecentArtifactSummary].self, forKey: .recentArtifacts)
-            ?? []
+                ?? []
     }
 
     static func empty(activeRoute: Route, selectedProject: LauncherProject? = nil) -> Self {
@@ -654,8 +681,8 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
                     status: .active,
                     workflowState: .none,
                     sessionCount: 0,
-                    attentionCount: 0
-                )
+                    attentionCount: 0,
+                ),
             ]
         } ?? []
 
@@ -670,7 +697,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
             warnings: [],
             workflow: nil,
             tracker: nil,
-            recentArtifacts: []
+            recentArtifacts: [],
         )
     }
 }
@@ -678,7 +705,7 @@ struct AppShellSnapshot: Decodable, Equatable, Sendable {
 private enum SnapshotDateParser {
     static func decodeRequiredDate<K: CodingKey>(
         from container: KeyedDecodingContainer<K>,
-        forKey key: K
+        forKey key: K,
     ) throws -> Date {
         let rawValue = try container.decode(String.self, forKey: key)
         let formatter = ISO8601DateFormatter()
@@ -686,7 +713,7 @@ private enum SnapshotDateParser {
             throw DecodingError.dataCorruptedError(
                 forKey: key,
                 in: container,
-                debugDescription: "Expected ISO8601 date string."
+                debugDescription: "Expected ISO8601 date string.",
             )
         }
         return date

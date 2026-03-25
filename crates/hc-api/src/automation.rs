@@ -22,7 +22,7 @@ pub fn reconcile_now_json(project_id: Option<&str>) -> Result<String, String> {
         snapshot.ops.automation.max_slots,
         &live_session_ids,
     )
-        .map_err(|error| error.to_string())?;
+    .map_err(|error| error.to_string())?;
     let reconcile = hc_control_plane::reconcile_snapshot(control_plane.snapshot_mut());
     let updated_snapshot = control_plane.snapshot().clone();
     serde_json::to_string(&serde_json::json!({

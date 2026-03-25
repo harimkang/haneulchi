@@ -76,7 +76,8 @@ fn bootstrap_runtime_runs_phases_in_documented_order_and_captures_hook_io() {
         ),
     );
 
-    let result = run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
+    let result =
+        run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
 
     assert_eq!(
         result.phase_sequence,
@@ -95,25 +96,39 @@ fn bootstrap_runtime_runs_phases_in_documented_order_and_captures_hook_io() {
     );
     assert_eq!(result.workspace_root, workspace_root.display().to_string());
     assert!(result.rendered_prompt_path.ends_with("prompt.rendered.md"));
-    assert!(result.hook_phase_results.iter().any(|phase| phase.phase == "after_create"));
-    assert!(result.hook_phase_results.iter().any(|phase| phase.phase == "before_run"));
+    assert!(
+        result
+            .hook_phase_results
+            .iter()
+            .any(|phase| phase.phase == "after_create")
+    );
+    assert!(
+        result
+            .hook_phase_results
+            .iter()
+            .any(|phase| phase.phase == "before_run")
+    );
     let after_create_result = result
         .hook_phase_results
         .iter()
         .find(|phase| phase.phase == "after_create")
         .expect("after_create result");
-    assert!(after_create_result
-        .command_path
-        .as_deref()
-        .expect("command path")
-        .starts_with(&workspace_root.display().to_string()));
-    assert!(result
-        .hook_phase_results
-        .iter()
-        .find(|phase| phase.phase == "after_create")
-        .expect("after_create result")
-        .stderr
-        .contains("[truncated]"));
+    assert!(
+        after_create_result
+            .command_path
+            .as_deref()
+            .expect("command path")
+            .starts_with(&workspace_root.display().to_string())
+    );
+    assert!(
+        result
+            .hook_phase_results
+            .iter()
+            .find(|phase| phase.phase == "after_create")
+            .expect("after_create result")
+            .stderr
+            .contains("[truncated]")
+    );
 }
 
 #[test]
@@ -137,10 +152,11 @@ fn before_run_failure_blocks_launch_and_releases_claim_with_typed_outcome() {
         ),
     );
 
-    let result = run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
+    let result =
+        run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
 
     assert_eq!(result.outcome_code, "workflow_setup_failed");
-    assert_eq!(result.claim_released, true);
+    assert!(result.claim_released);
     assert_eq!(result.launch_exit_code, None);
 }
 
@@ -165,11 +181,16 @@ fn after_run_failure_adds_warning_without_overwriting_primary_runtime_result() {
         ),
     );
 
-    let result = run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
+    let result =
+        run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
 
     assert_eq!(result.outcome_code, "launch_succeeded");
     assert_eq!(result.launch_exit_code, Some(0));
-    assert!(result.warning_codes.contains(&"after_run_failed".to_string()));
+    assert!(
+        result
+            .warning_codes
+            .contains(&"after_run_failed".to_string())
+    );
 }
 
 #[test]
@@ -196,7 +217,9 @@ fn invalid_workflow_produces_invalid_kept_last_good_health() {
     )
     .expect("write broken workflow");
 
-    let err = runtime.reload().expect_err("reload of broken workflow must fail");
+    let err = runtime
+        .reload()
+        .expect_err("reload of broken workflow must fail");
     let _ = err; // error is expected; we care about the resulting state
     assert_eq!(
         runtime.state(),

@@ -34,43 +34,58 @@ pub fn workflow_validate_json(project_root: &str) -> Result<String, String> {
     match validate_workflow(project_root.to_string()).map_err(|error| error.to_string())? {
         Some(loaded) => {
             let hooks: Vec<&str> = [
-                loaded.effective_config.hooks.after_create.as_ref().map(|_| "after_create"),
-                loaded.effective_config.hooks.before_run.as_ref().map(|_| "before_run"),
-                loaded.effective_config.hooks.after_run.as_ref().map(|_| "after_run"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .after_create
+                    .as_ref()
+                    .map(|_| "after_create"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .before_run
+                    .as_ref()
+                    .map(|_| "before_run"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .after_run
+                    .as_ref()
+                    .map(|_| "after_run"),
             ]
             .into_iter()
             .flatten()
             .collect();
 
             serde_json::to_string(&serde_json::json!({
-            "state": "ok",
-            "path": loaded.discovery_path,
-            "last_good_hash": loaded.contract_hash,
-            "last_reload_at": serde_json::Value::Null,
-            "last_error": serde_json::Value::Null,
-            "last_bootstrap": serde_json::Value::Null,
-            "workflow": {
-                "name": loaded.effective_config.workflow.name,
-                "strategy": match loaded.effective_config.workspace.strategy {
-                    hc_workflow::WorkspaceStrategy::Worktree => "worktree",
-                    hc_workflow::WorkspaceStrategy::SharedRoot => "shared_root",
-                },
-                "base_root": loaded.effective_config.workspace.base_root,
-                "require_review": loaded.effective_config.review.required,
-                "max_runtime_minutes": loaded.effective_config.policy.max_runtime_minutes,
-                "unsafe_override_policy": loaded.effective_config.policy.unsafe_override_policy,
-                "review_checklist": loaded.effective_config.review.checklist,
-                "allowed_agents": loaded.effective_config.agents.allowed,
-                "hooks": hooks,
-                "hook_runs": {
-                    "after_create": loaded.resolved_paths.after_create,
-                    "before_run": loaded.resolved_paths.before_run,
-                    "after_run": loaded.resolved_paths.after_run
-                },
-                "template_body": loaded.template_body
-            }
-        }))
-        .map_err(|error| error.to_string())
+                "state": "ok",
+                "path": loaded.discovery_path,
+                "last_good_hash": loaded.contract_hash,
+                "last_reload_at": serde_json::Value::Null,
+                "last_error": serde_json::Value::Null,
+                "last_bootstrap": serde_json::Value::Null,
+                "workflow": {
+                    "name": loaded.effective_config.workflow.name,
+                    "strategy": match loaded.effective_config.workspace.strategy {
+                        hc_workflow::WorkspaceStrategy::Worktree => "worktree",
+                        hc_workflow::WorkspaceStrategy::SharedRoot => "shared_root",
+                    },
+                    "base_root": loaded.effective_config.workspace.base_root,
+                    "require_review": loaded.effective_config.review.required,
+                    "max_runtime_minutes": loaded.effective_config.policy.max_runtime_minutes,
+                    "unsafe_override_policy": loaded.effective_config.policy.unsafe_override_policy,
+                    "review_checklist": loaded.effective_config.review.checklist,
+                    "allowed_agents": loaded.effective_config.agents.allowed,
+                    "hooks": hooks,
+                    "hook_runs": {
+                        "after_create": loaded.resolved_paths.after_create,
+                        "before_run": loaded.resolved_paths.before_run,
+                        "after_run": loaded.resolved_paths.after_run
+                    },
+                    "template_body": loaded.template_body
+                }
+            }))
+            .map_err(|error| error.to_string())
         }
         None => serde_json::to_string(&serde_json::json!({ "state": "none" }))
             .map_err(|error| error.to_string()),
@@ -83,9 +98,24 @@ pub fn workflow_reload_json(project_root: &str) -> Result<String, String> {
     let hooks: Vec<&str> = loaded
         .map(|loaded| {
             [
-                loaded.effective_config.hooks.after_create.as_ref().map(|_| "after_create"),
-                loaded.effective_config.hooks.before_run.as_ref().map(|_| "before_run"),
-                loaded.effective_config.hooks.after_run.as_ref().map(|_| "after_run"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .after_create
+                    .as_ref()
+                    .map(|_| "after_create"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .before_run
+                    .as_ref()
+                    .map(|_| "before_run"),
+                loaded
+                    .effective_config
+                    .hooks
+                    .after_run
+                    .as_ref()
+                    .map(|_| "after_run"),
             ]
             .into_iter()
             .flatten()

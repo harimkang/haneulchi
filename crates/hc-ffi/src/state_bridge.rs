@@ -40,12 +40,11 @@ pub fn state_snapshot_json() -> Result<String, String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     serde_json::to_string(control_plane.snapshot()).map_err(|error| error.to_string())
@@ -56,12 +55,11 @@ pub fn sessions_list_json() -> Result<String, String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     serde_json::to_string(&control_plane.snapshot().sessions).map_err(|error| error.to_string())
@@ -72,15 +70,16 @@ pub fn session_focus(session_id: &str) -> Result<(), String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
-    control_plane.focus_session(session_id).map_err(|error| error.to_string())
+    control_plane
+        .focus_session(session_id)
+        .map_err(|error| error.to_string())
 }
 
 pub fn session_takeover(session_id: &str) -> Result<(), String> {
@@ -88,12 +87,11 @@ pub fn session_takeover(session_id: &str) -> Result<(), String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     control_plane
@@ -106,12 +104,11 @@ pub fn session_release_takeover(session_id: &str) -> Result<(), String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     control_plane
@@ -124,12 +121,11 @@ pub fn session_attach_task_json(session_id: &str, task_id: &str) -> Result<Strin
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(
-        runtime_snapshots.is_empty()
-            && (!control_plane.snapshot().sessions.is_empty()
-                || !control_plane.snapshot().attention.is_empty()
-                || !control_plane.snapshot().retry_queue.is_empty())
-    ) {
+    if !(runtime_snapshots.is_empty()
+        && (!control_plane.snapshot().sessions.is_empty()
+            || !control_plane.snapshot().attention.is_empty()
+            || !control_plane.snapshot().retry_queue.is_empty()))
+    {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     control_plane
@@ -143,7 +139,7 @@ pub fn session_detach_task_json(session_id: &str) -> Result<String, String> {
         .list_snapshots()
         .map_err(|error| error.to_string())?;
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
-    if !(runtime_snapshots.is_empty() && !control_plane.snapshot().sessions.is_empty()) {
+    if !runtime_snapshots.is_empty() || control_plane.snapshot().sessions.is_empty() {
         control_plane.sync_from_runtime(&runtime_snapshots);
     }
     control_plane
@@ -194,5 +190,7 @@ pub extern "C" fn hc_session_attach_task_json(
 
 #[unsafe(no_mangle)]
 pub extern "C" fn hc_session_detach_task_json(session_id: *const c_char) -> HcString {
-    string_to_hcstring(read_c_string(session_id).and_then(|session_id| session_detach_task_json(&session_id)))
+    string_to_hcstring(
+        read_c_string(session_id).and_then(|session_id| session_detach_task_json(&session_id)),
+    )
 }

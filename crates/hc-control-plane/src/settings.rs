@@ -57,8 +57,7 @@ fn secret_ref_from_row(row: SecretRefRow) -> SecretRef {
 // ── public service functions ─────────────────────────────────────────────────
 
 pub fn shared_get_terminal_settings() -> Result<Option<TerminalSettings>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .settings_repo()
         .get_terminal_settings()
@@ -66,9 +65,10 @@ pub fn shared_get_terminal_settings() -> Result<Option<TerminalSettings>, Contro
         .map_err(|e| ControlPlaneError::Storage(e.to_string()))
 }
 
-pub fn shared_upsert_terminal_settings(settings: TerminalSettings) -> Result<(), ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+pub fn shared_upsert_terminal_settings(
+    settings: TerminalSettings,
+) -> Result<(), ControlPlaneError> {
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .settings_repo()
         .upsert_terminal_settings(terminal_settings_to_row(settings))
@@ -76,8 +76,7 @@ pub fn shared_upsert_terminal_settings(settings: TerminalSettings) -> Result<(),
 }
 
 pub fn shared_list_secret_refs() -> Result<Vec<SecretRef>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .settings_repo()
         .list_secret_refs()
@@ -86,8 +85,7 @@ pub fn shared_list_secret_refs() -> Result<Vec<SecretRef>, ControlPlaneError> {
 }
 
 pub fn shared_upsert_secret_ref(secret_ref: SecretRef) -> Result<(), ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .settings_repo()
         .upsert_secret_ref(secret_ref_to_row(secret_ref))
@@ -95,8 +93,7 @@ pub fn shared_upsert_secret_ref(secret_ref: SecretRef) -> Result<(), ControlPlan
 }
 
 pub fn shared_delete_secret_ref(ref_id: &str) -> Result<(), ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     store
         .settings_repo()
         .delete_secret_ref(ref_id)
@@ -110,8 +107,7 @@ pub fn shared_resolve_secret_env() -> Result<BTreeMap<String, String>, ControlPl
 pub fn shared_resolve_secret_env_filtered(
     scope_filter: Option<&str>,
 ) -> Result<BTreeMap<String, String>, ControlPlaneError> {
-    let store = lock_shared_store()
-        .map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
+    let store = lock_shared_store().map_err(|e| ControlPlaneError::Storage(e.to_string()))?;
     let refs = store
         .settings_repo()
         .list_secret_refs()
@@ -122,7 +118,9 @@ pub fn shared_resolve_secret_env_filtered(
     for reference in refs {
         if let Some(scope) = scope_filter {
             let passes = reference.scope.is_empty() || reference.scope == scope;
-            if !passes { continue; }
+            if !passes {
+                continue;
+            }
         }
 
         let secret = match KeychainBoundary::retrieve(
@@ -130,12 +128,13 @@ pub fn shared_resolve_secret_env_filtered(
             &reference.keychain_account,
         ) {
             Ok(Some(v)) => v,
-            Ok(None) => continue,  // not found, skip gracefully
+            Ok(None) => continue, // not found, skip gracefully
             Err(e) => return Err(ControlPlaneError::Storage(e.to_string())), // real error
         };
 
-        let value = String::from_utf8(secret)
-            .map_err(|_| ControlPlaneError::Storage(format!("keychain_ref_invalid_utf8:{}", reference.id)))?;
+        let value = String::from_utf8(secret).map_err(|_| {
+            ControlPlaneError::Storage(format!("keychain_ref_invalid_utf8:{}", reference.id))
+        })?;
         environment.insert(reference.env_var_name, value);
     }
 

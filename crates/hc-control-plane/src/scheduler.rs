@@ -46,25 +46,34 @@ impl BoundedScheduler {
         Ok(Self { tasks })
     }
 
-    pub fn tick(&self, running_slots: u32, max_slots: u32, live_session_ids: &[String]) -> SchedulerResult {
+    pub fn tick(
+        &self,
+        running_slots: u32,
+        max_slots: u32,
+        live_session_ids: &[String],
+    ) -> SchedulerResult {
         let available_slots = max_slots.saturating_sub(running_slots) as usize;
         let mut launched_task_ids = Vec::new();
         let mut queued = Vec::new();
         let mut failures = Vec::new();
 
         for task in &self.tasks {
-            if task.column != TaskColumn::Ready || task.automation_mode == TaskAutomationMode::Manual {
+            if task.column != TaskColumn::Ready
+                || task.automation_mode == TaskAutomationMode::Manual
+            {
                 continue;
             }
 
-            if let Some(target_session_id) = task.target_session_id.as_ref() {
-                if !live_session_ids.iter().any(|session_id| session_id == target_session_id) {
+            if let Some(target_session_id) = task.target_session_id.as_ref()
+                && !live_session_ids
+                    .iter()
+                    .any(|session_id| session_id == target_session_id)
+            {
                 failures.push(SchedulerIssue {
                     task_id: task.task_id.clone(),
                     reason_code: "stale_target_session".to_string(),
                 });
                 continue;
-                }
             }
 
             if launched_task_ids.len() < available_slots {

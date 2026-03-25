@@ -11,14 +11,31 @@ permissions:
   contents: read
 
 jobs:
-  macos-check:
+  swift-check:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
-      - name: Swift tests
-        run: swift test
-        working-directory: apps/macos
-      - name: Rust tests
-        run: cargo test
+      - name: Install SwiftFormat
+        run: brew install swiftformat
+      - name: Swift format
+        run: swiftformat --lint apps/macos
+      - name: Swift analyze
+        run: swift build --package-path apps/macos
+      - name: Swift test
+        run: swift test --package-path apps/macos
+
+  rust-check:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Rust format
+        run: cargo fmt --all --check
+      - name: Rust analyze
+        run: cargo clippy --workspace --all-targets -- -D warnings
+      - name: Rust test
+        run: cargo test --workspace

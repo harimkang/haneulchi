@@ -10,7 +10,7 @@ struct ReadinessProbeRunner: Sendable {
         processClient: SystemProcessClient,
         keychainClient: KeychainAvailabilityClient,
         workflowProbe: WorkflowPresenceProbe,
-        presetCatalog: PresetBinaryCatalog = .launcherDefault
+        presetCatalog: PresetBinaryCatalog = .launcherDefault,
     ) {
         self.processClient = processClient
         self.keychainClient = keychainClient
@@ -21,7 +21,7 @@ struct ReadinessProbeRunner: Sendable {
     static let live = Self(
         processClient: .live,
         keychainClient: .live,
-        workflowProbe: .live
+        workflowProbe: .live,
     )
 
     func run(for project: LauncherProject) async throws -> ReadinessReport {
@@ -34,7 +34,7 @@ struct ReadinessProbeRunner: Sendable {
             status: .degraded,
             headline: "Shell integration not installed",
             detail: "Command markers are not configured yet.",
-            nextAction: "Open Settings"
+            nextAction: "Open Settings",
         )
         let presetCheck = try await presetBinaryCheck()
         let keychainCheck = await keychainReadyCheck()
@@ -50,7 +50,7 @@ struct ReadinessProbeRunner: Sendable {
                 presetCheck,
                 keychainCheck,
                 workflowCheck,
-            ]
+            ],
         )
     }
 
@@ -60,8 +60,8 @@ struct ReadinessProbeRunner: Sendable {
                 projectID: UUID().uuidString,
                 name: URL(fileURLWithPath: rootPath).lastPathComponent,
                 rootPath: rootPath,
-                lastOpenedAt: .now
-            )
+                lastOpenedAt: .now,
+            ),
         )
     }
 
@@ -72,7 +72,7 @@ struct ReadinessProbeRunner: Sendable {
                 status: .blocked,
                 headline: "Shell unavailable",
                 detail: "Configured shell could not be determined.",
-                nextAction: "Open Settings"
+                nextAction: "Open Settings",
             )
         }
 
@@ -81,7 +81,7 @@ struct ReadinessProbeRunner: Sendable {
             status: .ready,
             headline: "Shell ready",
             detail: shellPath,
-            nextAction: nil
+            nextAction: nil,
         )
     }
 
@@ -92,7 +92,7 @@ struct ReadinessProbeRunner: Sendable {
                 status: .blocked,
                 headline: "Login shell PATH unavailable",
                 detail: "Configured shell could not be determined.",
-                nextAction: "Open Settings"
+                nextAction: "Open Settings",
             )
         }
 
@@ -103,7 +103,7 @@ struct ReadinessProbeRunner: Sendable {
                 status: .ready,
                 headline: "Login shell PATH ready",
                 detail: value.trimmingCharacters(in: .whitespacesAndNewlines),
-                nextAction: nil
+                nextAction: nil,
             )
         case let .failure(error):
             return ReadinessCheck(
@@ -111,7 +111,7 @@ struct ReadinessProbeRunner: Sendable {
                 status: .degraded,
                 headline: "Login shell PATH incomplete",
                 detail: error,
-                nextAction: "Retry"
+                nextAction: "Retry",
             )
         }
     }
@@ -119,20 +119,20 @@ struct ReadinessProbeRunner: Sendable {
     private func gitReadyCheck() async throws -> ReadinessCheck {
         switch try await processClient.run("which git", nil) {
         case let .success(value):
-            return ReadinessCheck(
+            ReadinessCheck(
                 name: .git,
                 status: .ready,
                 headline: "Git ready",
                 detail: value.trimmingCharacters(in: .whitespacesAndNewlines),
-                nextAction: nil
+                nextAction: nil,
             )
         case let .failure(error):
-            return ReadinessCheck(
+            ReadinessCheck(
                 name: .git,
                 status: .degraded,
                 headline: "Git unavailable",
                 detail: error,
-                nextAction: "Open Settings"
+                nextAction: "Open Settings",
             )
         }
     }
@@ -145,7 +145,7 @@ struct ReadinessProbeRunner: Sendable {
                     status: .ready,
                     headline: "Preset binaries detected",
                     detail: "At least one preset binary is available.",
-                    nextAction: nil
+                    nextAction: nil,
                 )
             }
         }
@@ -155,7 +155,7 @@ struct ReadinessProbeRunner: Sendable {
             status: .degraded,
             headline: "Preset binaries missing",
             detail: "Generic shell remains available.",
-            nextAction: "Open Settings"
+            nextAction: "Open Settings",
         )
     }
 
@@ -166,7 +166,7 @@ struct ReadinessProbeRunner: Sendable {
                 status: .ready,
                 headline: "Keychain available",
                 detail: "Secrets can be stored securely.",
-                nextAction: nil
+                nextAction: nil,
             )
         }
 
@@ -175,35 +175,35 @@ struct ReadinessProbeRunner: Sendable {
             status: .degraded,
             headline: "Keychain unavailable",
             detail: "Secrets storage is not ready yet.",
-            nextAction: "Open Settings"
+            nextAction: "Open Settings",
         )
     }
 
     private func workflowReadyCheck(rootPath: String) async -> ReadinessCheck {
         switch await workflowProbe.probe(rootPath) {
         case .none:
-            return ReadinessCheck(
+            ReadinessCheck(
                 name: .workflow,
                 status: .degraded,
                 headline: "Workflow contract not found",
                 detail: "Future launches can still use a generic shell.",
-                nextAction: "Continue with Generic Shell"
+                nextAction: "Continue with Generic Shell",
             )
         case .present:
-            return ReadinessCheck(
+            ReadinessCheck(
                 name: .workflow,
                 status: .ready,
                 headline: "Workflow contract detected",
                 detail: "WORKFLOW.md is present.",
-                nextAction: nil
+                nextAction: nil,
             )
         case .unreadable:
-            return ReadinessCheck(
+            ReadinessCheck(
                 name: .workflow,
                 status: .degraded,
                 headline: "Workflow contract unreadable",
                 detail: "The file exists but could not be read.",
-                nextAction: "Retry"
+                nextAction: "Retry",
             )
         }
     }

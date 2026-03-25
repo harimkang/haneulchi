@@ -4,12 +4,16 @@ use crate::output::extract_data;
 pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
     match args.first().map(String::as_str) {
         Some("create") => {
-            let project = value_after(args, "--project").ok_or_else(|| "missing --project".to_string())?;
-            let title = value_after(args, "--title").ok_or_else(|| "missing --title".to_string())?;
+            let project =
+                value_after(args, "--project").ok_or_else(|| "missing --project".to_string())?;
+            let title =
+                value_after(args, "--title").ok_or_else(|| "missing --title".to_string())?;
             let priority = value_after(args, "--priority").unwrap_or("normal");
             let json = client.post_json(
                 "/v1/tasks",
-                Some(&format!(r#"{{"project_id":"{project}","title":"{title}","priority":"{priority}"}}"#)),
+                Some(&format!(
+                    r#"{{"project_id":"{project}","title":"{title}","priority":"{priority}"}}"#
+                )),
             )?;
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
@@ -23,8 +27,12 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
         }
         Some("move") => {
             let task_id = args.get(1).ok_or_else(|| "missing task id".to_string())?;
-            let column = value_after(args, "--column").ok_or_else(|| "missing --column".to_string())?;
-            let json = client.post_json(&format!("/v1/tasks/{task_id}/move"), Some(&format!(r#"{{"column":"{column}"}}"#)))?;
+            let column =
+                value_after(args, "--column").ok_or_else(|| "missing --column".to_string())?;
+            let json = client.post_json(
+                &format!("/v1/tasks/{task_id}/move"),
+                Some(&format!(r#"{{"column":"{column}"}}"#)),
+            )?;
             if args.iter().any(|arg| arg == "--json") {
                 return Ok(json);
             }
@@ -32,7 +40,8 @@ pub fn run(client: &ControlClient, args: &[String]) -> Result<String, String> {
         }
         Some("assign") => {
             let task_id = args.get(1).ok_or_else(|| "missing task id".to_string())?;
-            let session_id = value_after(args, "--session").ok_or_else(|| "missing --session".to_string())?;
+            let session_id =
+                value_after(args, "--session").ok_or_else(|| "missing --session".to_string())?;
             let json = client.post_json(
                 &format!("/v1/sessions/{session_id}/attach-task"),
                 Some(&format!(r#"{{"task_id":"{task_id}"}}"#)),

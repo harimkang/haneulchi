@@ -1,5 +1,7 @@
 use hc_runtime::terminal::geometry::TerminalGeometry;
-use hc_runtime::terminal::session::{ShellIntegrationMetadata, TerminalLaunchConfig, TerminalSession};
+use hc_runtime::terminal::session::{
+    ShellIntegrationMetadata, TerminalLaunchConfig, TerminalSession,
+};
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::time::{Duration, Instant};
@@ -120,19 +122,18 @@ fn session_strips_shell_markers_and_tracks_shell_metadata() {
 #[test]
 fn env_var_injected_via_launch_config_reaches_spawned_process() {
     let mut env = BTreeMap::new();
-    env.insert("TEST_HANEULCHI_ENV".to_string(), "hello_sprint5".to_string());
+    env.insert(
+        "TEST_HANEULCHI_ENV".to_string(),
+        "hello_sprint5".to_string(),
+    );
 
-    let config = TerminalLaunchConfig::command(
-        "/bin/sh",
-        ["-c", "printf \"$TEST_HANEULCHI_ENV\\n\""],
-    )
-    .with_env("TEST_HANEULCHI_ENV", "hello_sprint5");
+    let config =
+        TerminalLaunchConfig::command("/bin/sh", ["-c", "printf \"$TEST_HANEULCHI_ENV\\n\""])
+            .with_env("TEST_HANEULCHI_ENV", "hello_sprint5");
 
     let mut session = TerminalSession::spawn(config, TerminalGeometry::new(80, 24)).unwrap();
 
-    let drained = session
-        .wait_and_drain(Duration::from_secs(5))
-        .unwrap();
+    let drained = session.wait_and_drain(Duration::from_secs(5)).unwrap();
 
     assert!(
         String::from_utf8_lossy(&drained).contains("hello_sprint5"),
