@@ -74,6 +74,7 @@ func newSessionSheetBuildsLaunchDescriptors() throws {
     #expect(isolated.workspaceRoot == "/tmp/demo/worktrees/task-104")
 }
 
+
 @Test("isolated launch surfaces provisioning failures instead of fabricating a local path")
 func isolatedLaunchFailsGracefullyWhenProvisioningFails() throws {
     let viewModel = NewSessionSheetViewModel(

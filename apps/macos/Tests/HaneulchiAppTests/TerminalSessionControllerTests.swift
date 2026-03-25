@@ -2,6 +2,14 @@ import Foundation
 import Testing
 @testable import HaneulchiApp
 
+private final class SendableBox<T>: @unchecked Sendable {
+    var value: T
+
+    init(_ value: T) {
+        self.value = value
+    }
+}
+
 private final class SessionTerminationRecorder: @unchecked Sendable {
     private let lock = NSLock()
     private(set) var terminatedSessionIDs: [String] = []
@@ -23,6 +31,56 @@ func liveSessionControllerDrainsOutput() async throws {
 
     #expect(controller.status == .running)
     #expect(controller.latestText.contains("ready"))
+}
+
+@MainActor
+@Test("session controller injects resolved secret refs into the spawned launch request")
+func liveSessionControllerInjectsResolvedSecretEnvironment() async throws {
+    let capturedEnvironment = SendableBox<[String: String]>([:])
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(
+                rendererID: "swiftterm",
+                transport: "ffi_c_abi",
+                demoMode: false
+            )
+        },
+        spawnSession: { request in
+            capturedEnvironment.value = request.environment
+            return TerminalSessionSnapshot(
+                sessionID: "session-with-env",
+                launch: request,
+                geometry: request.geometry,
+                running: true,
+                exitCode: nil
+            )
+        },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in
+            TerminalSessionSnapshot(
+                sessionID: "session-with-env",
+                launch: .defaultShell,
+                geometry: .defaultShell,
+                running: true,
+                exitCode: nil
+            )
+        },
+        resolveLaunchEnvironment: {
+            [
+                "OPENAI_API_KEY": "sk-live-test",
+                "GITHUB_TOKEN": "gh-live-test",
+            ]
+        }
+    )
+    let controller = TerminalSessionController(bridge: bridge)
+
+    try await controller.start(.defaultShell)
+
+    #expect(capturedEnvironment.value["OPENAI_API_KEY"] == "sk-live-test")
+    #expect(capturedEnvironment.value["GITHUB_TOKEN"] == "gh-live-test")
 }
 
 @MainActor

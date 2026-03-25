@@ -1,5 +1,7 @@
+pub mod inventory;
 pub mod orchestrator;
 pub mod review;
+pub mod settings;
 pub mod task;
 pub mod time;
 pub mod timeline;

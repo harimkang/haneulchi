@@ -100,3 +100,31 @@ pub extern "C" fn hc_api_server_start_json(socket_path: *const c_char) -> HcStri
             .and_then(|socket_path| api_server_start_json(socket_path.as_deref())),
     )
 }
+
+pub fn runtime_info_summary_json() -> String {
+    let handle = server_handle();
+    let guard = handle.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+    match guard.as_ref() {
+        Some(existing) => serde_json::json!({
+            "socket_path": existing.socket_path,
+            "transport": "unix_domain_socket_local_only",
+            "status": "running",
+        })
+        .to_string(),
+        None => serde_json::json!({
+            "socket_path": null,
+            "transport": "unix_domain_socket_local_only",
+            "status": "not_started",
+        })
+        .to_string(),
+    }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn hc_runtime_info_summary_json() -> HcString {
+    let string =
+        CString::new(runtime_info_summary_json()).expect("runtime info summary json is nul-free");
+    HcString {
+        ptr: string.into_raw(),
+    }
+}

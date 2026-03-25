@@ -33,6 +33,17 @@ struct CoreBridge: Sendable {
     let reconcileAutomation: @Sendable () throws -> Void
     let workflowValidate: @Sendable (String) throws -> Data
     let workflowReload: @Sendable (String) throws -> Data
+    let inventorySummary: @Sendable (String) throws -> InventorySummaryPayload
+    let inventoryList: @Sendable (String) throws -> [InventoryRowPayload]
+    let terminalSettings: @Sendable () throws -> TerminalSettingsPayload?
+    let resolveLaunchEnvironment: @Sendable () throws -> [String: String]
+    let runtimeInfoSummary: @Sendable () throws -> RuntimeInfoSummaryPayload
+    let listDegradedIssues: @Sendable (RecoveryContextPayload) throws -> [DegradedIssuePayload]
+    let loadAppState: @Sendable () throws -> AppStatePayload?
+    let saveAppState: @Sendable (String, String?, String?) throws -> Void
+    let listRecoverableSessions: @Sendable (String) throws -> [RecoverableSessionPayload]
+    let setWorktreePinned: @Sendable (String, Bool) throws -> Void
+    let updateWorktreeLifecycle: @Sendable (String, String) throws -> Void
 
     init(
         provisionTaskWorkspace: @escaping @Sendable (String, String, String?) throws -> ProvisionedTaskWorkspace = { _, _, _ in
@@ -84,7 +95,32 @@ struct CoreBridge: Sendable {
         },
         workflowReload: @escaping @Sendable (String) throws -> Data = { _ in
             throw CoreBridgeError.operationFailed("workflow_reload_unavailable")
-        }
+        },
+        inventorySummary: @escaping @Sendable (String) throws -> InventorySummaryPayload = { _ in
+            throw CoreBridgeError.operationFailed("inventory_summary_unavailable")
+        },
+        inventoryList: @escaping @Sendable (String) throws -> [InventoryRowPayload] = { _ in
+            throw CoreBridgeError.operationFailed("inventory_list_unavailable")
+        },
+        terminalSettings: @escaping @Sendable () throws -> TerminalSettingsPayload? = {
+            throw CoreBridgeError.operationFailed("terminal_settings_unavailable")
+        },
+        resolveLaunchEnvironment: @escaping @Sendable () throws -> [String: String] = { [:] },
+        runtimeInfoSummary: @escaping @Sendable () throws -> RuntimeInfoSummaryPayload = {
+            throw CoreBridgeError.operationFailed("runtime_info_summary_unavailable")
+        },
+        listDegradedIssues: @escaping @Sendable (RecoveryContextPayload) throws -> [DegradedIssuePayload] = { _ in
+            throw CoreBridgeError.operationFailed("list_degraded_issues_unavailable")
+        },
+        loadAppState: @escaping @Sendable () throws -> AppStatePayload? = {
+            nil
+        },
+        saveAppState: @escaping @Sendable (String, String?, String?) throws -> Void = { _, _, _ in },
+        listRecoverableSessions: @escaping @Sendable (String) throws -> [RecoverableSessionPayload] = { _ in
+            []
+        },
+        setWorktreePinned: @escaping @Sendable (String, Bool) throws -> Void = { _, _ in },
+        updateWorktreeLifecycle: @escaping @Sendable (String, String) throws -> Void = { _, _ in }
     ) {
         self.provisionTaskWorkspace = provisionTaskWorkspace
         self.runtimeInfo = runtimeInfo
@@ -108,6 +144,17 @@ struct CoreBridge: Sendable {
         self.reconcileAutomation = reconcileAutomation
         self.workflowValidate = workflowValidate
         self.workflowReload = workflowReload
+        self.inventorySummary = inventorySummary
+        self.inventoryList = inventoryList
+        self.terminalSettings = terminalSettings
+        self.resolveLaunchEnvironment = resolveLaunchEnvironment
+        self.runtimeInfoSummary = runtimeInfoSummary
+        self.listDegradedIssues = listDegradedIssues
+        self.loadAppState = loadAppState
+        self.saveAppState = saveAppState
+        self.listRecoverableSessions = listRecoverableSessions
+        self.setWorktreePinned = setWorktreePinned
+        self.updateWorktreeLifecycle = updateWorktreeLifecycle
     }
 
     static let live = Self(
@@ -301,6 +348,89 @@ struct CoreBridge: Sendable {
             return try root.withPointer { pointer in
                 try stringPayloadData(hc_workflow_reload_json(pointer))
             }
+        },
+        inventorySummary: { projectID in
+            let pid = try CStringBox(projectID)
+            let data = try pid.withPointer { pointer in
+                try stringPayloadData(hc_inventory_summary_json(pointer))
+            }
+            guard let payload = try? JSONDecoder().decode(InventorySummaryPayload.self, from: data) else {
+                throw CoreBridgeError.operationFailed("inventory_summary_decode_failed")
+            }
+            return payload
+        },
+        inventoryList: { projectID in
+            let pid = try CStringBox(projectID)
+            let data = try pid.withPointer { pointer in
+                try stringPayloadData(hc_inventory_list_json(pointer))
+            }
+            guard let payload = try? JSONDecoder().decode([InventoryRowPayload].self, from: data) else {
+                throw CoreBridgeError.operationFailed("inventory_list_decode_failed")
+            }
+            return payload
+        },
+        terminalSettings: {
+            let data = try stringPayloadData(hc_terminal_settings_json())
+            guard let payload = try? JSONDecoder().decode(TerminalSettingsPayload.self, from: data) else {
+                throw CoreBridgeError.operationFailed("terminal_settings_decode_failed")
+            }
+            return payload
+        },
+        resolveLaunchEnvironment: {
+            let data = try stringPayloadData(hc_resolve_secret_env_json())
+            guard let payload = try? JSONDecoder().decode([String: String].self, from: data) else {
+                throw CoreBridgeError.operationFailed("resolve_secret_env_decode_failed")
+            }
+            return payload
+        },
+        runtimeInfoSummary: {
+            let data = try stringPayloadData(hc_runtime_info_summary_json())
+            guard let payload = try? JSONDecoder().decode(RuntimeInfoSummaryPayload.self, from: data) else {
+                throw CoreBridgeError.operationFailed("runtime_info_summary_decode_failed")
+            }
+            return payload
+        },
+        listDegradedIssues: { context in
+            let encoded = try JSONEncoder().encode(context)
+            let json = String(decoding: encoded, as: UTF8.self)
+            let contextBox = try CStringBox(json)
+            let data = try contextBox.withPointer { pointer in
+                try stringPayloadData(hc_degraded_issues_json(pointer))
+            }
+            return (try? JSONDecoder().decode([DegradedIssuePayload].self, from: data)) ?? []
+        },
+        loadAppState: {
+            let data = try stringPayloadData(hc_load_app_state_json())
+            return try? JSONDecoder().decode(AppStatePayload.self, from: data)
+        },
+        saveAppState: { route, projectId, sessionId in
+            let payload = serde_encode_app_state(route: route, projectId: projectId, sessionId: sessionId)
+            let box = try CStringBox(payload)
+            _ = try box.withPointer { pointer in
+                try stringPayloadData(hc_save_app_state_json(pointer))
+            }
+        },
+        listRecoverableSessions: { projectId in
+            let pid = try CStringBox(projectId)
+            let data = try pid.withPointer { pointer in
+                try stringPayloadData(hc_list_recoverable_sessions_json(pointer))
+            }
+            return (try? JSONDecoder().decode([RecoverableSessionPayload].self, from: data)) ?? []
+        },
+        setWorktreePinned: { worktreeID, isPinned in
+            let worktree = try CStringBox(worktreeID)
+            _ = try worktree.withPointer { pointer in
+                try stringPayloadData(hc_set_worktree_pinned_json(pointer, isPinned ? 1 : 0))
+            }
+        },
+        updateWorktreeLifecycle: { worktreeID, state in
+            let worktree = try CStringBox(worktreeID)
+            let lifecycle = try CStringBox(state)
+            _ = try worktree.withPointer { worktreePointer in
+                try lifecycle.withPointer { statePointer in
+                    try stringPayloadData(hc_update_worktree_lifecycle_json(worktreePointer, statePointer))
+                }
+            }
         }
     )
 
@@ -361,9 +491,45 @@ struct CoreBridge: Sendable {
             startLocalControlServer: { },
             reconcileAutomation: { },
             workflowValidate: { _ in Data("{}".utf8) },
-            workflowReload: { _ in Data("{}".utf8) }
+            workflowReload: { _ in Data("{}".utf8) },
+            inventorySummary: { _ in
+                InventorySummaryPayload(total: 0, inUse: 0, recoverable: 0, safeToDelete: 0, stale: 0)
+            },
+            inventoryList: { _ in [] },
+            terminalSettings: {
+                TerminalSettingsPayload(
+                    shell: "/bin/zsh",
+                    defaultCols: 220,
+                    defaultRows: 50,
+                    scrollbackLines: 5000,
+                    fontName: "",
+                    theme: "",
+                    cursorStyle: ""
+                )
+            },
+            resolveLaunchEnvironment: { [:] },
+            runtimeInfoSummary: {
+                RuntimeInfoSummaryPayload(socketPath: nil, transport: "ffi_c_abi", status: "running")
+            },
+            listDegradedIssues: { _ in [] },
+            loadAppState: { nil },
+            saveAppState: { _, _, _ in },
+            listRecoverableSessions: { _ in [] },
+            setWorktreePinned: { _, _ in },
+            updateWorktreeLifecycle: { _, _ in }
         )
     }
+}
+
+private func serde_encode_app_state(route: String, projectId: String?, sessionId: String?) -> String {
+    var dict: [String: Any] = ["route": route]
+    if let projectId { dict["last_project_id"] = projectId }
+    if let sessionId { dict["last_session_id"] = sessionId }
+    if let data = try? JSONSerialization.data(withJSONObject: dict),
+       let json = String(data: data, encoding: .utf8) {
+        return json
+    }
+    return "{}"
 }
 
 private func stringPayloadData(_ payload: HcString) throws -> Data {

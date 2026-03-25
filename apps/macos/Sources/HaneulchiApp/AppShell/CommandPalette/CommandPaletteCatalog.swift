@@ -46,7 +46,7 @@ struct CommandPaletteCatalog: Equatable, Sendable {
                 section: .inventory,
                 title: $0.title,
                 subtitle: $0.rootPath,
-                tokens: [$0.title.lowercased(), $0.rootPath.lowercased(), $0.kind.rawValue],
+                tokens: [$0.title.lowercased(), $0.rootPath.lowercased(), $0.disposition],
                 action: .selectRoute(.projectFocus)
             )
         }

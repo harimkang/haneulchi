@@ -5,6 +5,7 @@ use hc_domain::{
 };
 
 use crate::attention::derive_attention;
+use crate::recovery::{RecoveryContext, detect_degraded_issues};
 
 #[derive(Clone, Debug)]
 pub struct SnapshotSeed {
@@ -43,6 +44,17 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         .filter(|session| session.claim_state == hc_domain::ClaimState::Claimed)
         .count() as u32;
 
+    // Detect degraded issues from the current workflow health.  Details are
+    // reduced to issue codes only — secret values must never appear in flags.
+    let recovery_context = RecoveryContext {
+        workflow_health: seed.workflow.state,
+        ..Default::default()
+    };
+    let degraded_flags: Vec<String> = detect_degraded_issues(&recovery_context)
+        .into_iter()
+        .map(|issue| issue.issue_code)
+        .collect();
+
     let mut snapshot = AppSnapshot::new(seed.workflow.clone(), seed.tracker.clone())
         .with_automation(OpsSummary {
             status: "running".to_string(),
@@ -58,7 +70,7 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         .with_app_state(AppState {
             active_route: "project_focus".to_string(),
             focused_session_id,
-            degraded_flags: Vec::new(),
+            degraded_flags,
         });
 
     snapshot.meta = AppSnapshotMeta {

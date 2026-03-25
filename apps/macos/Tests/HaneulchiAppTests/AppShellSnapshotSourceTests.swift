@@ -180,3 +180,26 @@ func localSnapshotUsesCurrentShellInputs() async throws {
     #expect(snapshot.recentArtifacts.isEmpty)
     #expect(snapshot.warnings.map(\.severity) == [.degraded])
 }
+
+@MainActor
+@Test("sessions from restore bundles with no live counterpart appear as archived/recoverable")
+func testDeadSessionsAppearAsRecoverable() async throws {
+    let restoreStore = TerminalSessionRestoreStore.inMemory
+    try restoreStore.save([
+        .genericShell(at: "/tmp/demo"),
+        .genericShell(at: "/tmp/other"),
+    ])
+
+    let snapshot = try await LocalAppShellSnapshotSource(restoreStore: restoreStore).load(
+        activeRoute: .projectFocus,
+        selectedProject: nil,
+        readinessReport: nil,
+        recentProjects: []
+    )
+
+    // All restored sessions have no live terminal backing, so they should be exited (archived)
+    #expect(snapshot.sessions.count == 2)
+    #expect(snapshot.sessions.allSatisfy { $0.runtimeState == .exited })
+    // Running slots reflects only live sessions — none here
+    #expect(snapshot.ops.runningSlots == 0)
+}

@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::PathBuf;
@@ -18,6 +19,8 @@ struct SpawnRequest {
     #[serde(default)]
     current_directory: Option<PathBuf>,
     geometry: SpawnGeometry,
+    #[serde(default)]
+    environment: BTreeMap<String, String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -88,6 +91,7 @@ pub fn terminal_session_spawn_json(config_json: &str) -> Result<String, String> 
         program: request.program,
         args: request.args,
         current_directory: request.current_directory,
+        environment: request.environment,
     };
     let geometry = TerminalGeometry::new(request.geometry.cols, request.geometry.rows);
     let session_id = lock_runtime()

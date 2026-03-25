@@ -26,6 +26,28 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         let lastError: String?
     }
 
+    struct TerminalSettingsRow: Equatable, Sendable {
+        let shell: String
+        let defaultCols: Int
+        let defaultRows: Int
+        let scrollbackLines: Int
+        let fontName: String
+        let theme: String
+        let cursorStyle: String
+    }
+
+    struct APIRuntimeInfoRow: Equatable, Sendable {
+        let socketPath: String?
+        let transport: String
+        let status: String
+    }
+
+    struct DegradedIssueRow: Equatable, Sendable, Identifiable {
+        let issueCode: String
+        let details: String
+        var id: String { issueCode }
+    }
+
     struct AutomationRow: Equatable, Sendable, Identifiable {
         enum RowID: String, Sendable {
             case localAPI = "local_api"
@@ -47,13 +69,19 @@ struct SettingsStatusViewModel: Equatable, Sendable {
     let presetRows: [PresetRow]
     let automationRows: [AutomationRow]
     let controlPanel: AutomationControlPanelViewModel?
+    let terminalSettingsRow: TerminalSettingsRow?
+    let apiRuntimeInfoRow: APIRuntimeInfoRow?
+    let degradedIssueRows: [DegradedIssueRow]
 
     static let empty = Self(
         report: nil,
         workflowStatus: nil,
         presetRegistry: .init(presets: []),
         runtimeInfo: nil,
-        snapshot: nil
+        snapshot: nil,
+        terminalSettings: nil,
+        runtimeInfoSummary: nil,
+        degradedIssues: []
     )
 
     init(
@@ -61,7 +89,10 @@ struct SettingsStatusViewModel: Equatable, Sendable {
         workflowStatus: WorkflowStatusPayload?,
         presetRegistry: PresetRegistry,
         runtimeInfo: TerminalBackendDescriptor?,
-        snapshot: AppShellSnapshot?
+        snapshot: AppShellSnapshot?,
+        terminalSettings: TerminalSettingsPayload? = nil,
+        runtimeInfoSummary: RuntimeInfoSummaryPayload? = nil,
+        degradedIssues: [DegradedIssuePayload] = []
     ) {
         let checks = report?.checks ?? []
         readinessRows = checks
@@ -160,6 +191,30 @@ struct SettingsStatusViewModel: Equatable, Sendable {
             ),
         ]
         controlPanel = snapshot.map { AutomationControlPanelViewModel(snapshot: $0, runtimeInfo: runtimeInfo) }
+
+        terminalSettingsRow = terminalSettings.map {
+            TerminalSettingsRow(
+                shell: $0.shell,
+                defaultCols: $0.defaultCols,
+                defaultRows: $0.defaultRows,
+                scrollbackLines: $0.scrollbackLines,
+                fontName: $0.fontName,
+                theme: $0.theme,
+                cursorStyle: $0.cursorStyle
+            )
+        }
+
+        apiRuntimeInfoRow = runtimeInfoSummary.map {
+            APIRuntimeInfoRow(
+                socketPath: $0.socketPath,
+                transport: $0.transport,
+                status: $0.status
+            )
+        }
+
+        degradedIssueRows = degradedIssues.map {
+            DegradedIssueRow(issueCode: $0.issueCode, details: $0.details)
+        }
     }
 
     private static func readinessRow(_ check: ReadinessCheck) -> ReadinessRow {

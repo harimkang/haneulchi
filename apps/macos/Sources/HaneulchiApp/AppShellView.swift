@@ -35,7 +35,8 @@ struct AppShellView: View {
                 }
 
                 projectFocusModel = AppShellView.bootstrapProjectFocusModel(
-                    selectedProjectRoot: shellModel.selectedProject?.rootPath
+                    selectedProjectRoot: shellModel.selectedProject?.rootPath,
+                    recoverableSessions: shellModel.recoverableSessions()
                 )
             }
         }
@@ -156,6 +157,32 @@ struct AppShellView: View {
                 }
             )
         }
+        .sheet(isPresented: Binding(
+            get: { shellModel.isInventoryPresented },
+            set: { presented in
+                if !presented {
+                    Task {
+                        await shellModel.perform(.dismissInventory)
+                    }
+                }
+            }
+        )) {
+            if let inventoryViewModel = shellModel.inventoryViewModel {
+                WorktreeInventoryView(
+                    viewModel: inventoryViewModel,
+                    onAction: { action in
+                        Task {
+                            await shellModel.perform(action)
+                        }
+                    },
+                    onClose: {
+                        Task {
+                            await shellModel.perform(.dismissInventory)
+                        }
+                    }
+                )
+            }
+        }
     }
 
     private var shellLayout: some View {
@@ -204,18 +231,21 @@ struct AppShellView: View {
 
     private static func bootstrapProjectFocusModel(
         selectedProjectRoot: String? = nil,
-        restoreStore: TerminalSessionRestoreStore = .liveDefault
+        restoreStore: TerminalSessionRestoreStore = .liveDefault,
+        recoverableSessions: [RecoverableSessionPayload] = []
     ) -> ProjectFocusView.Model {
         (try? ProjectFocusView.Model.bootstrap(
             selectedProjectRoot: selectedProjectRoot,
-            restoreStore: restoreStore
+            restoreStore: restoreStore,
+            recoverableSessions: recoverableSessions
         )) ?? .demo
     }
 
     private func continueWithGenericShell() {
         launcherNotice = nil
         projectFocusModel = AppShellView.bootstrapProjectFocusModel(
-            selectedProjectRoot: shellModel.selectedProject?.rootPath
+            selectedProjectRoot: shellModel.selectedProject?.rootPath,
+            recoverableSessions: shellModel.recoverableSessions()
         )
         shellModel.setSelectedRoute(.projectFocus)
         shellModel.presentShell()

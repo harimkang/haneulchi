@@ -10,6 +10,10 @@ mod api_server_bridge;
 mod automation_bridge;
 mod attention_bridge;
 mod dispatch_bridge;
+mod inventory_bridge;
+mod persistence_bridge;
+mod recovery_bridge;
+mod settings_bridge;
 mod state_bridge;
 mod task_bridge;
 mod review_bridge;
@@ -75,6 +79,22 @@ pub use session_bridge::{
 };
 pub use api_server_bridge::{
     api_server_start_json, hc_api_server_start_json, resolve_api_server_socket_path,
+    runtime_info_summary_json, hc_runtime_info_summary_json,
+};
+pub use inventory_bridge::{
+    hc_inventory_list_json, hc_inventory_summary_json, hc_set_worktree_pinned_json,
+    hc_update_worktree_lifecycle_json, inventory_list_json, inventory_summary_json,
+    set_worktree_pinned_json, update_worktree_lifecycle_json,
+};
+pub use recovery_bridge::{
+    degraded_issues_json, hc_degraded_issues_json, hc_recovery_action_for_issue_json,
+    recovery_action_for_issue_json,
+};
+pub use settings_bridge::{
+    delete_secret_ref_json, hc_delete_secret_ref_json, hc_list_secret_refs_json,
+    hc_resolve_secret_env_json, hc_terminal_settings_json, hc_upsert_secret_ref_json,
+    hc_upsert_terminal_settings_json, list_secret_refs_json, resolve_secret_env_json,
+    terminal_settings_json, upsert_secret_ref_json, upsert_terminal_settings_json,
 };
 pub use automation_bridge::{hc_reconcile_now_json, reconcile_automation_json};
 pub use state_bridge::{
@@ -98,6 +118,10 @@ pub use task_bridge::{
 pub use workflow_bridge::{
     hc_workflow_reload_json, hc_workflow_validate_json, workflow_reload_json,
     workflow_validate_json,
+};
+pub use persistence_bridge::{
+    hc_load_app_state_json, hc_save_app_state_json, hc_list_recoverable_sessions_json,
+    load_app_state_json, save_app_state_json, list_recoverable_sessions_json,
 };
 
 pub fn reset_test_state() {

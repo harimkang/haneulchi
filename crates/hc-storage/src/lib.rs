@@ -1,9 +1,13 @@
 //! SQLite, artifact store, and Keychain boundary scaffold.
 
+pub mod cache;
+pub mod keychain;
 pub mod orchestrator;
+pub mod persistence;
 pub mod retry_queue;
 pub mod reviews;
 pub mod schema;
+pub mod settings;
 pub mod tasks;
 pub mod timeline;
 pub mod tracker_bindings;
@@ -13,12 +17,16 @@ use std::path::Path;
 
 use rusqlite::Connection;
 
+pub use cache::{CacheEntryRecord, CacheRepository, CacheRootRecord, QuotaRecord, QuotaStatus};
+pub use keychain::KeychainBoundary;
 pub use orchestrator::OrchestratorRepository;
+pub use persistence::{AppStateRow, LayoutRow, PersistenceRepository, SessionMetadataRow};
 pub use retry_queue::{
     NewRetryQueueEntry, RetryFailureClass, RetryQueueRepository, advance_retry_state,
     schedule_retry_entry,
 };
 pub use reviews::{NewReviewItem, ReviewRepository};
+pub use settings::{SecretRefRow, SettingsRepository, TerminalSettingsRow};
 pub use tasks::{NewTaskRecord, TaskRepository, TaskUpdatePatch};
 pub use timeline::{AppendTimelineEvent, TimelineRepository};
 pub use tracker_bindings::TrackerBindingRepository;
@@ -34,6 +42,10 @@ pub enum StorageError {
     TaskNotFound(String),
     #[error("worktree not found for task: {0}")]
     WorktreeNotFound(String),
+    #[error("cache root not found: {0}")]
+    CacheRootNotFound(String),
+    #[error("layout not found: {0}")]
+    LayoutNotFound(String),
     #[error("unknown task column: {0}")]
     UnknownTaskColumn(String),
     #[error("unknown task automation mode: {0}")]
@@ -46,6 +58,8 @@ pub enum StorageError {
     UnknownReviewStatus(String),
     #[error("unknown timeline event kind: {0}")]
     UnknownTimelineEventKind(String),
+    #[error("keychain error: {0}")]
+    Keychain(String),
 }
 
 pub struct SqliteStore {
@@ -97,5 +111,17 @@ impl SqliteStore {
 
     pub fn worktrees(&self) -> WorktreeRepository<'_> {
         WorktreeRepository::new(&self.connection)
+    }
+
+    pub fn cache(&self) -> CacheRepository<'_> {
+        CacheRepository::new(&self.connection)
+    }
+
+    pub fn settings_repo(&self) -> SettingsRepository<'_> {
+        SettingsRepository::new(&self.connection)
+    }
+
+    pub fn persistence(&self) -> PersistenceRepository<'_> {
+        PersistenceRepository::new(&self.connection)
     }
 }

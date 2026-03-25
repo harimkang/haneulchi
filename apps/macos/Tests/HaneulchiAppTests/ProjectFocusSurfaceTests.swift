@@ -54,6 +54,27 @@ func selectedProjectRootOverridesRestoreBundle() throws {
     #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/auth-service")
 }
 
+@Test("project focus bootstrap falls back to recoverable session metadata when no restore bundle exists")
+func projectFocusBootstrapUsesRecoverableSessions() throws {
+    let model = try ProjectFocusView.Model.bootstrap(
+        selectedProjectRoot: "/tmp/demo",
+        restoreStore: .inMemory,
+        recoverableSessions: [
+            .init(
+                sessionId: "ses_recover_01",
+                projectId: "proj_demo",
+                title: "Recoverable shell",
+                cwd: "/tmp/demo/worktrees/task-104",
+                branch: "hc/task-104",
+                lastActiveAt: "2026-03-25T00:00:00Z",
+                isRecoverable: true
+            )
+        ]
+    )
+
+    #expect(model.deck.layout.focusedSurface?.liveBundle?.launch.currentDirectory == "/tmp/demo/worktrees/task-104")
+}
+
 @Test("live project focus layouts can retarget focus deterministically")
 func liveProjectFocusLayoutCanRetargetFocus() {
     var layout = TerminalDeckLayout.singleLiveDemo

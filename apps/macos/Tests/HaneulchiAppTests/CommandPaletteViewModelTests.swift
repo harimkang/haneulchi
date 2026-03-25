@@ -51,7 +51,7 @@ func commandPaletteCatalogUsesSharedState() async throws {
             itemID: "inv_01",
             title: "demo",
             rootPath: "/tmp/demo",
-            kind: .sharedRoot
+            disposition: "in_use"
         )
     ]
 

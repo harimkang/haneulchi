@@ -282,3 +282,86 @@ func appShellSurfacesLocalControlServerStartupFailure() async throws {
     #expect(model.transientNotice?.contains("Local control API") == true)
     #expect(model.transientNotice?.contains("/tmp/haneulchi/control.sock") == true)
 }
+
+@MainActor
+@Test("bootstrap prefers Rust-persisted route over JSON preferences when bridge returns a state")
+func testBootstrapPrefersRustPersistedRoute() throws {
+    let store = ProjectLauncherStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    try store.recordOpen(project)
+    try store.saveLastSelectedProject(project)
+
+    // JSON preferences say controlTower
+    let preferences = AppShellPreferencesStore.inMemory
+    try preferences.save(.init(lastActiveRoute: .controlTower))
+
+    // But the Rust bridge returns taskBoard
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        loadAppState: {
+            AppStatePayload(activeRoute: "task_board", lastProjectId: "proj_demo", lastSessionId: nil, savedAt: nil)
+        }
+    )
+
+    let model = try AppShellModel.bootstrap(
+        projectStore: store,
+        restoreStore: .inMemory,
+        preferencesStore: preferences,
+        coreBridge: bridge
+    )
+
+    #expect(model.selectedRoute == .taskBoard)
+}
+
+@MainActor
+@Test("bootstrap falls back to JSON preferences when Rust state is absent")
+func testBootstrapFallsBackToJSONPreferencesWhenRustStateAbsent() throws {
+    let store = ProjectLauncherStore.inMemory
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    try store.recordOpen(project)
+    try store.saveLastSelectedProject(project)
+
+    let preferences = AppShellPreferencesStore.inMemory
+    try preferences.save(.init(lastActiveRoute: .controlTower))
+
+    // Bridge returns nil — no Rust state
+    let bridge = CoreBridge(
+        runtimeInfo: {
+            TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false)
+        },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        loadAppState: { nil }
+    )
+
+    let model = try AppShellModel.bootstrap(
+        projectStore: store,
+        restoreStore: .inMemory,
+        preferencesStore: preferences,
+        coreBridge: bridge
+    )
+
+    #expect(model.selectedRoute == .controlTower)
+}

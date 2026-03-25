@@ -50,6 +50,13 @@ struct AppShellCommands: Commands {
                 }
             }
             .keyboardShortcut(Route.latestUnreadShortcut.keyEquivalent, modifiers: Route.latestUnreadShortcut.eventModifiers)
+
+            Button("Show Inventory") {
+                Task {
+                    await model.perform(.presentInventory)
+                }
+            }
+            .keyboardShortcut("i", modifiers: [.command, .shift])
         }
     }
 }

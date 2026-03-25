@@ -10,6 +10,9 @@ struct SettingsView: View {
                 Text("Settings")
                     .font(.largeTitle.weight(.bold))
                 ReadinessSettingsSection(viewModel: viewModel)
+                TerminalSettingsSection(row: viewModel.terminalSettingsRow)
+                SecretsSettingsSection()
+                WorktreeRecoverySection(issues: viewModel.degradedIssueRows, onAction: onAction)
                 SettingsAutomationStatusSection(viewModel: viewModel, onAction: onAction)
             }
             .padding(HaneulchiChrome.Spacing.screenPadding)

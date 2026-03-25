@@ -1,23 +1,55 @@
 import Foundation
 
 struct InventorySearchProjectionStore: Sendable {
-    enum RowKind: String, Equatable, Sendable {
-        case sharedRoot = "shared_root"
-        case restoreRoot = "restore_root"
-    }
-
     struct Row: Equatable, Identifiable, Sendable {
         let itemID: String
         let title: String
         let rootPath: String
-        let kind: RowKind
+        let disposition: String  // "in_use" | "recoverable" | "safe_to_delete" | "stale"
 
         var id: String { itemID }
     }
 
-    let restoreStore: TerminalSessionRestoreStore
+    /// When set, rows are loaded from the FFI inventory list for the selected project.
+    let inventoryList: (@Sendable (String) throws -> [InventoryRowPayload])?
 
-    func load(selectedProjectRoot: String?) async throws -> [Row] {
+    /// Legacy restore-store fallback used when inventoryList is not provided.
+    let restoreStore: TerminalSessionRestoreStore?
+
+    init(inventoryList: @escaping @Sendable (String) throws -> [InventoryRowPayload]) {
+        self.inventoryList = inventoryList
+        self.restoreStore = nil
+    }
+
+    init(restoreStore: TerminalSessionRestoreStore) {
+        self.restoreStore = restoreStore
+        self.inventoryList = nil
+    }
+
+    func load(
+        selectedProjectID: String? = nil,
+        selectedProjectRoot: String? = nil
+    ) async throws -> [Row] {
+        if let inventoryList, let selectedProjectID, !selectedProjectID.isEmpty {
+            let payloads = try inventoryList(selectedProjectID)
+            return payloads.map { payload in
+                let title = URL(fileURLWithPath: payload.path).lastPathComponent.isEmpty
+                    ? payload.path
+                    : URL(fileURLWithPath: payload.path).lastPathComponent
+                return Row(
+                    itemID: payload.worktreeId,
+                    title: title,
+                    rootPath: payload.path,
+                    disposition: payload.disposition
+                )
+            }
+        }
+
+        // Legacy restore-store path
+        guard let restoreStore else {
+            return []
+        }
+
         let restoreRoots = try restoreStore.load()
             .compactMap(\.launch.currentDirectory)
 
@@ -39,12 +71,31 @@ struct InventorySearchProjectionStore: Sendable {
                 ? root
                 : URL(fileURLWithPath: root).lastPathComponent
 
-            return .init(
+            return Row(
                 itemID: "inventory-\(index + 1)",
                 title: title,
                 rootPath: root,
-                kind: root == selectedProjectRoot ? .sharedRoot : .restoreRoot
+                disposition: root == selectedProjectRoot ? "in_use" : "recoverable"
             )
         }
     }
+
+    /// A mock store that returns a fixed set of rows — useful in tests.
+    static let mock = InventorySearchProjectionStore(
+        inventoryList: { _ in
+            [
+                InventoryRowPayload(
+                    worktreeId: "wt-mock-1",
+                    path: "/tmp/mock/worktree-1",
+                    projectName: "mock-project",
+                    branch: "main",
+                    disposition: "in_use",
+                    isPinned: false,
+                    isDegraded: false,
+                    sizeBytes: nil,
+                    lastAccessedAt: nil
+                )
+            ]
+        }
+    )
 }

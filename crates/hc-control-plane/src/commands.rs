@@ -6,14 +6,18 @@ use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, ProjectSummary,
     SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
     WorkflowHealth, WorkflowRuntimeStatus, time::now_iso8601,
+    inventory::{InventoryRow, InventorySummary},
 };
 use hc_runtime::terminal::runtime::TerminalSessionSnapshot as RuntimeSessionSnapshot;
 use hc_workflow::{LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime};
 
 use crate::attention::derive_attention;
+use crate::inventory::{build_inventory_for_project, build_inventory_summary};
 use crate::session_projection::{focus_session, release_takeover_session, takeover_session};
+use crate::shared_store::lock_shared_store;
 use crate::snapshot::{project_snapshot, SnapshotSeed};
 use crate::tasks::{shared_attach_session, shared_detach_session, shared_task};
+use crate::worktrees::{shared_set_worktree_pinned as worktrees_set_pinned, shared_update_worktree_lifecycle as worktrees_update_lifecycle};
 use crate::workflow_projection::{sample_tracker_status, sample_workflow_status};
 
 #[derive(Debug, thiserror::Error, Eq, PartialEq)]
@@ -28,6 +32,10 @@ pub enum ControlPlaneError {
     TaskClaimConflict(String),
     #[error("task project mismatch: task={task_id} session={session_id}")]
     TaskProjectMismatch { task_id: String, session_id: String },
+    #[error("storage error: {0}")]
+    Storage(String),
+    #[error("worktree error: {0}")]
+    Worktree(String),
 }
 
 pub struct ControlPlaneState {
@@ -406,6 +414,34 @@ impl Default for ControlPlaneState {
             },
         }
     }
+}
+
+pub fn shared_inventory_for_project(project_id: &str) -> Result<Vec<InventoryRow>, ControlPlaneError> {
+    let store = lock_shared_store()
+        .map_err(|error| ControlPlaneError::Storage(error.to_string()))?;
+    build_inventory_for_project(&store, project_id)
+        .map_err(|error| ControlPlaneError::Storage(error.to_string()))
+}
+
+pub fn shared_inventory_summary(project_id: &str) -> Result<InventorySummary, ControlPlaneError> {
+    let rows = shared_inventory_for_project(project_id)?;
+    Ok(build_inventory_summary(&rows))
+}
+
+pub fn shared_set_worktree_pinned(
+    worktree_id: &str,
+    is_pinned: bool,
+) -> Result<(), ControlPlaneError> {
+    worktrees_set_pinned(worktree_id, is_pinned)
+        .map_err(|error| ControlPlaneError::Worktree(error.to_string()))
+}
+
+pub fn shared_update_worktree_lifecycle(
+    worktree_id: &str,
+    new_state: &str,
+) -> Result<(), ControlPlaneError> {
+    worktrees_update_lifecycle(worktree_id, new_state)
+        .map_err(|error| ControlPlaneError::Worktree(error.to_string()))
 }
 
 pub fn validate_workflow(

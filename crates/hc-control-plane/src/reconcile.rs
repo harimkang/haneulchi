@@ -1,6 +1,8 @@
 use hc_domain::{AppSnapshot, ClaimState, SessionRuntimeState, time::now_iso8601};
 use serde::{Deserialize, Serialize};
 
+use crate::recovery::{RecoveryContext, detect_degraded_issues};
+
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 pub struct ReconcileReport {
     pub released_session_ids: Vec<String>,
@@ -118,6 +120,23 @@ pub fn reconcile_snapshot(snapshot: &mut AppSnapshot) -> ReconcileReport {
     }
 
     snapshot.meta.projection_rev = initial_revision.saturating_add(1);
+
+    // Phase 6 (additive): emit stale_claim_reconcile issues when sessions were
+    // released during this tick.  Existing behaviour is unchanged; we only
+    // append detection results to the existing degraded_flags list.
+    if !report.released_session_ids.is_empty() {
+        let context = RecoveryContext {
+            stale_claim_session_ids: report.released_session_ids.clone(),
+            ..Default::default()
+        };
+        let issues = detect_degraded_issues(&context);
+        for issue in issues {
+            let code = issue.issue_code.clone();
+            if !snapshot.ops.app.degraded_flags.contains(&code) {
+                snapshot.ops.app.degraded_flags.push(code);
+            }
+        }
+    }
 
     report
 }

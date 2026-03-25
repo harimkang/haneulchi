@@ -103,7 +103,10 @@ func settingsStatusViewModelSeparatesSections() {
         workflowStatus: workflowStatus,
         presetRegistry: presetRegistry,
         runtimeInfo: .init(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false),
-        snapshot: makeAutomationSnapshot()
+        snapshot: makeAutomationSnapshot(),
+        terminalSettings: nil,
+        runtimeInfoSummary: nil,
+        degradedIssues: []
     )
 
     #expect(model.readinessRows.map(\.headline) == ["Shell ready", "Git ready"])
@@ -123,6 +126,117 @@ func settingsStatusViewModelSeparatesSections() {
     #expect(model.controlPanel != nil)
 }
 
+@Test("settings status view model has terminal settings data")
+func testSettingsViewModelHasTerminalSection() {
+    let model = SettingsStatusViewModel(
+        report: nil,
+        workflowStatus: nil,
+        presetRegistry: .init(presets: []),
+        runtimeInfo: nil,
+        snapshot: nil,
+        terminalSettings: TerminalSettingsPayload(
+            shell: "/bin/zsh",
+            defaultCols: 220,
+            defaultRows: 50,
+            scrollbackLines: 10000,
+            fontName: "Menlo",
+            theme: "dark",
+            cursorStyle: "block"
+        ),
+        runtimeInfoSummary: nil,
+        degradedIssues: []
+    )
+
+    #expect(model.terminalSettingsRow?.shell == "/bin/zsh")
+    #expect(model.terminalSettingsRow?.defaultCols == 220)
+    #expect(model.terminalSettingsRow?.defaultRows == 50)
+    #expect(model.terminalSettingsRow?.scrollbackLines == 10000)
+    #expect(model.terminalSettingsRow?.fontName == "Menlo")
+    #expect(model.terminalSettingsRow?.theme == "dark")
+    #expect(model.terminalSettingsRow?.cursorStyle == "block")
+}
+
+@Test("terminal settings payload decodes from JSON with snake_case keys including font, theme, cursor")
+func terminalSettingsPayloadDecodesExtendedFields() throws {
+    let json = Data(
+        #"""
+        {
+          "shell": "/bin/bash",
+          "default_cols": 120,
+          "default_rows": 40,
+          "scrollback_lines": 5000,
+          "font_name": "JetBrains Mono",
+          "theme": "light",
+          "cursor_style": "bar"
+        }
+        """#.utf8
+    )
+
+    let payload = try JSONDecoder().decode(TerminalSettingsPayload.self, from: json)
+
+    #expect(payload.shell == "/bin/bash")
+    #expect(payload.defaultCols == 120)
+    #expect(payload.defaultRows == 40)
+    #expect(payload.scrollbackLines == 5000)
+    #expect(payload.fontName == "JetBrains Mono")
+    #expect(payload.theme == "light")
+    #expect(payload.cursorStyle == "bar")
+}
+
+@Test("settings status view model exposes api runtime info socket_path and transport")
+func testSettingsViewModelHasAPIRuntimeInfo() {
+    let summary = RuntimeInfoSummaryPayload(
+        socketPath: "/tmp/haneulchi.sock",
+        transport: "unix_socket",
+        status: "running"
+    )
+    let model = SettingsStatusViewModel(
+        report: nil,
+        workflowStatus: nil,
+        presetRegistry: .init(presets: []),
+        runtimeInfo: nil,
+        snapshot: nil,
+        terminalSettings: nil,
+        runtimeInfoSummary: summary,
+        degradedIssues: []
+    )
+
+    #expect(model.apiRuntimeInfoRow?.socketPath == "/tmp/haneulchi.sock")
+    #expect(model.apiRuntimeInfoRow?.transport == "unix_socket")
+    #expect(model.apiRuntimeInfoRow?.status == "running")
+}
+
+@Test("settings status view model has diagnostics readiness rows")
+func testSettingsViewModelHasDiagnosticsRows() {
+    let project = LauncherProject(
+        projectID: "proj_diag",
+        name: "diag",
+        rootPath: "/tmp/diag",
+        lastOpenedAt: .now
+    )
+    let report = ReadinessReport(
+        project: project,
+        checks: [
+            .init(name: .shell, status: .ready, headline: "Shell ready", detail: "/bin/zsh", nextAction: nil),
+            .init(name: .git, status: .degraded, headline: "Git degraded", detail: "version too old", nextAction: "Upgrade git"),
+        ]
+    )
+    let model = SettingsStatusViewModel(
+        report: report,
+        workflowStatus: nil,
+        presetRegistry: .init(presets: []),
+        runtimeInfo: nil,
+        snapshot: nil,
+        terminalSettings: nil,
+        runtimeInfoSummary: nil,
+        degradedIssues: []
+    )
+
+    #expect(model.readinessRows.count == 2)
+    #expect(model.readinessRows.map(\.headline).contains("Shell ready"))
+    #expect(model.readinessRows.map(\.headline).contains("Git degraded"))
+}
+
 @Test("settings status view model renders deferred automation diagnostics when runtime details are unavailable")
 func settingsStatusViewModelMarksUnavailableAutomationDetails() {
     let model = SettingsStatusViewModel(
@@ -130,7 +244,10 @@ func settingsStatusViewModelMarksUnavailableAutomationDetails() {
         workflowStatus: nil,
         presetRegistry: .init(presets: []),
         runtimeInfo: nil,
-        snapshot: nil
+        snapshot: nil,
+        terminalSettings: nil,
+        runtimeInfoSummary: nil,
+        degradedIssues: []
     )
 
     #expect(model.readinessRows.isEmpty)

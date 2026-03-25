@@ -32,6 +32,7 @@ final class NewSessionSheetViewModel: ObservableObject {
     let workflowSummary: WorkflowLaunchSummary?
     private let provisionIsolatedWorkspace:
         @Sendable (String, String) throws -> ProvisionedTaskWorkspace
+    private let resolveSecretEnv: @Sendable () throws -> [String: String]
 
     @Published var selectedPresetID: String?
     @Published var isolatedSessionName = ""
@@ -44,13 +45,15 @@ final class NewSessionSheetViewModel: ObservableObject {
         preferredPresetID: String? = nil,
         provisionIsolatedWorkspace: @escaping @Sendable (String, String) throws -> ProvisionedTaskWorkspace = { _, _ in
             throw NewSessionSheetError.isolatedProvisionUnavailable
-        }
+        },
+        resolveSecretEnv: @escaping @Sendable () throws -> [String: String] = { [:] }
     ) {
         self.selectedProjectRoot = selectedProjectRoot
         self.selectedTaskID = selectedTaskID
         self.registry = registry
         self.workflowSummary = workflowSummary
         self.provisionIsolatedWorkspace = provisionIsolatedWorkspace
+        self.resolveSecretEnv = resolveSecretEnv
         self.selectedPresetID =
             registry.preset(id: preferredPresetID)?.id
             ?? registry.presets.first?.id
@@ -58,11 +61,23 @@ final class NewSessionSheetViewModel: ObservableObject {
 
     func makeGenericDescriptor() throws -> SessionLaunchDescriptor {
         let root = try requireProjectRoot()
+        let secretEnv = resolvedSecretEnv()
+        var bundle = TerminalRestoreBundle.genericShell(at: root)
+        bundle = TerminalRestoreBundle(
+            launch: TerminalSessionLaunchRequest(
+                program: bundle.launch.program,
+                args: bundle.launch.args,
+                currentDirectory: bundle.launch.currentDirectory,
+                geometry: bundle.launch.geometry,
+                environment: secretEnv
+            ),
+            geometry: bundle.geometry
+        )
         return SessionLaunchDescriptor(
             mode: .generic,
             title: "Generic Shell",
             presetID: nil,
-            restoreBundle: .genericShell(at: root),
+            restoreBundle: bundle,
             workspaceRoot: root,
             workflowSummary: workflowSummary
         )
@@ -77,11 +92,13 @@ final class NewSessionSheetViewModel: ObservableObject {
             throw NewSessionSheetError.presetUnavailable(preset.id)
         }
 
+        let secretEnv = resolvedSecretEnv()
         let launch = TerminalSessionLaunchRequest(
             program: preset.binary,
             args: preset.defaultArgs,
             currentDirectory: root,
-            geometry: .defaultShell
+            geometry: .defaultShell,
+            environment: secretEnv
         )
         return SessionLaunchDescriptor(
             mode: .preset,
@@ -110,14 +127,37 @@ final class NewSessionSheetViewModel: ObservableObject {
         }
         let title = trimmedName.isEmpty ? taskID : trimmedName
 
+        let secretEnv = resolvedSecretEnv()
+        var bundle = TerminalRestoreBundle.genericShell(at: provisionedWorkspace.workspaceRoot)
+        bundle = TerminalRestoreBundle(
+            launch: TerminalSessionLaunchRequest(
+                program: bundle.launch.program,
+                args: bundle.launch.args,
+                currentDirectory: bundle.launch.currentDirectory,
+                geometry: bundle.launch.geometry,
+                environment: secretEnv
+            ),
+            geometry: bundle.geometry
+        )
         return SessionLaunchDescriptor(
             mode: .isolated,
             title: title,
             presetID: nil,
-            restoreBundle: .genericShell(at: provisionedWorkspace.workspaceRoot),
+            restoreBundle: bundle,
             workspaceRoot: provisionedWorkspace.workspaceRoot,
             workflowSummary: workflowSummary
         )
+    }
+
+    /// Resolves Keychain secrets into environment variables.
+    /// On failure, logs and returns an empty dict so launch is not blocked.
+    private func resolvedSecretEnv() -> [String: String] {
+        do {
+            return try resolveSecretEnv()
+        } catch {
+            NSLog("[NewSessionSheetViewModel] resolveSecretEnv failed (continuing without secrets): %@", String(describing: error))
+            return [:]
+        }
     }
 
     private func requireProjectRoot() throws -> String {

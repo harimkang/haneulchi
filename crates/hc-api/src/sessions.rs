@@ -134,5 +134,7 @@ fn map_control_plane_error(error: hc_control_plane::ControlPlaneError) -> String
             "invalid_transition".to_string()
         }
         hc_control_plane::ControlPlaneError::AttentionNotFound(_) => "invalid_transition".to_string(),
+        hc_control_plane::ControlPlaneError::Storage(_) => "storage_error".to_string(),
+        hc_control_plane::ControlPlaneError::Worktree(_) => "worktree_error".to_string(),
     }
 }

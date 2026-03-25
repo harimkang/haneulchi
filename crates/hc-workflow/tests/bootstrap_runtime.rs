@@ -3,7 +3,8 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_workflow::{
-    BootstrapRequest, LoadWorkflowRequest, WorkflowLoader, run_bootstrap,
+    BootstrapRequest, LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime, WorkflowState,
+    run_bootstrap,
 };
 
 fn temp_dir(label: &str) -> PathBuf {
@@ -169,4 +170,74 @@ fn after_run_failure_adds_warning_without_overwriting_primary_runtime_result() {
     assert_eq!(result.outcome_code, "launch_succeeded");
     assert_eq!(result.launch_exit_code, Some(0));
     assert!(result.warning_codes.contains(&"after_run_failed".to_string()));
+}
+
+#[test]
+fn invalid_workflow_produces_invalid_kept_last_good_health() {
+    let root = temp_dir("invalid-health");
+    let workflow_path = root.join("WORKFLOW.md");
+
+    // Write a valid workflow first and load it.
+    write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Valid First Load\n---\n{{task.title}}\n",
+    );
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root.clone(),
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("first load should succeed");
+    assert_eq!(runtime.state(), WorkflowState::Ok);
+
+    // Overwrite with a broken workflow (invalid YAML front-matter).
+    fs::write(
+        &workflow_path,
+        "---\nworkflow:\n  name: Broken\n  max_slots: [\n---\n{{task.title}}\n",
+    )
+    .expect("write broken workflow");
+
+    let err = runtime.reload().expect_err("reload of broken workflow must fail");
+    let _ = err; // error is expected; we care about the resulting state
+    assert_eq!(
+        runtime.state(),
+        WorkflowState::InvalidKeptLastGood,
+        "runtime must be in InvalidKeptLastGood after a failed reload"
+    );
+}
+
+#[test]
+fn before_run_hook_failure_is_reported_in_bootstrap() {
+    let root = temp_dir("before-run-hook-failure-report");
+    let workspace_root = root.join("worktrees/task-104");
+    let before_run = root.join("before-run-fail.sh");
+
+    fs::write(&before_run, "#!/bin/sh\necho 'hook failed' >&2\nexit 1\n")
+        .expect("write before_run script");
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&before_run, fs::Permissions::from_mode(0o755))
+            .expect("chmod before_run");
+    }
+
+    write_workflow(
+        &root,
+        &format!(
+            "---\nhooks:\n  before_run: {}\n---\nTask: {{{{task.title}}}}\n",
+            before_run.display()
+        ),
+    );
+
+    let result =
+        run_bootstrap(bootstrap_request(&root, &workspace_root)).expect("bootstrap result");
+
+    // A before_run hook failure must surface via outcome_code and release the claim.
+    assert_eq!(
+        result.outcome_code, "workflow_setup_failed",
+        "before_run hook exit 1 must set outcome_code to workflow_setup_failed"
+    );
+    assert!(
+        result.claim_released,
+        "claim must be released when before_run hook fails"
+    );
 }

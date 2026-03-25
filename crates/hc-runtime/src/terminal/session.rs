@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::io::{self, Read, Write};
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
@@ -30,6 +31,10 @@ pub struct TerminalLaunchConfig {
     pub program: String,
     pub args: Vec<String>,
     pub current_directory: Option<PathBuf>,
+    /// Runtime-only env vars injected at launch. Excluded from serialization —
+    /// secrets must be re-injected from Keychain when restoring.
+    #[serde(skip)]
+    pub environment: BTreeMap<String, String>,
 }
 
 impl TerminalLaunchConfig {
@@ -38,6 +43,7 @@ impl TerminalLaunchConfig {
             program: "/bin/zsh".to_string(),
             args: default_shell_bootstrap_args("/bin/zsh"),
             current_directory,
+            environment: BTreeMap::new(),
         }
     }
 
@@ -51,7 +57,13 @@ impl TerminalLaunchConfig {
             program: program.into(),
             args: args.into_iter().map(Into::into).collect(),
             current_directory: None,
+            environment: BTreeMap::new(),
         }
+    }
+
+    pub fn with_env(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
+        self.environment.insert(key.into(), value.into());
+        self
     }
 
     fn to_command_builder(&self) -> CommandBuilder {
@@ -60,6 +72,10 @@ impl TerminalLaunchConfig {
 
         if let Some(current_directory) = &self.current_directory {
             builder.cwd(current_directory);
+        }
+
+        for (key, value) in &self.environment {
+            builder.env(key, value);
         }
 
         builder

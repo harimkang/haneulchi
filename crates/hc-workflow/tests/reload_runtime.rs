@@ -210,3 +210,79 @@ fn runtime_tracks_last_bootstrap_summary_without_changing_launch_hash_semantics(
     );
     assert!(runtime.prepare_launch().is_some());
 }
+
+#[test]
+fn reload_invalid_workflow_retains_last_good() {
+    let root = temp_dir("reload-invalid-retained");
+    let workflow_path = write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Good Before Invalid\n---\n{{task.title}}\n",
+    );
+
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root.clone(),
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("initial valid load");
+    let good_hash = runtime
+        .current()
+        .expect("current after valid load")
+        .contract_hash
+        .clone();
+
+    // Write a broken workflow.
+    fs::write(
+        &workflow_path,
+        "---\nworkflow:\n  name: Broken Again\n  max_slots: [\n---\n{{task.title}}\n",
+    )
+    .expect("write broken workflow");
+    runtime.reload().expect_err("broken reload must fail");
+
+    assert_eq!(runtime.state(), WorkflowState::InvalidKeptLastGood);
+    assert_eq!(
+        runtime
+            .current()
+            .expect("last good kept after broken reload")
+            .contract_hash,
+        good_hash,
+        "contract_hash must remain the last-good hash after an invalid reload"
+    );
+}
+
+#[test]
+fn reload_valid_workflow_after_invalid_becomes_ok() {
+    let root = temp_dir("reload-recover-ok");
+    let workflow_path = write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Initial Good\n---\n{{task.title}}\n",
+    );
+
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root.clone(),
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("initial valid load");
+
+    // Break it.
+    fs::write(
+        &workflow_path,
+        "---\nworkflow:\n  name: Broken Middle\n  max_slots: [\n---\n{{task.title}}\n",
+    )
+    .expect("write broken workflow");
+    runtime.reload().expect_err("broken reload must fail");
+    assert_eq!(runtime.state(), WorkflowState::InvalidKeptLastGood);
+
+    // Fix it.
+    fs::write(
+        &workflow_path,
+        "---\nworkflow:\n  name: Recovered Good\n---\n{{task.title}}\n",
+    )
+    .expect("write recovered workflow");
+    runtime.reload().expect("recovered reload must succeed");
+
+    assert_eq!(
+        runtime.state(),
+        WorkflowState::Ok,
+        "state must return to Ok after reloading a valid workflow"
+    );
+}

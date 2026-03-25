@@ -14,18 +14,45 @@ struct ProjectFocusView: View {
 
         static func bootstrap(
             selectedProjectRoot: String? = nil,
-            restoreStore: TerminalSessionRestoreStore
+            restoreStore: TerminalSessionRestoreStore,
+            recoverableSessions: [RecoverableSessionPayload] = []
         ) throws -> Self {
+            let bundles = try restoreStore.load()
+            let recoverableBundles = recoverableSessions
+                .filter(\.isRecoverable)
+                .map { TerminalRestoreBundle.genericShell(at: $0.cwd) }
+
             if let selectedProjectRoot {
+                if let bundle = compatibleBundle(for: selectedProjectRoot, bundles: bundles) {
+                    return .restored(bundle)
+                }
+                if let bundle = compatibleBundle(for: selectedProjectRoot, bundles: recoverableBundles) {
+                    return .restored(bundle)
+                }
                 return .restored(.genericShell(at: selectedProjectRoot))
             }
 
-            let bundles = try restoreStore.load()
             if let bundle = bundles.first {
+                return .restored(bundle)
+            }
+            if let bundle = recoverableBundles.first {
                 return .restored(bundle)
             }
 
             return .demo
+        }
+
+        private static func compatibleBundle(
+            for selectedProjectRoot: String,
+            bundles: [TerminalRestoreBundle]
+        ) -> TerminalRestoreBundle? {
+            bundles.first(where: { bundle in
+                guard let currentDirectory = bundle.launch.currentDirectory else {
+                    return false
+                }
+                return currentDirectory == selectedProjectRoot
+                    || currentDirectory.hasPrefix(selectedProjectRoot + "/")
+            })
         }
     }
 

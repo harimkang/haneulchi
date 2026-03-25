@@ -11,19 +11,24 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
     let args: [String]
     let currentDirectory: String?
     let geometry: TerminalGridSize
+    // Runtime-only: excluded from serialization — re-inject from Keychain on restore
+    // NOTE: never render environment values in UI summaries — may contain secrets
+    var environment: [String: String] = [:]
 
-    enum CodingKeys: String, CodingKey {
+    private enum CodingKeys: String, CodingKey {
         case program
         case args
         case currentDirectory = "current_directory"
         case geometry
+        // `environment` intentionally omitted
     }
 
     static let defaultShell = Self(
         program: "/bin/zsh",
         args: defaultBootstrapArgs(for: "/bin/zsh"),
         currentDirectory: nil,
-        geometry: .defaultShell
+        geometry: .defaultShell,
+        environment: [:]
     )
 
     static func genericShell(at rootPath: String?) -> Self {
@@ -31,7 +36,8 @@ struct TerminalSessionLaunchRequest: Codable, Equatable, Sendable {
             program: "/bin/zsh",
             args: defaultBootstrapArgs(for: "/bin/zsh"),
             currentDirectory: rootPath,
-            geometry: .defaultShell
+            geometry: .defaultShell,
+            environment: [:]
         )
     }
 
@@ -92,12 +98,22 @@ struct TerminalSessionSnapshot: Codable, Equatable, Sendable {
         let args: [String]
         let currentDirectory: String?
         let geometry: TerminalGridSize?
+        // `environment` excluded from deserialization — secrets re-injected from Keychain on restore
 
         enum CodingKeys: String, CodingKey {
             case program
             case args
             case currentDirectory = "current_directory"
             case geometry
+            // `environment` intentionally omitted
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            program = try container.decode(String.self, forKey: .program)
+            args = try container.decode([String].self, forKey: .args)
+            currentDirectory = try container.decodeIfPresent(String.self, forKey: .currentDirectory)
+            geometry = try container.decodeIfPresent(TerminalGridSize.self, forKey: .geometry)
         }
     }
 
@@ -182,6 +198,10 @@ final class TerminalSessionController: ObservableObject {
         failureMessage = nil
 
         do {
+            var request = request
+            let resolvedEnvironment = try bridge.resolveLaunchEnvironment()
+            request.environment.merge(resolvedEnvironment) { _, new in new }
+
             let snapshot = try bridge.spawnSession(request)
             sessionID = snapshot.sessionID
             sessionSnapshot = snapshot

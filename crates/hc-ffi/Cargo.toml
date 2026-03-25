@@ -15,3 +15,9 @@ hc-runtime = { path = "../hc-runtime" }
 hc-workflow = { path = "../hc-workflow" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+
+[dev-dependencies]
+hc-storage = { path = "../hc-storage" }
+
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+security-framework = "2"

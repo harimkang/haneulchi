@@ -33,9 +33,12 @@ struct TaskDrawerModel: Equatable, Sendable {
     static func resolve(
         from snapshot: AppShellSnapshot,
         workflowStatus: WorkflowStatusPayload?,
-        timeline: [TaskTimelineEntry] = []
+        timeline: [TaskTimelineEntry] = [],
+        targetTaskID: String? = nil
     ) -> Self? {
-        let focusedSession = snapshot.sessions.first(where: {
+        let focusedSession = targetTaskID.flatMap { taskID in
+            snapshot.sessions.first(where: { $0.taskID == taskID })
+        } ?? snapshot.sessions.first(where: {
             $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
         }) ?? snapshot.sessions.first
 

@@ -38,6 +38,20 @@ func sessionSnapshotDecodesWithoutLaunchGeometry() throws {
     #expect(snapshot.running)
 }
 
+@Test("core bridge mock has inventory summary call")
+func testCoreBridgeHasInventorySummaryCall() throws {
+    let bridge = CoreBridge.mockLiveSession(outputChunks: [])
+    let summary = try bridge.inventorySummary("proj_test")
+    #expect(summary.total >= 0)
+}
+
+@Test("core bridge mock has terminal settings call")
+func testCoreBridgeHasSettingsCalls() throws {
+    let bridge = CoreBridge.mockLiveSession(outputChunks: [])
+    let settings = try bridge.terminalSettings()
+    #expect(settings?.shell.isEmpty == false)
+}
+
 @Test("app shell snapshot payload can decode the richer sprint 2 bridge contract")
 func bridgeDecodesStateSnapshotPayload() throws {
     let payload = Data(

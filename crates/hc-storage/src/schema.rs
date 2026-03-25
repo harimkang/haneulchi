@@ -138,6 +138,98 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
             ON workflow_reload_events(project_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_tracker_bindings_task_provider
             ON tracker_bindings(task_id, provider);
+
+        CREATE TABLE IF NOT EXISTS cache_roots (
+            id TEXT PRIMARY KEY,
+            root_path TEXT NOT NULL,
+            created_at TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS cache_entries (
+            id TEXT PRIMARY KEY,
+            cache_root_id TEXT REFERENCES cache_roots(id),
+            path TEXT NOT NULL,
+            size_bytes INTEGER NOT NULL,
+            last_accessed_at TEXT,
+            content_hash TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS cache_quotas (
+            id TEXT PRIMARY KEY,
+            cache_root_id TEXT REFERENCES cache_roots(id),
+            max_bytes INTEGER NOT NULL,
+            action TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS terminal_settings (
+            singleton_key TEXT PRIMARY KEY,
+            shell TEXT NOT NULL,
+            default_cols INTEGER NOT NULL,
+            default_rows INTEGER NOT NULL,
+            scrollback_lines INTEGER NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS secret_refs (
+            id TEXT PRIMARY KEY,
+            label TEXT NOT NULL,
+            env_var_name TEXT NOT NULL,
+            keychain_service TEXT NOT NULL,
+            keychain_account TEXT NOT NULL
+        );
+
+        CREATE TABLE IF NOT EXISTS worktree_policies (
+            id TEXT PRIMARY KEY,
+            max_age_days INTEGER,
+            max_count INTEGER,
+            auto_prune INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS notification_rules (
+            id TEXT PRIMARY KEY,
+            event_kind TEXT NOT NULL,
+            enabled INTEGER NOT NULL DEFAULT 1
+        );
+
+        CREATE TABLE IF NOT EXISTS projects (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            root_path TEXT NOT NULL,
+            last_focused_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS layouts (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            data_json TEXT NOT NULL,
+            saved_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS session_metadata (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            title TEXT NOT NULL,
+            cwd TEXT NOT NULL,
+            branch TEXT,
+            last_active_at TEXT,
+            is_recoverable INTEGER NOT NULL DEFAULT 0
+        );
+
+        CREATE TABLE IF NOT EXISTS app_state (
+            singleton_key TEXT PRIMARY KEY,
+            active_route TEXT NOT NULL,
+            last_project_id TEXT,
+            last_session_id TEXT,
+            saved_at TEXT
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_cache_entries_root
+            ON cache_entries(cache_root_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_cache_quotas_root
+            ON cache_quotas(cache_root_id);
+        CREATE INDEX IF NOT EXISTS idx_session_metadata_project_recoverable
+            ON session_metadata(project_id, is_recoverable);
+        CREATE INDEX IF NOT EXISTS idx_layouts_project_saved
+            ON layouts(project_id, saved_at);
         "#,
     )?;
 
@@ -150,6 +242,24 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
         "retry_state",
         "TEXT NOT NULL DEFAULT 'none'",
     )?;
+    ensure_column(
+        connection,
+        "worktrees",
+        "lifecycle_state",
+        "TEXT NOT NULL DEFAULT 'in_use'",
+    )?;
+    ensure_column(connection, "worktrees", "size_bytes", "INTEGER")?;
+    ensure_column(
+        connection,
+        "worktrees",
+        "is_pinned",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    ensure_column(connection, "worktrees", "last_accessed_at", "TEXT")?;
+    ensure_column(connection, "terminal_settings", "font_name", "TEXT NOT NULL DEFAULT ''")?;
+    ensure_column(connection, "terminal_settings", "theme", "TEXT NOT NULL DEFAULT ''")?;
+    ensure_column(connection, "terminal_settings", "cursor_style", "TEXT NOT NULL DEFAULT ''")?;
+    ensure_column(connection, "secret_refs", "scope", "TEXT NOT NULL DEFAULT ''")?;
 
     Ok(())
 }

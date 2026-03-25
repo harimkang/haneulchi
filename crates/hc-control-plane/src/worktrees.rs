@@ -4,6 +4,8 @@ use std::process::Command;
 
 use serde::{Deserialize, Serialize};
 
+use hc_domain::time::now_iso8601;
+
 use crate::shared_store::lock_shared_store;
 use crate::tasks::provision_task_workspace_for_store;
 
@@ -54,6 +56,28 @@ pub fn shared_provision_task_workspace(
         base_root.unwrap_or("."),
     )
     .map_err(Into::into)
+}
+
+pub fn shared_update_worktree_lifecycle(
+    worktree_id: &str,
+    new_state: &str,
+) -> Result<(), WorktreeProvisionError> {
+    let store = lock_shared_store().map_err(|_| WorktreeProvisionError::TaskBoardUnavailable)?;
+    store
+        .worktrees()
+        .update_lifecycle(worktree_id, new_state, &now_iso8601())
+        .map_err(|error| WorktreeProvisionError::ProvisioningFailed(error.to_string()))
+}
+
+pub fn shared_set_worktree_pinned(
+    worktree_id: &str,
+    is_pinned: bool,
+) -> Result<(), WorktreeProvisionError> {
+    let store = lock_shared_store().map_err(|_| WorktreeProvisionError::TaskBoardUnavailable)?;
+    store
+        .worktrees()
+        .set_pinned(worktree_id, is_pinned, &now_iso8601())
+        .map_err(|error| WorktreeProvisionError::ProvisioningFailed(error.to_string()))
 }
 
 fn sanitize(value: &str) -> String {

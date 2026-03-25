@@ -31,4 +31,10 @@ enum AppShellAction: Equatable, Sendable {
     case createTaskDraft(String)
     case jumpToSession(String)
     case jumpToLatestUnread
+    case triggerRecovery(issueCode: String)
+    case presentInventory
+    case dismissInventory
+    case openInventoryFinder(path: String)
+    case openInventorySession(taskID: String, worktreeId: String)
+    case openInventoryTask(taskID: String)
 }

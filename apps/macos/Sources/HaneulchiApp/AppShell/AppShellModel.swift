@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 @MainActor
@@ -34,6 +35,8 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var isCommandPalettePresented = false
     @Published private(set) var commandPaletteViewModel: CommandPaletteViewModel?
     @Published private(set) var transientNotice: String?
+    @Published private(set) var isInventoryPresented = false
+    @Published private(set) var inventoryViewModel: WorktreeInventoryViewModel?
     private(set) var startupReadinessTask: Task<Void, Never>?
 
     private let projectStore: ProjectLauncherStore
@@ -80,7 +83,9 @@ final class AppShellModel: ObservableObject {
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
         commandPaletteViewModel: CommandPaletteViewModel? = nil,
-        transientNotice: String? = nil
+        transientNotice: String? = nil,
+        isInventoryPresented: Bool = false,
+        inventoryViewModel: WorktreeInventoryViewModel? = nil
     ) {
         self.entrySurface = entrySurface
         self.selectedRoute = selectedRoute
@@ -104,6 +109,8 @@ final class AppShellModel: ObservableObject {
         self.isCommandPalettePresented = isCommandPalettePresented
         self.commandPaletteViewModel = commandPaletteViewModel
         self.transientNotice = transientNotice
+        self.isInventoryPresented = isInventoryPresented
+        self.inventoryViewModel = inventoryViewModel
         self.projectStore = projectStore
         self.restoreStore = restoreStore
         self.preferencesStore = preferencesStore
@@ -111,7 +118,17 @@ final class AppShellModel: ObservableObject {
         self.readinessRunner = readinessRunner
         self.projectFileIndex = projectFileIndex
         self.taskSearchProjectionStore = taskSearchProjectionStore
-        self.inventorySearchProjectionStore = inventorySearchProjectionStore ?? InventorySearchProjectionStore(restoreStore: restoreStore)
+        if let inventorySearchProjectionStore {
+            self.inventorySearchProjectionStore = inventorySearchProjectionStore
+        } else if let coreBridge {
+            self.inventorySearchProjectionStore = InventorySearchProjectionStore(
+                inventoryList: { projectID in
+                    try coreBridge.inventoryList(projectID)
+                }
+            )
+        } else {
+            self.inventorySearchProjectionStore = InventorySearchProjectionStore(restoreStore: restoreStore)
+        }
         self.presetRegistry = presetRegistry ?? (try? PresetRegistry.loadDefault()) ?? PresetRegistry(presets: [])
         self.coreBridge = coreBridge
     }
@@ -120,21 +137,35 @@ final class AppShellModel: ObservableObject {
         projectStore: ProjectLauncherStore,
         restoreStore: TerminalSessionRestoreStore,
         preferencesStore: AppShellPreferencesStore,
-        readinessRunner: ReadinessProbeRunner = .live
+        readinessRunner: ReadinessProbeRunner = .live,
+        coreBridge: CoreBridge? = nil
     ) throws -> AppShellModel {
         let selectedProject = try projectStore.loadLastSelectedProject()
         let recentProjects = try projectStore.loadRecentProjects()
-        let preferences = try preferencesStore.load()
+
+        // Prefer Rust-backed app state over JSON preferences
+        let activeRoute: Route
+        if selectedProject != nil,
+           let bridge = coreBridge,
+           let appState = try? bridge.loadAppState(),
+           let route = Route(rawValue: appState.activeRoute) {
+            activeRoute = route
+        } else {
+            let preferences = try preferencesStore.load()
+            activeRoute = selectedProject == nil ? .projectFocus : preferences.lastActiveRoute
+        }
+
         return AppShellModel(
             entrySurface: selectedProject == nil ? .welcome(.firstRun) : .shell,
-            selectedRoute: selectedProject == nil ? .projectFocus : preferences.lastActiveRoute,
+            selectedRoute: activeRoute,
             selectedProject: selectedProject,
             recentProjects: recentProjects,
             readinessReport: nil,
             projectStore: projectStore,
             restoreStore: restoreStore,
             preferencesStore: preferencesStore,
-            readinessRunner: readinessRunner
+            readinessRunner: readinessRunner,
+            coreBridge: coreBridge
         )
     }
 
@@ -192,7 +223,9 @@ final class AppShellModel: ObservableObject {
                 newSessionSheetViewModel: model.newSessionSheetViewModel,
                 isCommandPalettePresented: model.isCommandPalettePresented,
                 commandPaletteViewModel: model.commandPaletteViewModel,
-                transientNotice: model.transientNotice
+                transientNotice: model.transientNotice,
+                isInventoryPresented: model.isInventoryPresented,
+                inventoryViewModel: model.inventoryViewModel
             )
             bridgedModel.refreshStartupReadiness(using: readinessRunner)
             Task { await bridgedModel.refreshShellSnapshot() }
@@ -211,6 +244,7 @@ final class AppShellModel: ObservableObject {
         restoreStore: TerminalSessionRestoreStore,
         preferencesStore: AppShellPreferencesStore,
         readinessRunner: ReadinessProbeRunner = .live,
+        coreBridge: CoreBridge? = nil,
         initialReport: ReadinessReport
     ) async throws -> AppShellModel {
         let selectedProject = try projectStore.loadLastSelectedProject()
@@ -226,7 +260,8 @@ final class AppShellModel: ObservableObject {
                 projectStore: projectStore,
                 restoreStore: restoreStore,
                 preferencesStore: preferencesStore,
-                readinessRunner: readinessRunner
+                readinessRunner: readinessRunner,
+                coreBridge: coreBridge
             )
         }
 
@@ -234,7 +269,8 @@ final class AppShellModel: ObservableObject {
             projectStore: projectStore,
             restoreStore: restoreStore,
             preferencesStore: preferencesStore,
-            readinessRunner: readinessRunner
+            readinessRunner: readinessRunner,
+            coreBridge: coreBridge
         )
     }
 
@@ -261,6 +297,14 @@ final class AppShellModel: ObservableObject {
     func setSelectedRoute(_ route: Route) {
         selectedRoute = route
         try? preferencesStore.save(.init(lastActiveRoute: route))
+        persistCurrentRoute()
+    }
+
+    private func persistCurrentRoute() {
+        guard let bridge = coreBridge else { return }
+        let projectId = selectedProject?.projectID
+        let sessionID = shellSnapshot?.app.focusedSessionID ?? taskContextDrawerModel?.sessionID
+        try? bridge.saveAppState(selectedRoute.rawValue, projectId, sessionID)
     }
 
     func refreshShellSnapshot() async {
@@ -477,6 +521,35 @@ final class AppShellModel: ObservableObject {
             }
         case .retryReadiness:
             await retryStartupReadiness()
+        case .triggerRecovery(let issueCode):
+            await handleRecovery(issueCode: issueCode)
+        case .presentInventory:
+            isInventoryPresented = true
+            inventoryViewModel = await loadInventoryViewModel()
+        case .dismissInventory:
+            isInventoryPresented = false
+        case let .openInventoryFinder(path):
+            NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
+        case let .openInventorySession(taskID, worktreeId):
+            guard !taskID.isEmpty || !worktreeId.isEmpty else {
+                transientNotice = "Session not available for this worktree."
+                return
+            }
+            if let sessionID = shellSnapshot?.sessions.first(where: { $0.taskID == taskID })?.sessionID {
+                await perform(.jumpToSession(sessionID))
+            } else {
+                transientNotice = "Session not available for task \(taskID)."
+            }
+        case let .openInventoryTask(taskID):
+            guard !taskID.isEmpty else {
+                transientNotice = "Task not available for this worktree."
+                return
+            }
+            taskContextDrawerModel = makeTaskContextDrawerModel(targetTaskID: taskID)
+            isTaskContextDrawerPresented = taskContextDrawerModel != nil
+            transientNotice = taskContextDrawerModel == nil
+                ? "Task context unavailable for \(taskID)."
+                : "Opened task \(taskID)"
         }
 
         if action != .dismissCommandPalette && action != .toggleCommandPalette {
@@ -539,7 +612,10 @@ final class AppShellModel: ObservableObject {
         }
 
         let tasks = (try? taskSearchProjectionStore.search("")) ?? []
-        let inventory = (try? await inventorySearchProjectionStore.load(selectedProjectRoot: selectedProject?.rootPath)) ?? []
+        let inventory = (try? await inventorySearchProjectionStore.load(
+            selectedProjectID: selectedProject?.projectID,
+            selectedProjectRoot: selectedProject?.rootPath
+        )) ?? []
 
         commandPaletteViewModel = CommandPaletteViewModel(
             catalog: .build(
@@ -549,6 +625,33 @@ final class AppShellModel: ObservableObject {
                 inventory: inventory
             )
         )
+    }
+
+    private func loadInventoryViewModel() async -> WorktreeInventoryViewModel? {
+        guard let coreBridge, let selectedProject else {
+            return WorktreeInventoryViewModel(rows: [])
+        }
+        guard let payloads = try? coreBridge.inventoryList(selectedProject.projectID) else {
+            return WorktreeInventoryViewModel(rows: [])
+        }
+        let rows = payloads.compactMap { payload -> WorktreeInventoryViewModel.Row? in
+            guard let disposition = WorktreeInventoryViewModel.Disposition(rawValue: payload.disposition) else {
+                return nil
+            }
+            return WorktreeInventoryViewModel.Row(
+                worktreeId: payload.worktreeId,
+                taskID: payload.taskId,
+                path: payload.path,
+                projectName: payload.projectName.isEmpty ? selectedProject.name : payload.projectName,
+                branch: payload.branch,
+                disposition: disposition,
+                isPinned: payload.isPinned,
+                isDegraded: payload.isDegraded,
+                sizeBytes: payload.sizeBytes,
+                lastAccessedAt: payload.lastAccessedAt
+            )
+        }
+        return WorktreeInventoryViewModel(rows: rows)
     }
 
     private func retryStartupReadiness() async {
@@ -569,12 +672,22 @@ final class AppShellModel: ObservableObject {
     }
 
     private func makeSettingsStatusViewModel() -> SettingsStatusViewModel {
-        SettingsStatusViewModel(
+        let termSettings = try? coreBridge?.terminalSettings()
+        let runtimeSummary = try? coreBridge?.runtimeInfoSummary()
+        let context = RecoveryContextPayload(
+            workflowHealth: shellSnapshot?.ops.workflowHealth.rawValue ?? "unknown",
+            staleClaims: []
+        )
+        let degradedIssues = (try? coreBridge?.listDegradedIssues(context)) ?? []
+        return SettingsStatusViewModel(
             report: readinessReport,
             workflowStatus: workflowStatus,
             presetRegistry: presetRegistry,
             runtimeInfo: try? coreBridge?.runtimeInfo(),
-            snapshot: shellSnapshot
+            snapshot: shellSnapshot,
+            terminalSettings: termSettings ?? nil,
+            runtimeInfoSummary: runtimeSummary,
+            degradedIssues: degradedIssues
         )
     }
 
@@ -608,7 +721,7 @@ final class AppShellModel: ObservableObject {
         }
     }
 
-    private func makeTaskContextDrawerModel() -> TaskDrawerModel? {
+    private func makeTaskContextDrawerModel(targetTaskID: String? = nil) -> TaskDrawerModel? {
         guard let snapshot = shellSnapshot else {
             return nil
         }
@@ -626,7 +739,101 @@ final class AppShellModel: ObservableObject {
             )
         }
 
-        return TaskDrawerModel.resolve(from: snapshot, workflowStatus: mergedWorkflowStatus)
+        return TaskDrawerModel.resolve(
+            from: snapshot,
+            workflowStatus: mergedWorkflowStatus,
+            targetTaskID: targetTaskID
+        )
+    }
+
+    func recoverableSessions() -> [RecoverableSessionPayload] {
+        guard let coreBridge, let selectedProject else {
+            return []
+        }
+        return (try? coreBridge.listRecoverableSessions(selectedProject.projectID)) ?? []
+    }
+
+    private func inventoryRow(worktreeID: String) -> WorktreeInventoryViewModel.Row? {
+        inventoryViewModel?.inUseRows.first(where: { $0.worktreeId == worktreeID })
+            ?? inventoryViewModel?.recoverableRows.first(where: { $0.worktreeId == worktreeID })
+            ?? inventoryViewModel?.safeToDeleteRows.first(where: { $0.worktreeId == worktreeID })
+            ?? inventoryViewModel?.staleRows.first(where: { $0.worktreeId == worktreeID })
+    }
+
+    private func handleRecovery(issueCode: String) async {
+        guard let coreBridge else {
+            transientNotice = "Recovery unavailable: \(issueCode)"
+            return
+        }
+
+        if issueCode.hasPrefix("pin:") {
+            let parts = issueCode.split(separator: ":", omittingEmptySubsequences: false)
+            guard parts.count >= 3 else {
+                transientNotice = "Pin request was invalid."
+                return
+            }
+            let worktreeID = String(parts[1])
+            let desiredPinned = String(parts[2]).lowercased() == "true"
+            do {
+                try coreBridge.setWorktreePinned(worktreeID, desiredPinned)
+                transientNotice = desiredPinned ? "Pinned \(worktreeID)" : "Unpinned \(worktreeID)"
+                inventoryViewModel = await loadInventoryViewModel()
+            } catch {
+                transientNotice = "Pin request failed for \(worktreeID)."
+            }
+            return
+        }
+
+        if issueCode.hasPrefix("clean:") {
+            let worktreeID = String(issueCode.dropFirst("clean:".count))
+            let nextState: String
+            switch inventoryRow(worktreeID: worktreeID)?.disposition {
+            case .safeToDelete:
+                nextState = "stale"
+            case .stale:
+                nextState = "stale"
+            default:
+                nextState = "safe_to_delete"
+            }
+            do {
+                try coreBridge.updateWorktreeLifecycle(worktreeID, nextState)
+                transientNotice = "Cleanup staged for \(worktreeID)"
+                inventoryViewModel = await loadInventoryViewModel()
+            } catch {
+                transientNotice = "Cleanup request failed for \(worktreeID)."
+            }
+            return
+        }
+
+        if issueCode.hasPrefix("recover:") {
+            let worktreeID = String(issueCode.dropFirst("recover:".count))
+            if let row = inventoryRow(worktreeID: worktreeID), !row.taskID.isEmpty {
+                await perform(.openInventoryTask(taskID: row.taskID))
+            } else {
+                transientNotice = "Recovery context unavailable for \(worktreeID)."
+            }
+            return
+        }
+
+        switch issueCode {
+        case "invalid_workflow_reload":
+            await perform(.reloadWorkflow)
+            setSelectedRoute(.settings)
+            transientNotice = "Workflow reload requested."
+        case "stale_claim_reconcile":
+            await perform(.reconcileAutomation)
+        case "keychain_ref_missing", "preset_missing":
+            await perform(.openSettings)
+            transientNotice = "Open Settings to resolve \(issueCode)."
+        case "missing_project_path", "crashed_restore":
+            entrySurface = .welcome(.degradedRecovery)
+            transientNotice = "Recovery launcher opened for \(issueCode)."
+        case "worktree_unreachable":
+            await perform(.presentInventory)
+            transientNotice = "Inventory opened for worktree recovery."
+        default:
+            transientNotice = "Recovery requested for issue: \(issueCode)"
+        }
     }
 
     private func presentNewSessionSheet(prefillPresetID: String?) {
@@ -656,6 +863,10 @@ final class AppShellModel: ObservableObject {
                     taskID,
                     resolvedWorkflowSummary?.baseRoot
                 )
+            },
+            resolveSecretEnv: { [coreBridge] in
+                // TODO(sprint-6): pass project_id as scope_filter once project context is threaded through launch
+                try coreBridge?.resolveLaunchEnvironment() ?? [:]
             }
         )
         isNewSessionSheetPresented = true

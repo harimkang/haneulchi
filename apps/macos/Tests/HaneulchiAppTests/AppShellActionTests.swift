@@ -390,7 +390,8 @@ func quickDispatchReplayUsesRealLaunchedSessionID() async throws {
                 program: "codex",
                 args: ["--sandbox", "workspace-write"],
                 currentDirectory: "/tmp/demo",
-                geometry: .defaultShell
+                geometry: .defaultShell,
+                environment: [:]
             ),
             geometry: .defaultShell
         ),
@@ -633,7 +634,8 @@ func newSessionActionLaunchesPresetIntoProjectFocus() async throws {
                 program: "codex",
                 args: ["--sandbox", "workspace-write"],
                 currentDirectory: "/tmp/demo",
-                geometry: .defaultShell
+                geometry: .defaultShell,
+                environment: [:]
             ),
             geometry: .defaultShell
         ),
@@ -1244,6 +1246,244 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
     #expect(FileManager.default.fileExists(atPath: renderedPrompt))
     #expect(try String(contentsOfFile: renderedPrompt, encoding: .utf8).contains("Project: demo") == true)
     #expect(savedBundles.last?.launch.currentDirectory == isolatedRoot)
+}
+
+@MainActor
+@Test("AppShellModel has isInventoryPresented field and presentInventory / dismissInventory actions update it")
+func testPresentInventoryActionIsHandled() async throws {
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory
+    )
+
+    #expect(model.isInventoryPresented == false)
+
+    await model.perform(.presentInventory)
+    #expect(model.isInventoryPresented == true)
+
+    await model.perform(.dismissInventory)
+    #expect(model.isInventoryPresented == false)
+}
+
+@MainActor
+@Test("inventory overlay loads authoritative rows from the bridge inventory projection")
+func inventoryOverlayUsesInventoryRowsFromBridge() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        inventorySummary: { _ in
+            InventorySummaryPayload(total: 1, inUse: 1, recoverable: 0, safeToDelete: 0, stale: 0)
+        },
+        inventoryList: { _ in
+            [
+                InventoryRowPayload(
+                    worktreeId: "wt_task_104",
+                    taskId: "task_104",
+                    path: "/tmp/demo/worktrees/task-104",
+                    projectName: "demo",
+                    branch: "hc/task-104",
+                    disposition: "in_use",
+                    isPinned: false,
+                    isDegraded: false,
+                    sizeBytes: 2048,
+                    lastAccessedAt: "2026-03-25T00:00:00Z"
+                )
+            ]
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.presentInventory)
+
+    #expect(model.inventoryViewModel?.inUseRows.first?.path == "/tmp/demo/worktrees/task-104")
+    #expect(model.inventoryViewModel?.inUseRows.first?.taskID == "task_104")
+    #expect(model.inventoryViewModel?.inUseRows.first?.branch == "hc/task-104")
+}
+
+@MainActor
+@Test("open inventory task presents the task drawer for the matching task session")
+func openInventoryTaskPresentsTaskDrawer() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        stateSnapshot: {
+            AppShellSnapshot(
+                meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+                ops: .init(runningSlots: 1, maxSlots: 1, retryQueueCount: 0, workflowHealth: .ok),
+                app: .init(activeRoute: .projectFocus, focusedSessionID: "ses_01", degradedFlags: []),
+                projects: [],
+                sessions: [
+                    .init(
+                        sessionID: "ses_01",
+                        title: "Task session",
+                        currentDirectory: "/tmp/demo/worktrees/task-104",
+                        mode: .generic,
+                        runtimeState: .running,
+                        manualControlState: .none,
+                        dispatchState: .dispatchable,
+                        unreadCount: 0,
+                        projectID: "proj_demo",
+                        taskID: "task_104",
+                        workspaceRoot: "/tmp/demo/worktrees/task-104",
+                        baseRoot: ".",
+                        branch: "hc/task-104",
+                        focusState: .focused,
+                        canTakeover: true
+                    )
+                ],
+                attention: [],
+                retryQueue: [],
+                warnings: []
+            )
+        },
+        workflowValidate: { _ in
+            Data(
+                #"""
+                {
+                  "state": "ok",
+                  "path": "/tmp/demo/WORKFLOW.md",
+                  "workflow": {
+                    "name": "Demo Workflow",
+                    "strategy": "worktree",
+                    "base_root": ".",
+                    "review_checklist": ["tests passed"],
+                    "allowed_agents": ["codex"]
+                  }
+                }
+                """#.utf8
+            )
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.refreshShellSnapshot()
+    await model.perform(.openInventoryTask(taskID: "task_104"))
+
+    #expect(model.isTaskContextDrawerPresented == true)
+    #expect(model.taskContextDrawerModel?.taskID == "task_104")
+}
+
+@MainActor
+@Test("recovery pin action mutates the worktree through the bridge instead of only posting a notice")
+func recoveryPinActionMutatesWorktree() async throws {
+    let recordedPins = SendableBox<[(String, Bool)]>([])
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        setWorktreePinned: { worktreeID, isPinned in
+            recordedPins.value.append((worktreeID, isPinned))
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.triggerRecovery(issueCode: "pin:wt_task_104:true"))
+
+    #expect(recordedPins.value.count == 1)
+    #expect(recordedPins.value.first?.0 == "wt_task_104")
+    #expect(recordedPins.value.first?.1 == true)
+}
+
+@MainActor
+@Test("workflow recovery action requests a workflow reload")
+func workflowRecoveryReloadsWorkflow() async throws {
+    let project = LauncherProject(
+        projectID: "proj_demo",
+        name: "demo",
+        rootPath: "/tmp/demo",
+        lastOpenedAt: .now
+    )
+    let reloadCount = SendableBox(0)
+    let bridge = CoreBridge(
+        runtimeInfo: { TerminalBackendDescriptor(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false) },
+        spawnSession: { _ in throw CoreBridgeError.operationFailed("spawn_unused") },
+        drainSession: { _ in Data() },
+        writeSession: { _, _ in },
+        resizeSession: { _, _ in },
+        terminateSession: { _ in },
+        snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
+        workflowReload: { _ in
+            reloadCount.value += 1
+            return Data(#"{"state":"ok","path":"/tmp/demo/WORKFLOW.md"}"#.utf8)
+        }
+    )
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: project,
+        recentProjects: [project],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+        coreBridge: bridge
+    )
+
+    await model.perform(.triggerRecovery(issueCode: "invalid_workflow_reload"))
+
+    #expect(reloadCount.value == 1)
 }
 
 private final class WorkflowPayloadRecorder: @unchecked Sendable {

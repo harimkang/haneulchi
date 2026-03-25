@@ -169,7 +169,7 @@ struct WorkflowDrawerView: View {
                 Text("state: \(status.state.rawValue)")
                     .font(.caption)
                 if let lastGoodHash = status.lastGoodHash {
-                    Text("last good: \(lastGoodHash)")
+                    Text("last known good: \(lastGoodHash)")
                         .font(.caption)
                 }
                 if let lastReloadAt = status.lastReloadAt {
@@ -198,7 +198,7 @@ struct WorkflowDrawerView: View {
                         .font(.caption)
                 }
                 if let lastError = status.lastError {
-                    Text(lastError)
+                    Text("last error: \(lastError)")
                         .font(.caption)
                         .foregroundStyle(HaneulchiChrome.Colors.warning)
                 }
