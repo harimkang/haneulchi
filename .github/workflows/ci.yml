@@ -20,6 +20,8 @@ jobs:
         run: sudo xcode-select -s /Applications/Xcode.app
       - name: Install SwiftFormat
         run: brew install swiftformat
+      - name: Prime Rust deps for Swift plugin
+        run: cargo fetch --locked
       - name: Swift format
         run: swiftformat --lint apps/macos
       - name: Swift analyze

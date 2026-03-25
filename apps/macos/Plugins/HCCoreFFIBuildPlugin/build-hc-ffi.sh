@@ -24,7 +24,11 @@ else
   exit 127
 fi
 
-"$cargo_bin" build -p hc-ffi
+if [ "${CI:-}" = "true" ] || [ "${GITHUB_ACTIONS:-}" = "true" ]; then
+  "$cargo_bin" build --locked --offline -p hc-ffi
+else
+  "$cargo_bin" build --locked -p hc-ffi
+fi
 cp "$cargo_target_dir/debug/libhc_ffi.a" "$output_dir/libhc_ffi.a"
 
 /usr/bin/python3 - "$fixtures_dir" "$generated_swift" <<'PY'
