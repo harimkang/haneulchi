@@ -16,9 +16,8 @@ struct HCCoreFFIBuildPlugin: BuildToolPlugin {
         return [
             .prebuildCommand(
                 displayName: "Building hc_ffi and generating terminal fixtures",
-                executable: URL(filePath: "/bin/zsh"),
+                executable: URL(filePath: "/bin/sh"),
                 arguments: [
-                    "-l",
                     script.path(percentEncoded: false),
                     workspaceRoot.path(percentEncoded: false),
                     outputDirectory.path(percentEncoded: false),

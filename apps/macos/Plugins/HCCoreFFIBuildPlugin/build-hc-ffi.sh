@@ -12,7 +12,19 @@ cd "$workspace_root"
 
 export CARGO_TARGET_DIR="$cargo_target_dir"
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-15.0}"
-cargo build -p hc-ffi
+
+home_dir="${HOME:-$(/usr/bin/python3 -c 'import pathlib; print(pathlib.Path("~").expanduser())')}"
+
+if command -v cargo >/dev/null 2>&1; then
+  cargo_bin="$(command -v cargo)"
+elif [ -x "${home_dir}/.cargo/bin/cargo" ]; then
+  cargo_bin="${home_dir}/.cargo/bin/cargo"
+else
+  echo "cargo not found; expected it on PATH or at ${home_dir}/.cargo/bin/cargo" >&2
+  exit 127
+fi
+
+"$cargo_bin" build -p hc-ffi
 cp "$cargo_target_dir/debug/libhc_ffi.a" "$output_dir/libhc_ffi.a"
 
 /usr/bin/python3 - "$fixtures_dir" "$generated_swift" <<'PY'
