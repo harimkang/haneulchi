@@ -14,6 +14,7 @@ export CARGO_TARGET_DIR="$cargo_target_dir"
 export MACOSX_DEPLOYMENT_TARGET="${MACOSX_DEPLOYMENT_TARGET:-15.0}"
 
 home_dir="${HOME:-$(/usr/bin/python3 -c 'import pathlib; print(pathlib.Path("~").expanduser())')}"
+export PATH="${home_dir}/.cargo/bin:/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:/opt/homebrew/bin:/Library/Apple/usr/bin${PATH:+:$PATH}"
 
 if command -v cargo >/dev/null 2>&1; then
   cargo_bin="$(command -v cargo)"
