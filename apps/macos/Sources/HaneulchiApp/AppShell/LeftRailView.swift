@@ -6,7 +6,7 @@ struct LeftRailView: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        VStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+        VStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xxs) {
             ForEach(items) { item in
                 RailItemButton(
                     item: item,
@@ -20,6 +20,12 @@ struct LeftRailView: View {
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .frame(minWidth: HaneulchiMetrics.Shell.railWidth, maxWidth: HaneulchiMetrics.Shell.railWidth, maxHeight: .infinity)
         .background(HaneulchiChrome.Surface.recess)
+        .overlay(
+            Rectangle()
+                .frame(width: 1)
+                .foregroundColor(HaneulchiChrome.Stroke.ghost),
+            alignment: .trailing
+        )
     }
 }
 

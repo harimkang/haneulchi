@@ -6,7 +6,7 @@ struct TopAppBarView: View {
 
     var body: some View {
         HStack(spacing: HaneulchiMetrics.Spacing.sm) {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 0) {
                 Text("Haneulchi")
                     .font(HaneulchiTypography.compactMeta)
                     .foregroundStyle(HaneulchiChrome.Label.muted)
@@ -23,6 +23,7 @@ struct TopAppBarView: View {
                     Text(chip.title)
                         .font(HaneulchiTypography.compactMeta)
                         .foregroundStyle(HaneulchiChrome.Label.secondary)
+                        .lineLimit(1)
                         .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
                         .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
                         .background(chipBackground(chip))
@@ -30,32 +31,24 @@ struct TopAppBarView: View {
                 }
             }
 
-            Button("Command Palette") {
+            HaneulchiIconButton(action: .commandPalette, tone: .secondary) {
                 onAction(.toggleCommandPalette)
             }
-            .font(HaneulchiTypography.systemLabel)
-            .foregroundStyle(HaneulchiChrome.Label.secondary)
-            .buttonStyle(.plain)
-            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
-            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-            .background(HaneulchiChrome.Surface.base)
-            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
 
-            Button("Notifications") {
+            HaneulchiIconButton(action: .notifications, tone: .secondary) {
                 onAction(.toggleNotificationDrawer)
             }
-            .font(HaneulchiTypography.systemLabel)
-            .foregroundStyle(HaneulchiChrome.Label.secondary)
-            .buttonStyle(.plain)
-            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
-            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-            .background(HaneulchiChrome.Surface.base)
-            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
         }
-        .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
+        .padding(.horizontal, HaneulchiChrome.Spacing.densePadding)
         .frame(height: HaneulchiMetrics.Shell.topBarHeight)
         .background(.ultraThinMaterial)
         .background(HaneulchiChrome.Surface.foundation.opacity(0.72))
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(HaneulchiChrome.Stroke.ghost),
+            alignment: .bottom
+        )
     }
 
     private func chipBackground(_ chip: AppShellChromeState.Chip) -> Color {

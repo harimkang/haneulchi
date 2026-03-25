@@ -59,8 +59,12 @@ struct SessionStackView: View {
                                         ? HaneulchiChrome.Label.primary
                                         : HaneulchiChrome.Label.secondary
                                 )
-                                .lineLimit(1)
+                                .lineLimit(row.isFocused ? 2 : 1)
 
+                            Spacer()
+                        }
+
+                        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                             if let signal = row.signal {
                                 HaneulchiStatusBadge(
                                     state: signal.badgeState,
@@ -68,22 +72,22 @@ struct SessionStackView: View {
                                 )
                             }
 
-                            Spacer()
-                        }
+                            if let branch = row.branch {
+                                Text(branch)
+                                    .font(HaneulchiTypography.compactMeta)
+                                    .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                    .foregroundStyle(HaneulchiChrome.Label.muted)
+                                    .lineLimit(1)
+                            }
 
-                        if let branch = row.branch {
-                            Text(branch)
-                                .font(HaneulchiTypography.compactMeta)
-                                .tracking(HaneulchiTypography.Tracking.metaModerate)
-                                .foregroundStyle(HaneulchiChrome.Label.muted)
-                                .lineLimit(1)
+                            Spacer()
                         }
 
                         Text(row.summary)
                             .font(HaneulchiTypography.compactMeta)
                             .tracking(HaneulchiTypography.Tracking.metaModerate)
                             .foregroundStyle(HaneulchiChrome.Label.muted)
-                            .lineLimit(1)
+                            .lineLimit(row.isFocused ? 2 : 1)
                     }
 
                     if row.isFocused {

@@ -75,12 +75,15 @@ struct AttentionCenterView: View {
                     .buttonStyle(HaneulchiButtonStyle(variant: .primary))
 
                 HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-                    Button("Resolve") { viewModel.resolve(item) }
-                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
-                    Button("Dismiss") { viewModel.dismiss(item) }
-                        .buttonStyle(HaneulchiButtonStyle(variant: .tertiary))
-                    Button("Snooze") { viewModel.snooze(item) }
-                        .buttonStyle(HaneulchiButtonStyle(variant: .tertiary))
+                    HaneulchiIconButton(action: .resolve, tone: .secondary) {
+                        viewModel.resolve(item)
+                    }
+                    HaneulchiIconButton(action: .dismiss, tone: .tertiary) {
+                        viewModel.dismiss(item)
+                    }
+                    HaneulchiIconButton(action: .snooze, tone: .tertiary) {
+                        viewModel.snooze(item)
+                    }
                 }
             }
         }

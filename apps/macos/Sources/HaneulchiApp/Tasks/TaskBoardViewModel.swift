@@ -118,6 +118,18 @@ struct TaskBoardProjectionPayload: Decodable, Equatable, Sendable {
                 return "archive when safe"
             }
         }
+
+        var compactMetadataChips: [String] {
+            [
+                priority.uppercased(),
+                evidenceReadinessLabel,
+                automationMode.label,
+            ]
+        }
+
+        var contextSummaryLabel: String {
+            [projectID, linkedSessionID ?? "unassigned"].joined(separator: " · ")
+        }
     }
 
     struct ColumnGroup: Decodable, Equatable, Sendable {

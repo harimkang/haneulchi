@@ -168,31 +168,27 @@ struct TerminalDeckView: View {
     private func actionStrip(for pane: TerminalPaneModel, isFocused: Bool) -> some View {
         if isFocused, pane.surface.isLive {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                Button("Focus") {
+                HaneulchiIconButton(action: .focusPane, tone: .tertiary, size: 28) {
                     deckCoordinator.focusPane(pane.id)
                 }
-                Button("Find") {
+                HaneulchiIconButton(action: .find, tone: .tertiary, size: 28) {
                     deckCoordinator.showFind(in: pane.id)
                 }
-                Button("Paste") {
+                HaneulchiIconButton(action: .paste, tone: .tertiary, size: 28) {
                     deckCoordinator.pasteClipboard(in: pane.id)
                 }
                 if let onQuickDispatch {
-                    Button("Dispatch") {
+                    HaneulchiIconButton(action: .dispatch, tone: .tertiary, size: 28) {
                         onQuickDispatch()
                     }
                 }
-                Button("Split H") {
+                HaneulchiIconButton(action: .splitHorizontal, tone: .tertiary, size: 28) {
                     splitFocusedPane(axis: .horizontal)
                 }
-                Button("Split V") {
+                HaneulchiIconButton(action: .splitVertical, tone: .tertiary, size: 28) {
                     splitFocusedPane(axis: .vertical)
                 }
             }
-            .font(HaneulchiTypography.compactMeta)
-            .tracking(HaneulchiTypography.Tracking.metaModerate)
-            .buttonStyle(.borderless)
-            .foregroundStyle(HaneulchiChrome.Label.secondary)
         }
     }
 

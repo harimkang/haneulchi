@@ -20,23 +20,32 @@ struct TaskCardView: View {
                 Text(task.title)
                     .font(HaneulchiTypography.body)
                     .foregroundStyle(HaneulchiChrome.Label.primary)
-                    .lineLimit(2)
+                    .lineLimit(3)
 
-                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                    metaRow("status", task.column.title)
-                    metaRow("owner", task.linkedSessionID ?? "unassigned")
-                    metaRow("priority", task.priority.uppercased())
-                    metaRow("evidence", task.evidenceReadinessLabel)
-                    metaRow("next", task.nextActionLabel)
-                    metaRow("automation", task.automationMode.label)
-                    metaRow("project", task.projectID)
+                HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
+                    ForEach(task.compactMetadataChips, id: \.self) { chip in
+                        compactChip(chip)
+                    }
                 }
 
                 if task.column == .running {
                     runningHeartbeatStrip
                 }
 
-                metaRow("session", task.linkedSessionID ?? "none")
+                Text(task.contextSummaryLabel)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+                    .lineLimit(1)
+
+                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                    Text("next")
+                        .font(HaneulchiTypography.compactMeta)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                    Text(task.nextActionLabel)
+                        .font(HaneulchiTypography.bodySmall)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
+                        .lineLimit(1)
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -56,15 +65,14 @@ struct TaskCardView: View {
             )
     }
 
-    private func metaRow(_ label: String, _ value: String) -> some View {
-        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-            Text(label)
-                .font(HaneulchiTypography.compactMeta)
-                .foregroundStyle(HaneulchiChrome.Label.muted)
-            Text(value)
-                .font(HaneulchiTypography.compactMeta)
-                .foregroundStyle(HaneulchiChrome.Label.muted)
-        }
+    private func compactChip(_ label: String) -> some View {
+        Text(label)
+            .font(HaneulchiTypography.compactMeta)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+            .background(HaneulchiChrome.Surface.recess)
+            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.pill))
     }
 
     private func badgeState(for column: TaskBoardColumnID) -> HaneulchiStatusBadge.State {

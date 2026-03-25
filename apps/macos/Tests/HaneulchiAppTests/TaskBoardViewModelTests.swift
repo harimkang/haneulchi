@@ -114,8 +114,12 @@ func taskCardPresentationPreservesOperationalMetadata() {
 
     #expect(reviewTask.evidenceReadinessLabel == "review_ready")
     #expect(reviewTask.nextActionLabel == "open review queue")
+    #expect(reviewTask.compactMetadataChips == ["P1", "review_ready", "assisted"])
+    #expect(reviewTask.contextSummaryLabel == "proj_demo · ses_review")
     #expect(blockedTask.evidenceReadinessLabel == "not_ready")
     #expect(blockedTask.nextActionLabel == "resolve blocker")
+    #expect(blockedTask.compactMetadataChips == ["P0", "not_ready", "manual"])
+    #expect(blockedTask.contextSummaryLabel == "proj_demo · unassigned")
 }
 
 private final class BoardTestRecorder: @unchecked Sendable {

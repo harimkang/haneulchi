@@ -23,9 +23,9 @@ enum HaneulchiMetrics {
 
     // MARK: - Shell Dimensions
     enum Shell {
-        static let railWidth: CGFloat = 64
-        static let topBarHeight: CGFloat = 48
-        static let bottomStripHeight: CGFloat = 24
+        static let railWidth: CGFloat = 48
+        static let topBarHeight: CGFloat = 36
+        static let bottomStripHeight: CGFloat = 22
     }
 
     // MARK: - Column / Panel Widths

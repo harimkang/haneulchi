@@ -72,6 +72,54 @@ private struct HaneulchiButtonBody: View {
     }
 }
 
+struct HaneulchiIconButton: View {
+    enum Tone {
+        case secondary
+        case tertiary
+    }
+
+    let action: HaneulchiChromeAction
+    let tone: Tone
+    var size: CGFloat = HaneulchiMetrics.Target.compact
+    let onTrigger: () -> Void
+
+    @State private var isHovered = false
+
+    var body: some View {
+        Button(action: onTrigger) {
+            Image(systemName: action.symbolName)
+                .font(.system(size: HaneulchiMetrics.Icon.standard, weight: .medium))
+                .foregroundStyle(foregroundColor)
+                .frame(width: size, height: size)
+                .background(backgroundColor)
+                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+        }
+        .buttonStyle(.plain)
+        .help(action.accessibilityLabel)
+        .accessibilityLabel(action.accessibilityLabel)
+        .onHover { isHovered = $0 }
+        .animation(.easeInOut(duration: HaneulchiMetrics.Motion.hoverShift), value: isHovered)
+    }
+
+    private var foregroundColor: Color {
+        switch tone {
+        case .secondary:
+            return HaneulchiChrome.Label.secondary
+        case .tertiary:
+            return isHovered ? HaneulchiChrome.Label.primary : HaneulchiChrome.Label.muted
+        }
+    }
+
+    private var backgroundColor: Color {
+        switch tone {
+        case .secondary:
+            return isHovered ? HaneulchiChrome.Surface.raised : HaneulchiChrome.Surface.base
+        case .tertiary:
+            return isHovered ? HaneulchiChrome.Surface.base.opacity(0.55) : Color.clear
+        }
+    }
+}
+
 // MARK: - HaneulchiStatusBadge
 
 struct HaneulchiStatusBadge: View {

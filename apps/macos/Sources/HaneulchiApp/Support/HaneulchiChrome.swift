@@ -6,6 +6,7 @@ enum HaneulchiChrome {
 
     enum Spacing {
         static let screenPadding: CGFloat = 24
+        static let densePadding: CGFloat = 16
         static let panelGap: CGFloat = 20
         static let panelPadding: CGFloat = 20
         static let itemGap: CGFloat = 12

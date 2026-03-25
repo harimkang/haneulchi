@@ -28,8 +28,14 @@ struct BottomStatusStripView: View {
                     .foregroundStyle(HaneulchiChrome.Label.muted)
             }
         }
-        .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
+        .padding(.horizontal, HaneulchiChrome.Spacing.densePadding)
         .frame(height: HaneulchiMetrics.Shell.bottomStripHeight)
         .background(HaneulchiChrome.Surface.recess)
+        .overlay(
+            Rectangle()
+                .frame(height: 1)
+                .foregroundColor(HaneulchiChrome.Stroke.ghost),
+            alignment: .top
+        )
     }
 }
