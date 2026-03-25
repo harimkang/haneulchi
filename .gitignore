@@ -49,3 +49,6 @@ evidence/scenarios/**
 # AGENTS
 AGENTS.md
 CLAUDE.md
+.agent/
+.codex/
+.claude/
