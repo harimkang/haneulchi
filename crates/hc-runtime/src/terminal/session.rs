@@ -217,23 +217,23 @@ impl TerminalSession {
     }
 
     fn wait_for_exit(&mut self, timeout: Duration) -> Result<&ExitStatus, TerminalSessionError> {
-        if self.exit_status.is_some() {
-            return Ok(self.exit_status.as_ref().expect("checked is_some"));
-        }
+        if self.exit_status.is_none() {
+            let deadline = Instant::now() + timeout;
 
-        let deadline = Instant::now() + timeout;
+            while Instant::now() <= deadline {
+                if let Some(status) = self.child.try_wait()? {
+                    self.exit_status = Some(status);
+                    self.finish_reader_thread()?;
+                    break;
+                }
 
-        while Instant::now() <= deadline {
-            if let Some(status) = self.child.try_wait()? {
-                self.exit_status = Some(status);
-                self.finish_reader_thread()?;
-                return Ok(self.exit_status.as_ref().expect("set before return"));
+                thread::sleep(Duration::from_millis(10));
             }
-
-            thread::sleep(Duration::from_millis(10));
         }
 
-        Err(TerminalSessionError::WaitTimedOut(timeout))
+        self.exit_status
+            .as_ref()
+            .ok_or(TerminalSessionError::WaitTimedOut(timeout))
     }
 
     fn finish_reader_thread(&mut self) -> Result<(), TerminalSessionError> {
