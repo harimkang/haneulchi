@@ -90,3 +90,51 @@ func attentionCenterViewModelMapsActions() async throws {
     #expect(dismissed == ["att_review"])
     #expect(snoozed == ["att_waiting"])
 }
+
+@Test("attention presentation keeps manual takeover ahead of failed and degraded")
+func attentionPresentationUsesDistinctGroups() {
+    let items: [AttentionCenterViewModel.Item] = [
+        .init(
+            id: "ses_takeover",
+            headline: "Manual review",
+            stateLabel: "manual takeover",
+            summary: "Operator reviewing latest result.",
+            severity: .failed,
+            targetRoute: .projectFocus,
+            targetSessionID: "ses_takeover"
+        ),
+        .init(
+            id: "ses_failed",
+            headline: "Dispatch failed",
+            stateLabel: "dispatch_failed",
+            summary: "Target stale.",
+            severity: .failed,
+            targetRoute: .projectFocus,
+            targetSessionID: "ses_failed"
+        ),
+        .init(
+            id: "att_review",
+            headline: "Review ready",
+            stateLabel: "degraded",
+            summary: "Evidence pack available.",
+            severity: .degraded,
+            targetRoute: .reviewQueue,
+            targetSessionID: nil
+        ),
+        .init(
+            id: "att_waiting",
+            headline: "Needs input",
+            stateLabel: "unread",
+            summary: "Operator answer required.",
+            severity: .unread,
+            targetRoute: .projectFocus,
+            targetSessionID: "ses_waiting"
+        ),
+    ]
+
+    let groups = AttentionCenterPresentation.grouped(items)
+
+    #expect(groups.map(\.group) == [.manualTakeover, .failed, .degraded, .unread])
+    #expect(groups[0].group.badgeState == .manualTakeover)
+    #expect(groups[2].group.badgeState == .degraded)
+}

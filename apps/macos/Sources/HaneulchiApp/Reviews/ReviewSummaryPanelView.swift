@@ -13,53 +13,96 @@ struct ReviewSummaryPanelView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Review Summary")
-                .font(HaneulchiTypography.heading(18))
+        HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
+            // Center: summary + evidence
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                HaneulchiSectionHeader(title: "Review Summary")
 
-            if let item {
-                Text(item.title)
-                    .font(HaneulchiTypography.heading(20))
-                ReviewEvidencePackView(model: ReviewEvidencePackModel(item: item))
+                if let item {
+                    HaneulchiPanel {
+                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                            // Title + completeness badge
+                            HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+                                Text(item.title)
+                                    .font(HaneulchiTypography.sectionHeading)
+                                    .foregroundStyle(HaneulchiChrome.Label.primary)
+                                Spacer()
+                                let badgeState: HaneulchiStatusBadge.State = item.warnings.isEmpty ? .active : .blocked
+                                let badgeLabel = item.warnings.isEmpty ? "COMPLETE" : "\(item.warnings.count) WARNINGS"
+                                HaneulchiStatusBadge(state: badgeState, label: badgeLabel)
+                            }
 
-                TaskTimelineSection(title: "Audit Timeline", entries: item.timeline)
+                            // Summary text
+                            Text(item.summary)
+                                .font(HaneulchiTypography.body)
+                                .foregroundStyle(HaneulchiChrome.Label.primary)
+                                .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 10) {
-                    actionButton("Accept", command: .accept, prominent: true)
-                    actionButton("Request Changes", command: .requestChanges, prominent: false)
-                    actionButton("Manual Continue", command: .manualContinue, prominent: false)
-                    actionButton("Create Follow-up", command: .followUp, prominent: false)
+                            // Warning items
+                            if !item.warnings.isEmpty {
+                                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                    ForEach(item.warnings, id: \.self) { warning in
+                                        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                                            Image(systemName: "exclamationmark.triangle.fill")
+                                                .font(.system(size: HaneulchiMetrics.Icon.small))
+                                                .foregroundStyle(HaneulchiChrome.State.error)
+                                            Text(warning)
+                                                .font(HaneulchiTypography.bodySmall)
+                                                .foregroundStyle(HaneulchiChrome.State.error)
+                                        }
+                                    }
+                                }
+                                .padding(HaneulchiMetrics.Padding.compact)
+                                .background(HaneulchiChrome.State.errorSolid.opacity(0.10))
+                                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+                            }
+                        }
+                    }
+
+                    ReviewEvidencePackView(model: ReviewEvidencePackModel(item: item))
+
+                    TaskTimelineSection(title: "Audit Timeline", entries: item.timeline)
+                } else {
+                    HaneulchiPanel {
+                        Text("Select a review-ready task to inspect its evidence summary.")
+                            .font(HaneulchiTypography.body)
+                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
                 }
-            } else {
-                Text("Select a review-ready task to inspect its evidence summary.")
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
             }
-        }
-        .padding(18)
-        .frame(maxWidth: .infinity, alignment: .topLeading)
-        .background(HaneulchiChrome.Colors.surfaceRaised)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-    }
+            .frame(maxWidth: .infinity, alignment: .topLeading)
 
-    private func actionButton(
-        _ title: String,
-        command: ReviewDecisionCommand,
-        prominent: Bool
-    ) -> some View {
-        Group {
-            if prominent {
-                Button(title) {
-                    onDecision?(command)
+            // Right: decision rail
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                HaneulchiSectionHeader(title: "Decision")
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                    Button("Accept") { onDecision?(.accept) }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .primary))
+                        .disabled(item == nil || onDecision == nil)
+                        .frame(maxWidth: .infinity)
+
+                    Button("Request Changes") { onDecision?(.requestChanges) }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                        .disabled(item == nil || onDecision == nil)
+                        .frame(maxWidth: .infinity)
+
+                    Button("Create Follow-up") { onDecision?(.followUp) }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                        .disabled(item == nil || onDecision == nil)
+                        .frame(maxWidth: .infinity)
+
+                    Button("Manual Continue") { onDecision?(.manualContinue) }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .tertiary))
+                        .disabled(item == nil || onDecision == nil)
+                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(BorderedProminentButtonStyle())
-            } else {
-                Button(title) {
-                    onDecision?(command)
-                }
-                .buttonStyle(BorderedButtonStyle())
+                .padding(HaneulchiMetrics.Padding.card)
+                .background(HaneulchiChrome.Surface.base)
+                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
             }
+            .frame(width: 200, alignment: .topLeading)
         }
-        .disabled(item == nil || onDecision == nil)
     }
 }

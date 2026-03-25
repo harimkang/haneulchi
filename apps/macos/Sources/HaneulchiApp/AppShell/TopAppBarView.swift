@@ -5,55 +5,69 @@ struct TopAppBarView: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: HaneulchiMetrics.Spacing.sm) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("Haneulchi")
-                    .font(HaneulchiTypography.label(12))
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
 
                 Text(chrome.topBarTitle)
-                    .font(HaneulchiTypography.heading(20).weight(.bold))
-                    .foregroundStyle(.primary)
+                    .font(HaneulchiTypography.body)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
             }
 
             Spacer()
 
-            HStack(spacing: 8) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 ForEach(chrome.topBarChips) { chip in
                     Text(chip.title)
-                        .font(HaneulchiTypography.label(11))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
+                        .font(HaneulchiTypography.compactMeta)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
+                        .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+                        .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
                         .background(chipBackground(chip))
-                        .clipShape(Capsule())
+                        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.pill))
                 }
             }
 
             Button("Command Palette") {
                 onAction(.toggleCommandPalette)
             }
-            .buttonStyle(.bordered)
+            .font(HaneulchiTypography.systemLabel)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .buttonStyle(.plain)
+            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+            .background(HaneulchiChrome.Surface.base)
+            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
 
             Button("Notifications") {
                 onAction(.toggleNotificationDrawer)
             }
-            .buttonStyle(.bordered)
+            .font(HaneulchiTypography.systemLabel)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .buttonStyle(.plain)
+            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+            .background(HaneulchiChrome.Surface.base)
+            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
         }
         .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
-        .padding(.vertical, 16)
-        .background(HaneulchiChrome.Colors.surfaceRaised)
+        .frame(height: HaneulchiMetrics.Shell.topBarHeight)
+        .background(.ultraThinMaterial)
+        .background(HaneulchiChrome.Surface.foundation.opacity(0.72))
     }
 
     private func chipBackground(_ chip: AppShellChromeState.Chip) -> Color {
         switch chip.tone {
         case .degraded:
-            HaneulchiChrome.Colors.warning.opacity(0.18)
+            HaneulchiChrome.State.warning.opacity(0.18)
         case .failed:
-            HaneulchiChrome.Colors.blocked.opacity(0.18)
+            HaneulchiChrome.State.error.opacity(0.18)
         case .unread:
-            HaneulchiChrome.Colors.unread.opacity(0.18)
+            HaneulchiChrome.State.warning.opacity(0.18)
         case nil:
-            HaneulchiChrome.Colors.surfaceMuted
+            HaneulchiChrome.Surface.base
         }
     }
 }

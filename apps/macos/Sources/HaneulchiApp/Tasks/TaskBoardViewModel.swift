@@ -97,6 +97,27 @@ struct TaskBoardProjectionPayload: Decodable, Equatable, Sendable {
             self.linkedSessionID = linkedSessionID
             self.column = column
         }
+
+        var evidenceReadinessLabel: String {
+            column == .review ? "review_ready" : "not_ready"
+        }
+
+        var nextActionLabel: String {
+            switch column {
+            case .inbox:
+                return "triage task"
+            case .ready:
+                return linkedSessionID == nil ? "claim or start session" : "open linked session"
+            case .running:
+                return "follow active session"
+            case .review:
+                return "open review queue"
+            case .blocked:
+                return "resolve blocker"
+            case .done:
+                return "archive when safe"
+            }
+        }
     }
 
     struct ColumnGroup: Decodable, Equatable, Sendable {

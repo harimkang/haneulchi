@@ -5,37 +5,65 @@ struct AttentionQueueSummaryView: View {
     let onOpen: (ControlTowerViewModel.AttentionItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Attention")
-                .font(HaneulchiTypography.heading(18))
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+            HaneulchiSectionHeader(title: "Attention", count: items.isEmpty ? nil : items.count)
 
             if items.isEmpty {
-                Text("No active attention items.")
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                HaneulchiPanel {
+                    Text("No active attention items.")
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
-                ForEach(items) { item in
-                    Button {
-                        onOpen(item)
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.headline)
-                                .font(HaneulchiTypography.body)
-                            if let summary = item.summary {
-                                Text(summary)
-                                    .font(HaneulchiTypography.caption)
-                                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                // Summary metrics row
+                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                    HaneulchiMetricTile(
+                        label: "Total",
+                        value: "\(items.count)",
+                        state: items.count > 0 ? .waitingInput : .idle
+                    )
+                }
+
+                // Item list
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(items) { item in
+                        Button {
+                            onOpen(item)
+                        } label: {
+                            HaneulchiTableRow {
+                                HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+                                    HaneulchiStatusBadge(state: .waitingInput, label: "ATTN")
+
+                                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                        Text(item.headline)
+                                            .font(HaneulchiTypography.body)
+                                            .foregroundStyle(HaneulchiChrome.Label.primary)
+                                        if let summary = item.summary {
+                                            Text(summary)
+                                                .font(HaneulchiTypography.compactMeta)
+                                                .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                                .foregroundStyle(HaneulchiChrome.Label.muted)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: HaneulchiMetrics.Icon.small))
+                                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                                }
                             }
                         }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.vertical, 8)
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
+                .background(HaneulchiChrome.Surface.base)
+                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             }
         }
-        .padding(HaneulchiChrome.Spacing.panelPadding)
-        .background(HaneulchiChrome.Colors.surfaceBase)
-        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .padding(HaneulchiMetrics.Padding.card)
+        .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
     }
 }

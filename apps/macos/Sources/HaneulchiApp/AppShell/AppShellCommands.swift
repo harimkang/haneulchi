@@ -14,8 +14,6 @@ struct AppShellCommands: Commands {
                 .keyboardShortcut(route.keyboardShortcut.keyEquivalent, modifiers: route.keyboardShortcut.eventModifiers)
             }
 
-            Divider()
-
             Button("Command Palette") {
                 Task {
                     await model.perform(.toggleCommandPalette)

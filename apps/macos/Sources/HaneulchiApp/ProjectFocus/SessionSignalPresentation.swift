@@ -8,32 +8,37 @@ struct SessionSignalPresentation: Equatable, Sendable {
 
     let tone: Tone
     let label: String
+    let badgeState: HaneulchiStatusBadge.State
 
     static func from(
         session: AppShellSnapshot.SessionSummary,
         isFocused: Bool
     ) -> SessionSignalPresentation? {
         if session.canTakeover || session.manualControlState == .takeover {
-            return .init(tone: .strong, label: "manual takeover")
+            return .init(tone: .strong, label: "manual takeover", badgeState: .manualTakeover)
         }
 
         switch session.runtimeState {
         case .waitingInput:
-            return .init(tone: .strong, label: "awaiting input")
+            return .init(tone: .strong, label: "awaiting input", badgeState: .waitingInput)
         case .reviewReady:
-            return .init(tone: .strong, label: "review ready")
+            return .init(tone: .strong, label: "review ready", badgeState: .reviewReady)
         case .error, .blocked:
-            return .init(tone: .strong, label: session.runtimeState.rawValue.replacingOccurrences(of: "_", with: " "))
+            return .init(
+                tone: .strong,
+                label: session.runtimeState.rawValue.replacingOccurrences(of: "_", with: " "),
+                badgeState: .blocked
+            )
         default:
             break
         }
 
         if session.unreadCount > 0 {
-            return .init(tone: .weak, label: "\(session.unreadCount) unread")
+            return .init(tone: .weak, label: "\(session.unreadCount) unread", badgeState: .waitingInput)
         }
 
         if isFocused, session.dispatchState == .dispatchable {
-            return .init(tone: .weak, label: "dispatchable")
+            return .init(tone: .weak, label: "dispatchable", badgeState: .idle)
         }
 
         return nil

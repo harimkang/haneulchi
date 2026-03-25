@@ -8,62 +8,64 @@ struct CommandPaletteOverlay: View {
 
     var body: some View {
         ZStack(alignment: .top) {
-            Color.black.opacity(0.24)
+            HaneulchiChrome.Surface.scrim
                 .ignoresSafeArea()
                 .onTapGesture(perform: onClose)
 
             VStack(spacing: 0) {
                 TextField("Search commands, files, sessions, tasks, inventory", text: $viewModel.query)
                     .textFieldStyle(.plain)
-                    .padding(16)
+                    .font(HaneulchiTypography.body)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
+                    .padding(HaneulchiMetrics.Spacing.md)
+                    .background(HaneulchiChrome.Surface.base)
                     .focused($isSearchFocused)
                     .onSubmit(executeSelection)
 
-                Divider()
-                    .overlay(HaneulchiChrome.Colors.surfaceMuted)
-
                 ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 12) {
+                    LazyVStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                         ForEach(viewModel.filteredSections) { section in
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(section.kind.rawValue.capitalized)
-                                    .font(HaneulchiTypography.label(11))
-                                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                                HaneulchiSectionHeader(title: section.kind.rawValue.capitalized)
 
                                 ForEach(section.items) { item in
                                     Button {
                                         viewModel.select(item)
                                         executeSelection()
                                     } label: {
-                                        HStack {
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(item.title)
-                                                    .font(HaneulchiTypography.body)
-                                                if let subtitle = item.subtitle {
-                                                    Text(subtitle)
-                                                        .font(HaneulchiTypography.caption)
-                                                        .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                                        HaneulchiTableRow(isSelected: viewModel.selection?.id == item.id) {
+                                            HStack {
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(item.title)
+                                                        .font(HaneulchiTypography.body)
+                                                        .foregroundStyle(HaneulchiChrome.Label.primary)
+                                                    if let subtitle = item.subtitle {
+                                                        Text(subtitle)
+                                                            .font(HaneulchiTypography.compactMeta)
+                                                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                                                    }
                                                 }
+                                                Spacer()
                                             }
-                                            Spacer()
                                         }
-                                        .padding(10)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(viewModel.selection?.id == item.id ? HaneulchiChrome.Colors.surfaceRaised : Color.clear)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12))
                                     }
                                     .buttonStyle(.plain)
                                 }
                             }
                         }
                     }
-                    .padding(16)
+                    .padding(HaneulchiMetrics.Spacing.md)
                 }
             }
-            .frame(minWidth: 720, maxWidth: 720, maxHeight: 520)
-            .background(HaneulchiChrome.Colors.surfaceBase)
-            .clipShape(RoundedRectangle(cornerRadius: 20))
-            .padding(.top, 48)
+            .frame(
+                minWidth: HaneulchiMetrics.Panel.commandPaletteMin,
+                maxWidth: HaneulchiMetrics.Panel.commandPaletteMax,
+                maxHeight: 520
+            )
+            .glassPanel()
+            .ambientShadow()
+            .floatingSurface(isVisible: true)
+            .padding(.top, HaneulchiMetrics.Spacing.xxl)
         }
         .onAppear {
             isSearchFocused = true

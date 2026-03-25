@@ -4,27 +4,46 @@ struct FilesPanelView: View {
     @Binding var workspaceState: ProjectFocusWorkspaceState
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Files")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            HaneulchiSectionHeader(title: "Files")
 
             TextField("Quick Search", text: $workspaceState.searchQuery)
                 .textFieldStyle(.roundedBorder)
+                .font(HaneulchiTypography.bodySmall)
+                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+                .padding(.vertical, HaneulchiMetrics.Spacing.xs)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 0) {
                     ForEach(workspaceState.filteredEntries) { entry in
-                        Button(entry.relativePath) {
-                            workspaceState.openFile(entry.absolutePath)
+                        HaneulchiTableRow(
+                            isSelected: workspaceState.selectedFilePath == entry.absolutePath
+                        ) {
+                            Button {
+                                workspaceState.openFile(entry.absolutePath)
+                            } label: {
+                                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                                    Text(entry.relativePath)
+                                        .font(HaneulchiTypography.body)
+                                        .foregroundStyle(HaneulchiChrome.Label.primary)
+                                        .lineLimit(1)
+                                    Spacer()
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
+                .padding(.horizontal, HaneulchiMetrics.Spacing.xxs)
             }
         }
-        .padding(16)
-        .frame(width: 260, alignment: .topLeading)
-        .background(HaneulchiChrome.Colors.secondaryPanel)
+        .frame(
+            minWidth: HaneulchiMetrics.Panel.explorerMin,
+            maxWidth: HaneulchiMetrics.Panel.explorerMax,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
+        .background(HaneulchiChrome.Surface.base)
     }
 }

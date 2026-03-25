@@ -125,6 +125,7 @@ struct ProjectFocusView: View {
                 }
             }
         }
+        .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
             guard let projectRoot = model.projectRoot else {
                 return
@@ -143,21 +144,23 @@ struct ProjectFocusView: View {
     }
 
     private var headerBar: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
             Text("Project Focus")
-                .font(.headline)
+                .font(HaneulchiTypography.sectionHeading)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
             Spacer()
             Button("Full Terminal") {
                 workspaceState.layoutPreset = .fullTerminal
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
             Button("Explorer + Inspector") {
                 workspaceState.layoutPreset = .explorerTerminalInspector
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         }
-        .padding(.horizontal, HaneulchiChrome.Spacing.panelPadding)
-        .padding(.vertical, 12)
+        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .frame(minHeight: HaneulchiMetrics.Target.compact)
+        .background(HaneulchiChrome.Surface.foundation)
     }
 
     private var focusedSessionSignal: SessionSignalPresentation? {

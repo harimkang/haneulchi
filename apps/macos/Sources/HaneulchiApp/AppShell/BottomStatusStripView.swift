@@ -6,15 +6,16 @@ struct BottomStatusStripView: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: HaneulchiMetrics.Spacing.sm) {
             ForEach(items) { item in
-                HStack(spacing: 6) {
+                HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
                     Text(item.title)
-                        .font(HaneulchiTypography.label(11))
+                        .font(HaneulchiTypography.compactMeta)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
                     if let detail = item.detail {
                         Text(detail)
-                            .font(HaneulchiTypography.caption)
-                            .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                            .font(HaneulchiTypography.compactMeta)
+                            .foregroundStyle(HaneulchiChrome.Label.muted)
                     }
                 }
             }
@@ -23,12 +24,12 @@ struct BottomStatusStripView: View {
 
             if let transientNotice {
                 Text(transientNotice)
-                    .font(HaneulchiTypography.caption)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
             }
         }
         .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
-        .padding(.vertical, 10)
-        .background(HaneulchiChrome.Colors.surfaceRaised)
+        .frame(height: HaneulchiMetrics.Shell.bottomStripHeight)
+        .background(HaneulchiChrome.Surface.recess)
     }
 }

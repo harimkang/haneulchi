@@ -15,6 +15,7 @@ struct ReviewEvidencePackModel: Equatable, Sendable {
     let ciRunURL: String?
     let prURL: String?
     let hasDegradedEvidence: Bool
+    let testsSummary: String?
 
     init(item: ReviewQueueProjectionPayload.Item) {
         title = item.title
@@ -43,6 +44,7 @@ struct ReviewEvidencePackModel: Equatable, Sendable {
         manifestPath = item.evidenceManifestPath
         ciRunURL = item.ciRunURL
         prURL = item.prURL
+        testsSummary = item.testsSummary
         hasDegradedEvidence = item.warnings.contains("after_run_failed")
             || (item.hookSummary?.contains("after_run_failed") ?? false)
     }

@@ -8,7 +8,6 @@ struct WorktreeInventoryView: View {
     var body: some View {
         VStack(spacing: 0) {
             header
-            Divider()
             content
         }
         .frame(minWidth: 560, minHeight: 400)
@@ -98,19 +97,21 @@ private struct InventoryGroupSection: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
             Text(title)
-                .font(.headline)
-                .foregroundStyle(.secondary)
+                .font(HaneulchiTypography.sectionHeading)
+                .foregroundStyle(HaneulchiChrome.Label.muted)
+                .padding(.horizontal, HaneulchiMetrics.Padding.card)
+                .padding(.vertical, HaneulchiMetrics.Spacing.xs)
+                .background(HaneulchiChrome.Surface.recess)
 
-            Divider()
-
-            ForEach(rows) { row in
-                WorktreeInventoryRowView(row: row, onAction: onAction)
-                if row.id != rows.last?.id {
-                    Divider()
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(rows) { row in
+                    WorktreeInventoryRowView(row: row, onAction: onAction)
                 }
             }
+            .background(HaneulchiChrome.Surface.base)
+            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
         }
     }
 }

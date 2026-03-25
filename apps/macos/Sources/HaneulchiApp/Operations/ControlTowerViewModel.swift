@@ -19,6 +19,25 @@ struct ControlTowerViewModel: Equatable, Sendable {
         let heatStrip: HeatStrip
 
         var id: String { projectID }
+
+        var statusBadgeState: HaneulchiStatusBadge.State {
+            switch statusLabel.lowercased() {
+            case "attention", "error", "blocked":
+                return .blocked
+            case "running", "active":
+                return .active
+            case "review", "review_ready":
+                return .reviewReady
+            case "waiting", "waiting_input":
+                return .waitingInput
+            case "degraded":
+                return .degraded
+            case "done", "complete":
+                return .done
+            default:
+                return .idle
+            }
+        }
     }
 
     struct AttentionItem: Equatable, Identifiable, Sendable {

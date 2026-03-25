@@ -6,9 +6,8 @@ struct InspectorPanelView: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Inspector")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            HaneulchiSectionHeader(title: "Inspector")
 
             Picker("Section", selection: $workspaceState.activeInspectorSection) {
                 Text("Commentary").tag(InspectorSection.commentary)
@@ -20,55 +19,98 @@ struct InspectorPanelView: View {
                 Text("Quick Actions").tag(InspectorSection.quickActions)
             }
             .pickerStyle(.segmented)
+            .padding(HaneulchiMetrics.Padding.compact)
 
-            Group {
-                switch workspaceState.activeInspectorSection {
-                case .commentary:
-                    if let focusedSession = Self.focusedSession(from: snapshot),
-                       focusedSession.providerID != nil || focusedSession.latestCommentary != nil {
-                        AdapterWatchSummaryView(session: focusedSession)
-                    } else {
-                        Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
-                    }
-                case .task:
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(Self.focusedSession(from: snapshot)?.taskID ?? "No linked task.")
-                        if Self.focusedSession(from: snapshot)?.taskID != nil {
-                            Button("Open Task Context") {
-                                onAction(.presentTaskContextDrawer)
-                            }
-                            .buttonStyle(.bordered)
-                            .font(.caption.weight(.semibold))
-                        }
-                    }
-                case .activity:
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(Self.focusedSession(from: snapshot)?.latestSummary ?? "No activity yet.")
-                        if let retry = snapshot?.retryQueue.first {
-                            Text("retry: attempt \(retry.attempt) · due \(retry.dueAt ?? "pending")")
-                        }
-                    }
-                case .evidence:
-                    Text("Evidence surface reserved for Sprint 2.")
-                case .git:
-                    Text(Self.focusedSession(from: snapshot)?.branch ?? "No branch information.")
-                case .diff:
-                    Text("Diff surface reserved for Sprint 2.")
-                case .quickActions:
-                    Button("Open Quick Dispatch") {
-                        onAction(.presentQuickDispatch(.projectFocus))
-                    }
-                    .buttonStyle(.bordered)
+            ScrollView {
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                    sectionContent
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
                 }
+                .padding(HaneulchiMetrics.Padding.compact)
             }
-            .font(HaneulchiTypography.body)
-            .foregroundStyle(.secondary)
 
             Spacer()
         }
-        .padding(16)
-        .frame(width: 320, alignment: .topLeading)
-        .background(HaneulchiChrome.Colors.surfaceRaised)
+        .frame(
+            minWidth: HaneulchiMetrics.Panel.inspectorMin,
+            maxWidth: HaneulchiMetrics.Panel.inspectorMax,
+            maxHeight: .infinity,
+            alignment: .topLeading
+        )
+        .background(HaneulchiChrome.Surface.base)
+    }
+
+    @ViewBuilder
+    private var sectionContent: some View {
+        switch workspaceState.activeInspectorSection {
+        case .commentary:
+            if let focusedSession = Self.focusedSession(from: snapshot),
+               focusedSession.providerID != nil || focusedSession.latestCommentary != nil {
+                HaneulchiPanel {
+                    AdapterWatchSummaryView(session: focusedSession)
+                }
+            } else {
+                HaneulchiPanel {
+                    Text(snapshot?.attention.first?.headline ?? "No commentary selected.")
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
+                }
+            }
+        case .task:
+            HaneulchiPanel {
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                    Text(Self.focusedSession(from: snapshot)?.taskID ?? "No linked task.")
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    if Self.focusedSession(from: snapshot)?.taskID != nil {
+                        Button("Open Task Context") {
+                            onAction(.presentTaskContextDrawer)
+                        }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                    }
+                }
+            }
+        case .activity:
+            HaneulchiPanel {
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                    Text(Self.focusedSession(from: snapshot)?.latestSummary ?? "No activity yet.")
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    if let retry = snapshot?.retryQueue.first {
+                        Text("retry: attempt \(retry.attempt) · due \(retry.dueAt ?? "pending")")
+                            .font(HaneulchiTypography.compactMeta)
+                            .tracking(HaneulchiTypography.Tracking.metaModerate)
+                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                    }
+                }
+            }
+        case .evidence:
+            HaneulchiPanel {
+                Text("Evidence surface reserved for Sprint 2.")
+                    .font(HaneulchiTypography.body)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+            }
+        case .git:
+            HaneulchiPanel {
+                Text(Self.focusedSession(from: snapshot)?.branch ?? "No branch information.")
+                    .font(HaneulchiTypography.body)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+            }
+        case .diff:
+            HaneulchiPanel {
+                Text("Diff surface reserved for Sprint 2.")
+                    .font(HaneulchiTypography.body)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+            }
+        case .quickActions:
+            HaneulchiPanel {
+                Button("Open Quick Dispatch") {
+                    onAction(.presentQuickDispatch(.projectFocus))
+                }
+                .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+            }
+        }
     }
 
     nonisolated static func focusedSession(from snapshot: AppShellSnapshot?) -> AppShellSnapshot.SessionSummary? {

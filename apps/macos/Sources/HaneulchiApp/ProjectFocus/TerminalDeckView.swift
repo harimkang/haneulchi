@@ -49,10 +49,11 @@ struct TerminalDeckView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.itemGap) {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
             render(node: layout.root)
         }
-        .padding(HaneulchiChrome.Spacing.panelPadding)
+        .padding(HaneulchiMetrics.Padding.compact)
+        .background(HaneulchiChrome.Surface.recess)
         .onAppear {
             deckCoordinator.updateFocusedPane(layout.focusedPaneID)
 
@@ -95,22 +96,33 @@ struct TerminalDeckView: View {
     private func paneView(_ pane: TerminalPaneModel) -> some View {
         let isFocused = pane.id == layout.focusedPaneID
 
-        return VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 8) {
+        return VStack(alignment: .leading, spacing: 0) {
+            // Session header — compact height, dense chip row
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 Text(pane.surface.title)
-                    .font(.headline)
+                    .font(HaneulchiTypography.systemLabel)
+                    .tracking(HaneulchiTypography.Tracking.labelWide)
+                    .foregroundStyle(
+                        isFocused
+                            ? HaneulchiChrome.Label.primary
+                            : HaneulchiChrome.Label.secondary
+                    )
                 if isFocused, let signalPresentation {
-                    Text(signalPresentation.label)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(signalPresentation.foregroundStyle)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(signalPresentation.backgroundStyle)
-                        .clipShape(Capsule())
+                    HaneulchiStatusBadge(
+                        state: signalPresentation.badgeState,
+                        label: signalPresentation.label
+                    )
                 }
                 Spacer()
                 actionStrip(for: pane, isFocused: isFocused)
             }
+            .frame(minHeight: HaneulchiMetrics.Target.compact)
+            .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+            .background(
+                isFocused
+                    ? HaneulchiChrome.Surface.foundation
+                    : HaneulchiChrome.Surface.recess
+            )
             .contentShape(Rectangle())
             .onTapGesture {
                 layout.focusPane(pane.id)
@@ -118,6 +130,7 @@ struct TerminalDeckView: View {
                 deckCoordinator.focusPane(pane.id)
             }
 
+            // Terminal content area — recess/foundation tone only, no chrome styling on glyphs
             TerminalSurfaceView(
                 configuration: pane.surface,
                 paneID: pane.id,
@@ -125,16 +138,18 @@ struct TerminalDeckView: View {
                 isFocused: isFocused,
                 onSessionReady: onSessionReady
             )
+            .background(HaneulchiChrome.Surface.recess)
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(
-            RoundedRectangle(cornerRadius: 18)
-                .fill(isFocused ? HaneulchiChrome.Colors.surfaceRaised : HaneulchiChrome.Colors.surfaceBase)
-        )
+        .background(HaneulchiChrome.Surface.recess)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
         .overlay(
-            RoundedRectangle(cornerRadius: 18)
-                .strokeBorder(isFocused ? HaneulchiChrome.Colors.accent.opacity(0.45) : Color.clear, lineWidth: 1)
+            RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium)
+                .strokeBorder(
+                    isFocused
+                        ? HaneulchiChrome.Gradient.primaryEnd.opacity(0.45)
+                        : Color.clear,
+                    lineWidth: 1
+                )
         )
         .paneAttentionDecoration(
             hasAttention: isFocused && signalPresentation?.tone == .strong,
@@ -146,16 +161,13 @@ struct TerminalDeckView: View {
             maxHeight: .infinity,
             alignment: .topLeading
         )
-        .padding(.trailing, 0)
-        .padding(.leading, 0)
-        .padding(.bottom, 0)
         .accessibilityLabel("terminal-pane-\(pane.id)-inspector-\(Int(reservedInspectorWidth))")
     }
 
     @ViewBuilder
     private func actionStrip(for pane: TerminalPaneModel, isFocused: Bool) -> some View {
         if isFocused, pane.surface.isLive {
-            HStack(spacing: 8) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 Button("Focus") {
                     deckCoordinator.focusPane(pane.id)
                 }
@@ -177,9 +189,10 @@ struct TerminalDeckView: View {
                     splitFocusedPane(axis: .vertical)
                 }
             }
-            .font(.caption.weight(.semibold))
+            .font(HaneulchiTypography.compactMeta)
+            .tracking(HaneulchiTypography.Tracking.metaModerate)
             .buttonStyle(.borderless)
-            .foregroundStyle(.secondary)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
         }
     }
 

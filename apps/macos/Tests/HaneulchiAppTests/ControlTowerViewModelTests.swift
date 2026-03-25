@@ -150,3 +150,32 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
     #expect(viewModel.opsModel.workflowHealth == "invalid_kept_last_good")
     #expect(viewModel.opsModel.trackerHealth == "degraded")
 }
+
+@Test("project cards expose blocked styling for error status without attention")
+func controlTowerProjectCardPreservesErrorStatus() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+        ops: .init(runningSlots: 0, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
+        projects: [
+            .init(
+                projectID: "proj_error",
+                name: "broken",
+                rootPath: "/tmp/broken",
+                status: .error,
+                workflowState: .ok,
+                sessionCount: 0,
+                attentionCount: 0
+            )
+        ],
+        sessions: [],
+        attention: [],
+        retryQueue: [],
+        warnings: []
+    )
+
+    let viewModel = ControlTowerViewModel(snapshot: snapshot)
+
+    #expect(viewModel.projectCards.first?.statusLabel == "error")
+    #expect(viewModel.projectCards.first?.statusBadgeState == .blocked)
+}

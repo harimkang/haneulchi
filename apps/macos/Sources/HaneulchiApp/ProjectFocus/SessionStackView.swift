@@ -18,71 +18,107 @@ struct SessionStackView: View {
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Session Stack")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            HaneulchiSectionHeader(title: "Sessions", count: rows.isEmpty ? nil : rows.count)
 
-            ForEach(rows) { row in
-                VStack(alignment: .leading, spacing: 6) {
-                    Button {
-                        onAction(.jumpToSession(row.sessionID))
-                    } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(row.title)
-                                    .font(.subheadline.weight(row.isFocused ? .semibold : .regular))
-                                if let signal = row.signal {
-                                    Text(signal.label)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(signal.foregroundStyle)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(signal.backgroundStyle)
-                                        .clipShape(Capsule())
-                                }
-                                Spacer()
-                                if row.unreadCount > 0 {
-                                    Text("\(row.unreadCount)")
-                                        .font(.caption.monospacedDigit())
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(Color.secondary.opacity(0.15))
-                                        .clipShape(Capsule())
-                                }
-                            }
-                            if let branch = row.branch {
-                                Text(branch)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Text(row.summary)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(12)
-                        .background(row.isFocused ? HaneulchiChrome.Colors.surfaceRaised : HaneulchiChrome.Colors.secondaryPanel)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .paneAttentionDecoration(
-                            hasAttention: row.signal?.tone == .strong,
-                            hasUnread: row.unreadCount > 0
-                        )
-                    }
-                    .buttonStyle(.plain)
-
-                    if row.showsManualContinueCTA {
-                        Button("Open Session for Manual Continue") {
-                            onAction(.jumpToSession(row.sessionID))
-                        }
-                        .buttonStyle(.bordered)
-                        .font(.caption.weight(.semibold))
-                    }
+            VStack(alignment: .leading, spacing: 0) {
+                ForEach(rows) { row in
+                    sessionRow(row)
                 }
             }
         }
-        .padding(16)
-        .frame(width: 240, alignment: .topLeading)
-        .background(HaneulchiChrome.Colors.secondaryPanel)
+        .frame(width: HaneulchiMetrics.Panel.explorerMin, alignment: .topLeading)
+        .background(HaneulchiChrome.Surface.recess)
+    }
+
+    @ViewBuilder
+    private func sessionRow(_ row: Row) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Button {
+                onAction(.jumpToSession(row.sessionID))
+            } label: {
+                HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+                    // Unread indicator dot
+                    if row.unreadCount > 0 {
+                        Circle()
+                            .fill(HaneulchiChrome.State.warning)
+                            .frame(width: 6, height: 6)
+                    } else {
+                        Circle()
+                            .fill(Color.clear)
+                            .frame(width: 6, height: 6)
+                    }
+
+                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                            Text(row.title)
+                                .font(HaneulchiTypography.systemLabel)
+                                .tracking(HaneulchiTypography.Tracking.labelWide)
+                                .foregroundStyle(
+                                    row.isFocused
+                                        ? HaneulchiChrome.Label.primary
+                                        : HaneulchiChrome.Label.secondary
+                                )
+                                .lineLimit(1)
+
+                            if let signal = row.signal {
+                                HaneulchiStatusBadge(
+                                    state: signal.badgeState,
+                                    label: signal.label
+                                )
+                            }
+
+                            Spacer()
+                        }
+
+                        if let branch = row.branch {
+                            Text(branch)
+                                .font(HaneulchiTypography.compactMeta)
+                                .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                .foregroundStyle(HaneulchiChrome.Label.muted)
+                                .lineLimit(1)
+                        }
+
+                        Text(row.summary)
+                            .font(HaneulchiTypography.compactMeta)
+                            .tracking(HaneulchiTypography.Tracking.metaModerate)
+                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                            .lineLimit(1)
+                    }
+
+                    if row.isFocused {
+                        Rectangle()
+                            .fill(HaneulchiChrome.Gradient.primaryEnd)
+                            .frame(width: 2)
+                            .frame(maxHeight: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+                .padding(.vertical, HaneulchiMetrics.Spacing.xs)
+                .frame(minHeight: HaneulchiMetrics.Target.compact)
+                .background(
+                    row.isFocused
+                        ? HaneulchiChrome.Surface.raised
+                        : HaneulchiChrome.Surface.recess
+                )
+            }
+            .buttonStyle(.plain)
+            .paneAttentionDecoration(
+                hasAttention: row.signal?.tone == .strong,
+                hasUnread: row.unreadCount > 0
+            )
+
+            if row.showsManualContinueCTA {
+                Button("Open Session for Manual Continue") {
+                    onAction(.jumpToSession(row.sessionID))
+                }
+                .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                .font(HaneulchiTypography.compactMeta)
+                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+                .padding(.bottom, HaneulchiMetrics.Spacing.xs)
+            }
+        }
     }
 
     nonisolated static func rows(from snapshot: AppShellSnapshot) -> [Row] {

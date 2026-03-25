@@ -14,12 +14,13 @@ struct TaskBoardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
                 Text("Task Board")
-                    .font(HaneulchiTypography.heading(28))
+                    .font(HaneulchiTypography.display)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
                 Text(summary)
                     .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
             }
 
             projectFilterBar
@@ -27,24 +28,24 @@ struct TaskBoardView: View {
             if let errorMessage = viewModel.errorMessage {
                 Text(errorMessage)
                     .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Colors.warning)
-                    .padding(16)
+                    .foregroundStyle(HaneulchiChrome.State.warning)
+                    .padding(HaneulchiMetrics.Spacing.md)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(HaneulchiChrome.Colors.surfaceMuted)
-                    .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                    .background(HaneulchiChrome.Surface.recess)
+                    .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium, style: .continuous))
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 18) {
+                HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
                     ForEach(viewModel.columns) { column in
                         columnView(column)
                     }
                 }
-                .padding(.bottom, 8)
+                .padding(.bottom, HaneulchiMetrics.Spacing.xs)
             }
         }
         .padding(HaneulchiChrome.Spacing.screenPadding)
-        .background(HaneulchiChrome.Colors.primaryPanel)
+        .background(HaneulchiChrome.Surface.foundation)
         .task {
             do {
                 try viewModel.reload()
@@ -56,7 +57,7 @@ struct TaskBoardView: View {
 
     private var projectFilterBar: some View {
         ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 filterButton(title: "All Projects", projectID: nil, taskCount: totalTaskCount)
                 ForEach(viewModel.projectOptions, id: \.projectID) { option in
                     filterButton(title: option.title, projectID: option.projectID, taskCount: option.taskCount)
@@ -75,44 +76,48 @@ struct TaskBoardView: View {
                 viewModel.present(error: error)
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 Text(title)
-                    .font(HaneulchiTypography.label(12))
+                    .font(HaneulchiTypography.systemLabel)
+                    .foregroundStyle(isSelected ? HaneulchiChrome.Label.primary : HaneulchiChrome.Label.secondary)
                 Text("\(taskCount)")
-                    .font(HaneulchiTypography.label(11))
-                    .foregroundStyle(isSelected ? HaneulchiChrome.Colors.appBackground : HaneulchiChrome.Colors.mutedText)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
-                    .background(isSelected ? HaneulchiChrome.Colors.surfaceBase : HaneulchiChrome.Colors.surfaceRaised)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(isSelected ? HaneulchiChrome.Surface.foundation : HaneulchiChrome.Label.muted)
+                    .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+                    .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+                    .background(isSelected ? HaneulchiChrome.Surface.base : HaneulchiChrome.Surface.raised)
                     .clipShape(Capsule())
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(isSelected ? HaneulchiChrome.Colors.accent : HaneulchiChrome.Colors.surfaceMuted)
-            .foregroundStyle(isSelected ? HaneulchiChrome.Colors.appBackground : .primary)
+            .padding(.horizontal, HaneulchiMetrics.Spacing.md)
+            .padding(.vertical, HaneulchiMetrics.Spacing.sm)
+            .background(filterButtonBackground(isSelected: isSelected))
             .clipShape(Capsule())
         }
         .buttonStyle(.plain)
     }
 
     private func columnView(_ column: TaskBoardViewModel.ColumnModel) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let isDone = column.column == .done
+
+        return VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
             HStack {
-                Text(column.title)
-                    .font(HaneulchiTypography.label(14))
+                Text(column.title.uppercased())
+                    .font(HaneulchiTypography.systemLabel)
+                    .tracking(HaneulchiTypography.Tracking.labelWide)
+                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label.muted)
                 Spacer()
                 Text("\(column.taskCount)")
-                    .font(HaneulchiTypography.label(12))
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(isDone ? HaneulchiChrome.Label.muted : HaneulchiChrome.Label.muted)
             }
 
             if column.tasks.isEmpty {
                 Text("Drop a task here or keep the column empty until the next action is clear.")
-                    .font(HaneulchiTypography.caption)
-                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
-                    .padding(.top, 8)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+                    .padding(.top, HaneulchiMetrics.Spacing.xs)
             } else {
-                VStack(spacing: 12) {
+                VStack(spacing: HaneulchiMetrics.Spacing.sm) {
                     ForEach(column.tasks) { task in
                         TaskCardView(task: task)
                             .draggable(task.id)
@@ -120,11 +125,11 @@ struct TaskBoardView: View {
                 }
             }
         }
-        .padding(18)
-        .frame(width: 280, alignment: .topLeading)
+        .padding(HaneulchiMetrics.Spacing.md)
+        .frame(minWidth: HaneulchiMetrics.Panel.boardColumnMin, alignment: .topLeading)
         .frame(maxHeight: .infinity, alignment: .topLeading)
-        .background(HaneulchiChrome.Colors.surfaceMuted)
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .background(columnBackground(for: column.column))
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large, style: .continuous))
         .dropDestination(for: String.self) { items, _ in
             guard let taskID = items.first else {
                 return false
@@ -136,6 +141,35 @@ struct TaskBoardView: View {
                 viewModel.present(error: error)
                 return false
             }
+        }
+    }
+
+    @ViewBuilder
+    private func columnBackground(for column: TaskBoardColumnID) -> some View {
+        switch column {
+        case .running:
+            HaneulchiChrome.Surface.base
+        case .review:
+            HaneulchiChrome.Surface.base
+                .overlay(
+                    HaneulchiChrome.Gradient.primaryEnd.opacity(0.06)
+                )
+        case .blocked:
+            HaneulchiChrome.Surface.base
+                .overlay(
+                    HaneulchiChrome.State.errorSolid.opacity(0.08)
+                )
+        case .inbox, .ready, .done:
+            HaneulchiChrome.Surface.recess
+        }
+    }
+
+    @ViewBuilder
+    private func filterButtonBackground(isSelected: Bool) -> some View {
+        if isSelected {
+            HaneulchiChrome.Gradient.primaryLinear
+        } else {
+            HaneulchiChrome.Surface.recess
         }
     }
 

@@ -140,7 +140,49 @@ func sessionStackRowsReflectSnapshotVocabulary() {
     #expect(rows[1].isFocused == true)
     #expect(rows[1].signal?.tone == .strong)
     #expect(rows[1].signal?.label == "manual takeover")
+    #expect(rows[1].signal?.badgeState == .manualTakeover)
     #expect(rows[1].showsManualContinueCTA == true)
+}
+
+@Test("session signals preserve semantic badge states for review and blocked flows")
+func sessionSignalsExposeSemanticBadgeStates() {
+    let reviewReady = AppShellSnapshot.SessionSummary(
+        sessionID: "ses_review",
+        title: "Review",
+        currentDirectory: "/tmp/demo",
+        mode: .structuredAdapter,
+        runtimeState: .reviewReady,
+        manualControlState: .none,
+        dispatchState: .dispatchable,
+        unreadCount: 0,
+        focusState: .background
+    )
+    let waitingInput = AppShellSnapshot.SessionSummary(
+        sessionID: "ses_waiting",
+        title: "Needs input",
+        currentDirectory: "/tmp/demo",
+        mode: .structuredAdapter,
+        runtimeState: .waitingInput,
+        manualControlState: .none,
+        dispatchState: .dispatchable,
+        unreadCount: 0,
+        focusState: .background
+    )
+    let blocked = AppShellSnapshot.SessionSummary(
+        sessionID: "ses_blocked",
+        title: "Blocked",
+        currentDirectory: "/tmp/demo",
+        mode: .structuredAdapter,
+        runtimeState: .blocked,
+        manualControlState: .none,
+        dispatchState: .notDispatchable,
+        unreadCount: 0,
+        focusState: .background
+    )
+
+    #expect(SessionSignalPresentation.from(session: reviewReady, isFocused: false)?.badgeState == .reviewReady)
+    #expect(SessionSignalPresentation.from(session: waitingInput, isFocused: false)?.badgeState == .waitingInput)
+    #expect(SessionSignalPresentation.from(session: blocked, isFocused: false)?.badgeState == .blocked)
 }
 
 @Test("inspector resolves the focused session instead of the first session")

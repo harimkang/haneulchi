@@ -87,6 +87,37 @@ func taskBoardViewModelUsesBridgeMoveResponses() throws {
     #expect(viewModel.columns[3].tasks.first?.id == "task_ready")
 }
 
+@Test("task cards retain evidence readiness and next action hints")
+func taskCardPresentationPreservesOperationalMetadata() {
+    let reviewTask = TaskBoardProjectionPayload.TaskCard(
+        id: "task_review",
+        projectID: "proj_demo",
+        displayKey: "TASK-104",
+        title: "Review auth flow",
+        description: "",
+        priority: "p1",
+        automationMode: .assisted,
+        linkedSessionID: "ses_review",
+        column: .review
+    )
+    let blockedTask = TaskBoardProjectionPayload.TaskCard(
+        id: "task_blocked",
+        projectID: "proj_demo",
+        displayKey: "TASK-105",
+        title: "Fix failing deploy",
+        description: "",
+        priority: "p0",
+        automationMode: .manual,
+        linkedSessionID: nil,
+        column: .blocked
+    )
+
+    #expect(reviewTask.evidenceReadinessLabel == "review_ready")
+    #expect(reviewTask.nextActionLabel == "open review queue")
+    #expect(blockedTask.evidenceReadinessLabel == "not_ready")
+    #expect(blockedTask.nextActionLabel == "resolve blocker")
+}
+
 private final class BoardTestRecorder: @unchecked Sendable {
     var requestedProjects: [String?] = []
     var movedTaskIDs: [String] = []
