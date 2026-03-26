@@ -4,27 +4,45 @@ struct WorktreeInventoryView: View {
     let viewModel: WorktreeInventoryViewModel
     let onAction: (AppShellAction) -> Void
     let onClose: () -> Void
+    @Environment(\.viewportContext) private var viewportContext
+
+    private var summaryCardColumns: [GridItem] {
+        let count = switch viewportContext.viewportClass {
+        case .compact:
+            1
+        case .medium:
+            2
+        case .wide:
+            3
+        case .expanded:
+            5
+        }
+
+        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             content
         }
-        .frame(minWidth: 560, minHeight: 400)
+        .frame(minHeight: 400)
     }
 
     private var header: some View {
-        HStack {
-            Text("Worktree Inventory")
-                .font(.title2.weight(.semibold))
-            Spacer()
-            Button {
-                onClose()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                Text("Worktree Inventory")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                closeButton
             }
-            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Worktree Inventory")
+                    .font(.title2.weight(.semibold))
+                closeButton
+            }
         }
         .padding()
     }
@@ -40,7 +58,7 @@ struct WorktreeInventoryView: View {
     }
 
     private var summaryCards: some View {
-        HStack(spacing: 12) {
+        LazyVGrid(columns: summaryCardColumns, spacing: 12) {
             SummaryCardView(label: "Total", count: viewModel.summaryCard.total, color: .primary)
             SummaryCardView(label: "In Use", count: viewModel.summaryCard.inUse, color: .blue)
             SummaryCardView(
@@ -55,6 +73,16 @@ struct WorktreeInventoryView: View {
             )
             SummaryCardView(label: "Stale", count: viewModel.summaryCard.stale, color: .secondary)
         }
+    }
+
+    private var closeButton: some View {
+        Button {
+            onClose()
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder

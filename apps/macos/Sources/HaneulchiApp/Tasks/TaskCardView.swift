@@ -2,6 +2,7 @@ import SwiftUI
 
 struct TaskCardView: View {
     let task: TaskBoardProjectionPayload.TaskCard
+    @Environment(\.viewportContext) private var viewportContext
 
     var body: some View {
         HaneulchiCard {
@@ -20,13 +21,9 @@ struct TaskCardView: View {
                 Text(task.title)
                     .font(HaneulchiTypography.body)
                     .foregroundStyle(HaneulchiChrome.Label.primary)
-                    .lineLimit(3)
+                    .lineLimit(viewportContext.viewportClass == .compact ? 4 : 3)
 
-                HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-                    ForEach(task.compactMetadataChips, id: \.self) { chip in
-                        compactChip(chip)
-                    }
-                }
+                metadataChips
 
                 if task.column == .running {
                     runningHeartbeatStrip
@@ -35,17 +32,9 @@ struct TaskCardView: View {
                 Text(task.contextSummaryLabel)
                     .font(HaneulchiTypography.compactMeta)
                     .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .lineLimit(1)
+                    .lineLimit(viewportContext.viewportClass <= .medium ? 2 : 1)
 
-                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    Text("next")
-                        .font(HaneulchiTypography.compactMeta)
-                        .foregroundStyle(HaneulchiChrome.Label.muted)
-                    Text(task.nextActionLabel)
-                        .font(HaneulchiTypography.bodySmall)
-                        .foregroundStyle(HaneulchiChrome.Label.secondary)
-                        .lineLimit(1)
-                }
+                nextActionRow
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
@@ -73,6 +62,49 @@ struct TaskCardView: View {
             .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
             .background(HaneulchiChrome.Surface.recess)
             .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.pill))
+    }
+
+    private var metadataChips: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
+                ForEach(task.compactMetadataChips, id: \.self) { chip in
+                    compactChip(chip)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                ForEach(task.compactMetadataChips, id: \.self) { chip in
+                    compactChip(chip)
+                }
+            }
+        }
+    }
+
+    private var nextActionRow: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                nextActionLabel
+                nextActionValue
+            }
+
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                nextActionLabel
+                nextActionValue
+            }
+        }
+    }
+
+    private var nextActionLabel: some View {
+        Text("next")
+            .font(HaneulchiTypography.compactMeta)
+            .foregroundStyle(HaneulchiChrome.Label.muted)
+    }
+
+    private var nextActionValue: some View {
+        Text(task.nextActionLabel)
+            .font(HaneulchiTypography.bodySmall)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .lineLimit(viewportContext.viewportClass <= .medium ? 2 : 1)
     }
 
     private func badgeState(for column: TaskBoardColumnID) -> HaneulchiStatusBadge.State {

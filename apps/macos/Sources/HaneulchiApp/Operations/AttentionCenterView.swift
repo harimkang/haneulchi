@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AttentionCenterView: View {
     let viewModel: AttentionCenterViewModel
+    @Environment(\.viewportContext) private var viewportContext
     private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     private var groupedItems: [AttentionCenterPresentation.GroupedItems] {
@@ -58,21 +59,38 @@ struct AttentionCenterView: View {
             summary: item.summary,
             meta: "\(item.stateLabel) · \(item.targetRoute.title)",
         ) {
-            VStack(alignment: .trailing, spacing: HaneulchiMetrics.Spacing.xxs) {
-                Button("Open") { viewModel.open(item) }
-                    .buttonStyle(HaneulchiButtonStyle(variant: .primary))
-
-                HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-                    HaneulchiIconButton(action: .resolve, tone: .secondary) {
-                        viewModel.resolve(item)
-                    }
-                    HaneulchiIconButton(action: .dismiss, tone: .tertiary) {
-                        viewModel.dismiss(item)
-                    }
-                    HaneulchiIconButton(action: .snooze, tone: .tertiary) {
-                        viewModel.snooze(item)
-                    }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.sm) {
+                    openButton(for: item)
+                    secondaryActions(for: item)
                 }
+
+                VStack(
+                    alignment: viewportContext.viewportClass == .compact ? .leading : .trailing,
+                    spacing: HaneulchiMetrics.Spacing.xxs,
+                ) {
+                    openButton(for: item)
+                    secondaryActions(for: item)
+                }
+            }
+        }
+    }
+
+    private func openButton(for item: AttentionCenterViewModel.Item) -> some View {
+        Button("Open") { viewModel.open(item) }
+            .buttonStyle(HaneulchiButtonStyle(variant: .primary))
+    }
+
+    private func secondaryActions(for item: AttentionCenterViewModel.Item) -> some View {
+        HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
+            HaneulchiIconButton(action: .resolve, tone: .secondary) {
+                viewModel.resolve(item)
+            }
+            HaneulchiIconButton(action: .dismiss, tone: .tertiary) {
+                viewModel.dismiss(item)
+            }
+            HaneulchiIconButton(action: .snooze, tone: .tertiary) {
+                viewModel.snooze(item)
             }
         }
     }

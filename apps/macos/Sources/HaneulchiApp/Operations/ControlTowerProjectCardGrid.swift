@@ -3,15 +3,20 @@ import SwiftUI
 struct ControlTowerProjectCardGrid: View {
     let cards: [ControlTowerViewModel.ProjectCard]
     let onOpenProject: (String) -> Void
+    @Environment(\.viewportContext) private var viewportContext
     private let layout = HaneulchiOperationalLayoutMetrics.standard
 
-    private let columns = [
-        GridItem(
-            .adaptive(minimum: 220, maximum: 280),
-            spacing: HaneulchiOperationalLayoutMetrics.standard.gridSpacing,
-            alignment: .topLeading,
-        ),
-    ]
+    private var columns: [GridItem] {
+        Array(
+            repeating: GridItem(
+                .flexible(minimum: 220, maximum: 320),
+                spacing: layout.gridSpacing,
+                alignment: .topLeading,
+            ),
+            count: ControlTowerResponsiveLayout(viewportClass: viewportContext.viewportClass)
+                .projectGridColumnCount,
+        )
+    }
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: layout.gridSpacing) {
@@ -47,13 +52,30 @@ struct ControlTowerProjectCardGrid: View {
                                         .foregroundStyle(HaneulchiChrome.Label.muted)
                                 }
 
-                                HStack(spacing: HaneulchiMetrics.Spacing.md) {
-                                    ForEach(card.overviewMetrics, id: \.label) { metric in
-                                        overviewMetric(metric)
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(spacing: HaneulchiMetrics.Spacing.md) {
+                                        ForEach(card.overviewMetrics, id: \.label) { metric in
+                                            overviewMetric(metric)
+                                        }
+                                        Spacer(minLength: HaneulchiMetrics.Spacing.sm)
+                                        if let spotlight = card.spotlightLabel {
+                                            metaPill(spotlight)
+                                        }
                                     }
-                                    Spacer(minLength: HaneulchiMetrics.Spacing.sm)
-                                    if let spotlight = card.spotlightLabel {
-                                        metaPill(spotlight)
+
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xs,
+                                    ) {
+                                        HStack(spacing: HaneulchiMetrics.Spacing.md) {
+                                            ForEach(card.overviewMetrics, id: \.label) { metric in
+                                                overviewMetric(metric)
+                                            }
+                                        }
+
+                                        if let spotlight = card.spotlightLabel {
+                                            metaPill(spotlight)
+                                        }
                                     }
                                 }
 

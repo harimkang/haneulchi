@@ -11,12 +11,22 @@ struct SettingsAutomationStatusSection: View {
 
             ForEach(viewModel.automationRows) { row in
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(row.title)
-                            .font(.headline)
-                        Text(row.statusLabel)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(statusColor(for: row.statusLabel))
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(row.title)
+                                .font(.headline)
+                            Text(row.statusLabel)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(statusColor(for: row.statusLabel))
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(row.title)
+                                .font(.headline)
+                            Text(row.statusLabel)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(statusColor(for: row.statusLabel))
+                        }
                     }
                     Text(row.detail)
                         .foregroundStyle(HaneulchiChrome.Colors.mutedText)
@@ -34,6 +44,7 @@ struct SettingsAutomationStatusSection: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.surfaceMuted)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }

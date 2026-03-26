@@ -39,11 +39,20 @@ struct ReadinessSettingsSection: View {
                         .font(.headline)
                     ForEach(viewModel.presetRows) { preset in
                         VStack(alignment: .leading, spacing: 2) {
-                            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                                Text(preset.title)
-                                Text(preset.statusLabel)
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(statusColor(for: preset.statusLabel))
+                            ViewThatFits(in: .horizontal) {
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text(preset.title)
+                                    Text(preset.statusLabel)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(statusColor(for: preset.statusLabel))
+                                }
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(preset.title)
+                                    Text(preset.statusLabel)
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(statusColor(for: preset.statusLabel))
+                                }
                             }
                             Text(preset.detail)
                                 .font(.caption)
@@ -62,12 +71,22 @@ struct ReadinessSettingsSection: View {
 
             if let workflowRow = viewModel.workflowRow {
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(alignment: .firstTextBaseline, spacing: 8) {
-                        Text(workflowRow.title)
-                            .font(.headline)
-                        Text(workflowRow.statusLabel)
-                            .font(.caption)
-                            .foregroundStyle(statusColor(for: workflowRow.statusLabel))
+                    ViewThatFits(in: .horizontal) {
+                        HStack(alignment: .firstTextBaseline, spacing: 8) {
+                            Text(workflowRow.title)
+                                .font(.headline)
+                            Text(workflowRow.statusLabel)
+                                .font(.caption)
+                                .foregroundStyle(statusColor(for: workflowRow.statusLabel))
+                        }
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(workflowRow.title)
+                                .font(.headline)
+                            Text(workflowRow.statusLabel)
+                                .font(.caption)
+                                .foregroundStyle(statusColor(for: workflowRow.statusLabel))
+                        }
                     }
                     Text(workflowRow.detail)
                         .foregroundStyle(HaneulchiChrome.Colors.mutedText)
@@ -81,6 +100,7 @@ struct ReadinessSettingsSection: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.primaryPanel)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
@@ -92,12 +112,22 @@ struct ReadinessSettingsSection: View {
         nextAction: String?,
     ) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 8) {
-                Text(headline)
-                    .font(.headline)
-                Text(statusLabel)
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(statusColor(for: statusLabel))
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(headline)
+                        .font(.headline)
+                    Text(statusLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(statusColor(for: statusLabel))
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(headline)
+                        .font(.headline)
+                    Text(statusLabel)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(statusColor(for: statusLabel))
+                }
             }
             Text(detail)
                 .foregroundStyle(HaneulchiChrome.Colors.mutedText)

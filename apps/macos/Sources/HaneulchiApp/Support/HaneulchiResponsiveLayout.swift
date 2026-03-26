@@ -170,6 +170,100 @@ struct HaneulchiRouteLayoutPolicy: Equatable, Sendable {
     }
 }
 
+struct ControlTowerResponsiveLayout: Equatable, Sendable {
+    let projectGridColumnCount: Int
+    let stacksLowerStage: Bool
+
+    init(viewportClass: HaneulchiViewportClass) {
+        switch viewportClass {
+        case .compact:
+            projectGridColumnCount = 1
+            stacksLowerStage = true
+        case .medium:
+            projectGridColumnCount = 2
+            stacksLowerStage = true
+        case .wide:
+            projectGridColumnCount = 2
+            stacksLowerStage = false
+        case .expanded:
+            projectGridColumnCount = 3
+            stacksLowerStage = false
+        }
+    }
+
+    var usesDenseProjectGrid: Bool {
+        projectGridColumnCount >= 3
+    }
+}
+
+struct WelcomeReadinessResponsiveLayout: Equatable, Sendable {
+    let usesSplitLauncher: Bool
+
+    init(viewportClass: HaneulchiViewportClass) {
+        usesSplitLauncher = viewportClass >= .medium
+    }
+}
+
+enum ReviewQueueSurfaceMode: Equatable, Sendable {
+    case stacked
+    case split
+}
+
+struct ReviewQueueResponsiveLayout: Equatable, Sendable {
+    let mode: ReviewQueueSurfaceMode
+    let stacksDecisionPanel: Bool
+    let masterColumnWidth: CGFloat?
+
+    init(viewportClass: HaneulchiViewportClass) {
+        switch viewportClass {
+        case .compact, .medium:
+            mode = .stacked
+            stacksDecisionPanel = true
+            masterColumnWidth = nil
+        case .wide, .expanded:
+            mode = .split
+            stacksDecisionPanel = false
+            masterColumnWidth = HaneulchiMetrics.Panel.supportingColumnWidth
+        }
+    }
+
+    var showsFixedMasterColumn: Bool {
+        masterColumnWidth != nil
+    }
+}
+
+enum ReviewEvidencePackFactRowStyle: Equatable, Sendable {
+    case stacked
+    case inline
+}
+
+struct ReviewEvidencePackResponsiveLayout: Equatable, Sendable {
+    let factRowStyle: ReviewEvidencePackFactRowStyle
+    let metricTileColumnCount: Int
+    let allowsWrappedTouchedFiles: Bool
+
+    init(viewportClass: HaneulchiViewportClass) {
+        switch viewportClass {
+        case .compact:
+            factRowStyle = .stacked
+            metricTileColumnCount = 1
+            allowsWrappedTouchedFiles = true
+        case .medium:
+            factRowStyle = .stacked
+            metricTileColumnCount = 2
+            allowsWrappedTouchedFiles = true
+        case .wide, .expanded:
+            factRowStyle = .inline
+            metricTileColumnCount = 3
+            allowsWrappedTouchedFiles = false
+        }
+    }
+
+    var usesFixedFactLabelColumn: Bool {
+        factRowStyle == .inline
+    }
+}
+
 struct HaneulchiModalWidthPolicy: Equatable, Sendable {
     private let tokens: HaneulchiMetrics.Modal.WidthTokens
 

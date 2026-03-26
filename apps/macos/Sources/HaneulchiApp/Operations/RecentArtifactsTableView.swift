@@ -3,6 +3,11 @@ import SwiftUI
 struct RecentArtifactsTableView: View {
     let items: [ControlTowerViewModel.RecentArtifactItem]
     let onOpen: (ControlTowerViewModel.RecentArtifactItem) -> Void
+    @Environment(\.viewportContext) private var viewportContext
+
+    private var showsTableColumns: Bool {
+        viewportContext.viewportClass >= .wide
+    }
 
     var body: some View {
         HaneulchiOpsRailPanel(title: "Recent Artifacts", count: items.isEmpty ? nil : items.count) {
@@ -13,7 +18,9 @@ struct RecentArtifactsTableView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(alignment: .leading, spacing: 0) {
-                    headerRow
+                    if showsTableColumns {
+                        headerRow
+                    }
 
                     VStack(spacing: 0) {
                         ForEach(items) { item in
@@ -21,28 +28,7 @@ struct RecentArtifactsTableView: View {
                                 onOpen(item)
                             } label: {
                                 HaneulchiTableRow {
-                                    HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
-                                        Text(item.taskID)
-                                            .font(HaneulchiTypography.compactMeta)
-                                            .foregroundStyle(HaneulchiChrome.Gradient.primaryEnd)
-                                            .frame(width: 96, alignment: .leading)
-
-                                        Text(item.projectID)
-                                            .font(HaneulchiTypography.compactMeta)
-                                            .foregroundStyle(HaneulchiChrome.Label.secondary)
-                                            .frame(width: 92, alignment: .leading)
-
-                                        Text(item.summary)
-                                            .font(HaneulchiTypography.bodySmall)
-                                            .foregroundStyle(HaneulchiChrome.Label.primary)
-                                            .frame(maxWidth: .infinity, alignment: .leading)
-                                            .lineLimit(2)
-
-                                        Text(item.targetRoute.title)
-                                            .font(HaneulchiTypography.compactMeta)
-                                            .foregroundStyle(HaneulchiChrome.Label.muted)
-                                            .frame(width: 88, alignment: .trailing)
-                                    }
+                                    artifactRow(item)
                                 }
                             }
                             .buttonStyle(.plain)
@@ -85,5 +71,59 @@ struct RecentArtifactsTableView: View {
         .padding(.horizontal, HaneulchiMetrics.Padding.card)
         .padding(.vertical, HaneulchiMetrics.Spacing.xs)
         .background(HaneulchiChrome.Surface.base)
+    }
+
+    @ViewBuilder
+    private func artifactRow(_ item: ControlTowerViewModel.RecentArtifactItem) -> some View {
+        if showsTableColumns {
+            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
+                artifactTaskID(item.taskID)
+                    .frame(width: 96, alignment: .leading)
+
+                Text(item.projectID)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    .frame(width: 92, alignment: .leading)
+
+                Text(item.summary)
+                    .font(HaneulchiTypography.bodySmall)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(2)
+
+                artifactRoute(item.targetRoute.title)
+                    .frame(width: 88, alignment: .trailing)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
+                    artifactTaskID(item.taskID)
+                    Spacer(minLength: HaneulchiMetrics.Spacing.xs)
+                    artifactRoute(item.targetRoute.title)
+                }
+
+                Text(item.summary)
+                    .font(HaneulchiTypography.bodySmall)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Text(item.projectID)
+                    .font(HaneulchiTypography.compactMeta)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func artifactTaskID(_ value: String) -> some View {
+        Text(value)
+            .font(HaneulchiTypography.compactMeta)
+            .foregroundStyle(HaneulchiChrome.Gradient.primaryEnd)
+    }
+
+    private func artifactRoute(_ value: String) -> some View {
+        Text(value)
+            .font(HaneulchiTypography.compactMeta)
+            .foregroundStyle(HaneulchiChrome.Label.muted)
     }
 }

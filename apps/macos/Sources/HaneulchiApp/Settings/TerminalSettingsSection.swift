@@ -33,17 +33,27 @@ struct TerminalSettingsSection: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.primaryPanel)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 
     private func labeledRow(label: String, value: String) -> some View {
-        HStack(alignment: .firstTextBaseline, spacing: 8) {
-            Text(label)
-                .font(.headline)
-                .frame(minWidth: 160, alignment: .leading)
-            Text(value)
-                .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(label)
+                    .font(.headline)
+                    .frame(minWidth: 120, alignment: .leading)
+                Text(value)
+                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.headline)
+                Text(value)
+                    .foregroundStyle(HaneulchiChrome.Colors.mutedText)
+            }
         }
     }
 }

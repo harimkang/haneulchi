@@ -17,6 +17,7 @@ struct SecretsSettingsSection: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.primaryPanel)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }

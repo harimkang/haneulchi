@@ -5,6 +5,7 @@ struct ControlTowerOpsStripView: View {
     let onRefresh: (() -> Void)?
     let onReconcile: (() -> Void)?
     let onReload: (() -> Void)?
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         model: AutomationPanelViewModel,
@@ -21,14 +22,27 @@ struct ControlTowerOpsStripView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
             HaneulchiMonolithStrip(metrics: model.primaryStripMetrics) {
-                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    actionButton(.refresh, action: onRefresh)
-                    actionButton(.reconcile, action: onReconcile)
-                    actionButton(.reload, action: onReload)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                        actionButton(.refresh, action: onRefresh)
+                        actionButton(.reconcile, action: onReconcile)
+                        actionButton(.reload, action: onReload)
+                    }
+
+                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                        actionButton(.refresh, action: onRefresh)
+                        actionButton(.reconcile, action: onReconcile)
+                        actionButton(.reload, action: onReload)
+                    }
                 }
             }
 
-            HStack(spacing: HaneulchiMetrics.Spacing.lg) {
+            let columns = Array(
+                repeating: GridItem(.flexible(), spacing: HaneulchiMetrics.Spacing.sm),
+                count: viewportContext.viewportClass == .compact ? 1 : 2,
+            )
+
+            LazyVGrid(columns: columns, alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                 ForEach(model.secondaryStripMetrics) { metric in
                     HaneulchiMetricTile(metric: metric)
                 }

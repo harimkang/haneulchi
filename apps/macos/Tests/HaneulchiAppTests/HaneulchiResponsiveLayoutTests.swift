@@ -44,6 +44,41 @@ func routeLayoutPolicyFollowsViewportClass() {
     #expect(expanded.stacksSupportingPanels == false)
 }
 
+@Test("control tower route policy resolves shared project matrix density and lower-stage stacking")
+func controlTowerRoutePolicyUsesSharedViewportClasses() {
+    let compact = ControlTowerResponsiveLayout(viewportClass: .compact)
+    let medium = ControlTowerResponsiveLayout(viewportClass: .medium)
+    let wide = ControlTowerResponsiveLayout(viewportClass: .wide)
+    let expanded = ControlTowerResponsiveLayout(viewportClass: .expanded)
+
+    #expect(compact.projectGridColumnCount == 1)
+    #expect(compact.stacksLowerStage == true)
+    #expect(compact.usesDenseProjectGrid == false)
+
+    #expect(medium.projectGridColumnCount == 2)
+    #expect(medium.stacksLowerStage == true)
+    #expect(medium.usesDenseProjectGrid == false)
+
+    #expect(wide.projectGridColumnCount == 2)
+    #expect(wide.stacksLowerStage == false)
+    #expect(wide.usesDenseProjectGrid == false)
+
+    #expect(expanded.projectGridColumnCount == 3)
+    #expect(expanded.stacksLowerStage == false)
+    #expect(expanded.usesDenseProjectGrid == true)
+}
+
+@Test("welcome launcher route policy stacks only in compact widths")
+func welcomeRoutePolicyUsesSharedViewportClasses() {
+    let compact = WelcomeReadinessResponsiveLayout(viewportClass: .compact)
+    let medium = WelcomeReadinessResponsiveLayout(viewportClass: .medium)
+    let wide = WelcomeReadinessResponsiveLayout(viewportClass: .wide)
+
+    #expect(compact.usesSplitLauncher == false)
+    #expect(medium.usesSplitLauncher == true)
+    #expect(wide.usesSplitLauncher == true)
+}
+
 @Test("shared modal policy derives from shared modal tokens and clamps to them")
 func modalWidthPolicyUsesSharedTokensAndClamps() {
     let compact = HaneulchiViewportContext(width: 0).modalWidthPolicy

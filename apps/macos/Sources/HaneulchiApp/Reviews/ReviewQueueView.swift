@@ -3,7 +3,12 @@ import SwiftUI
 struct ReviewQueueView: View {
     let summary: String
     @StateObject private var viewModel: ReviewQueueViewModel
+    @Environment(\.viewportContext) private var viewportContext
     private let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    private var responsiveLayout: ReviewQueueResponsiveLayout {
+        .init(viewportClass: viewportContext.viewportClass)
+    }
 
     init(
         summary: String =
@@ -32,42 +37,21 @@ struct ReviewQueueView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
-                HStack(alignment: .top, spacing: layout.columnSpacing) {
-                    HaneulchiOpsRailPanel(
-                        title: "Ready for Review",
-                        count: viewModel.items.count,
-                    ) {
-                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                            ForEach(viewModel.items) { item in
-                                reviewReadyRow(item: item)
-                            }
-                        }
+                switch responsiveLayout.mode {
+                case .stacked:
+                    VStack(alignment: .leading, spacing: layout.columnSpacing) {
+                        reviewListPanel
+                        detailPanel
                     }
-                    .frame(width: layout.supportingRailWidth)
-
-                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                        if let degradedReason = viewModel.degradedReason {
-                            statusBanner(
-                                icon: "exclamationmark.triangle.fill",
-                                message: "Degraded: \(degradedReason)",
+                case .split:
+                    HStack(alignment: .top, spacing: layout.columnSpacing) {
+                        reviewListPanel
+                            .frame(
+                                width: responsiveLayout.masterColumnWidth,
+                                alignment: .topLeading,
                             )
-                        }
-                        if let actionError = viewModel.actionError {
-                            statusBanner(
-                                icon: "xmark.circle.fill",
-                                message: "Action failed: \(actionError)",
-                            )
-                        }
-
-                        ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
-                            do {
-                                try viewModel.apply(command)
-                            } catch {
-                                // The view model stores the operator-visible error state.
-                            }
-                        }
+                        detailPanel
                     }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
             }
         }
@@ -121,6 +105,45 @@ struct ReviewQueueView: View {
             .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
             value: isSelected,
         )
+    }
+
+    private var reviewListPanel: some View {
+        HaneulchiOpsRailPanel(
+            title: "Ready for Review",
+            count: viewModel.items.count,
+        ) {
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                ForEach(viewModel.items) { item in
+                    reviewReadyRow(item: item)
+                }
+            }
+        }
+    }
+
+    private var detailPanel: some View {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            if let degradedReason = viewModel.degradedReason {
+                statusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: "Degraded: \(degradedReason)",
+                )
+            }
+            if let actionError = viewModel.actionError {
+                statusBanner(
+                    icon: "xmark.circle.fill",
+                    message: "Action failed: \(actionError)",
+                )
+            }
+
+            ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
+                do {
+                    try viewModel.apply(command)
+                } catch {
+                    // The view model stores the operator-visible error state.
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private func statusBanner(icon: String, message: String) -> some View {

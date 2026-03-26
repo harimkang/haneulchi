@@ -2,6 +2,18 @@ import SwiftUI
 
 struct ReviewEvidencePackView: View {
     let model: ReviewEvidencePackModel
+    @Environment(\.viewportContext) private var viewportContext
+
+    private var responsiveLayout: ReviewEvidencePackResponsiveLayout {
+        .init(viewportClass: viewportContext.viewportClass)
+    }
+
+    private var metricTileColumns: [GridItem] {
+        Array(
+            repeating: GridItem(.flexible(), spacing: HaneulchiMetrics.Spacing.xs),
+            count: responsiveLayout.metricTileColumnCount,
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
@@ -22,17 +34,7 @@ struct ReviewEvidencePackView: View {
                     HaneulchiSectionHeader(title: "Primary Facts", count: model.primaryFacts.count)
                     ForEach(model.primaryFacts, id: \.label) { fact in
                         HaneulchiTableRow {
-                            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                                Text(fact.label)
-                                    .font(HaneulchiTypography.compactMeta)
-                                    .tracking(HaneulchiTypography.Tracking.metaModerate)
-                                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                                    .frame(width: 80, alignment: .leading)
-                                Text(fact.value)
-                                    .font(HaneulchiTypography.bodySmall)
-                                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                                    .lineLimit(1)
-                            }
+                            factRow(fact)
                         }
                     }
                 }
@@ -53,8 +55,14 @@ struct ReviewEvidencePackView: View {
                                 .font(HaneulchiTypography.compactMeta)
                                 .tracking(HaneulchiTypography.Tracking.metaModerate)
                                 .foregroundStyle(HaneulchiChrome.Label.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
+                                .lineLimit(responsiveLayout.allowsWrappedTouchedFiles ? 2 : 1)
+                                .truncationMode(
+                                    responsiveLayout.allowsWrappedTouchedFiles ? .tail : .middle,
+                                )
+                                .fixedSize(
+                                    horizontal: false,
+                                    vertical: responsiveLayout.allowsWrappedTouchedFiles,
+                                )
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -64,7 +72,11 @@ struct ReviewEvidencePackView: View {
             }
 
             // Test results tile row
-            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+            LazyVGrid(
+                columns: metricTileColumns,
+                alignment: .leading,
+                spacing: HaneulchiMetrics.Spacing.xs,
+            ) {
                 if let ciRunURL = model.ciRunURL {
                     HaneulchiMetricTile(
                         label: "CI",
@@ -112,6 +124,39 @@ struct ReviewEvidencePackView: View {
     }
 
     // MARK: - Helpers
+
+    @ViewBuilder
+    private func factRow(_ fact: ReviewEvidencePackModel.FactRow) -> some View {
+        switch responsiveLayout.factRowStyle {
+        case .inline:
+            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                factLabel(fact.label)
+                    .frame(width: 80, alignment: .leading)
+                factValue(fact.value)
+                    .lineLimit(1)
+            }
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                factLabel(fact.label)
+                factValue(fact.value)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private func factLabel(_ value: String) -> some View {
+        Text(value)
+            .font(HaneulchiTypography.compactMeta)
+            .tracking(HaneulchiTypography.Tracking.metaModerate)
+            .foregroundStyle(HaneulchiChrome.Label.muted)
+    }
+
+    private func factValue(_ value: String) -> some View {
+        Text(value)
+            .font(HaneulchiTypography.bodySmall)
+            .foregroundStyle(HaneulchiChrome.Label.primary)
+    }
 
     /// Derives the semantic badge state for the CI run tile from available evidence signals.
     /// Returns `.blocked` when evidence is degraded or the tests summary indicates failure,
