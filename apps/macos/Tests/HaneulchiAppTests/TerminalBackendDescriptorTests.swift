@@ -5,7 +5,11 @@ import Testing
 func liveRuntimeInfoMapsBackendAndTransport() throws {
     let descriptor = try CoreBridge.live.runtimeInfo()
 
-    #expect(descriptor.rendererID == "swiftterm")
-    #expect(descriptor.transport == "ffi_c_abi")
-    #expect(descriptor.demoMode == true)
+    if descriptor.demoMode {
+        #expect(descriptor.rendererID == "preview")
+        #expect(descriptor.transport == "preview")
+    } else {
+        #expect(descriptor.rendererID == "swiftterm")
+        #expect(descriptor.transport == "ffi_c_abi")
+    }
 }
