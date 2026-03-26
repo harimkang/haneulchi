@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AttentionCenterView: View {
     let viewModel: AttentionCenterViewModel
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     private var groupedItems: [AttentionCenterPresentation.GroupedItems] {
         AttentionCenterPresentation.grouped(viewModel.items)
@@ -9,7 +10,7 @@ struct AttentionCenterView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                 HaneulchiHeaderDeck(
                     title: "Attention Center",
                     subtitle: "Handle manual takeover, failed flows, degraded state, and unread work in priority order.",
@@ -39,8 +40,8 @@ struct AttentionCenterView: View {
                     }
                 }
             }
-            .padding(.horizontal, HaneulchiMetrics.Padding.page)
-            .padding(.vertical, HaneulchiChrome.Spacing.panelGap)
+            .padding(.horizontal, layout.screenPadding)
+            .padding(.vertical, layout.sectionSpacing)
         }
         .background(HaneulchiChrome.Surface.foundation)
     }

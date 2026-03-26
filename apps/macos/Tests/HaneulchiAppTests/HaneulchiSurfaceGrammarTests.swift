@@ -86,3 +86,26 @@ func metricTileUsesMonolithMetricModel() {
 
     #expect(String(describing: type(of: tile)).contains("HaneulchiMetricTile"))
 }
+
+@Test(
+    "operational screens share screen padding, section spacing, column gap, and supporting rail width",
+)
+func operationalScreenLayoutMetricsUseSharedRhythm() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.screenPadding == HaneulchiMetrics.Padding.pageCompact)
+    #expect(layout.sectionSpacing == HaneulchiMetrics.Spacing.lg)
+    #expect(layout.columnSpacing == HaneulchiMetrics.Workspace.columnGap)
+    #expect(layout.gridSpacing == HaneulchiMetrics.Workspace.columnGap)
+    #expect(layout.supportingRailWidth == HaneulchiMetrics.Panel.supportingColumnWidth)
+    #expect(layout.decisionRailWidth == 216)
+}
+
+@Test(
+    "review surfaces reuse the shared supporting rail and keep the decision rail narrower than detail content",
+)
+func reviewScreenLayoutKeepsDecisionRailSecondary() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.decisionRailWidth < layout.supportingRailWidth)
+}

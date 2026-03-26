@@ -3,6 +3,7 @@ import SwiftUI
 struct ReviewQueueView: View {
     let summary: String
     @StateObject private var viewModel: ReviewQueueViewModel
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     init(
         summary: String =
@@ -14,7 +15,7 @@ struct ReviewQueueView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
+        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
             HaneulchiHeaderDeck(
                 title: "Review Queue",
                 subtitle: summary,
@@ -30,7 +31,7 @@ struct ReviewQueueView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
-                HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
+                HStack(alignment: .top, spacing: layout.columnSpacing) {
                     HaneulchiOpsRailPanel(
                         title: "Ready for Review",
                         count: viewModel.items.count,
@@ -41,7 +42,7 @@ struct ReviewQueueView: View {
                             }
                         }
                     }
-                    .frame(width: 320)
+                    .frame(width: layout.supportingRailWidth)
 
                     VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                         if let degradedReason = viewModel.degradedReason {
@@ -69,7 +70,8 @@ struct ReviewQueueView: View {
                 }
             }
         }
-        .padding(HaneulchiMetrics.Padding.page)
+        .padding(.horizontal, layout.screenPadding)
+        .padding(.vertical, layout.sectionSpacing)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Surface.foundation)
         .task {

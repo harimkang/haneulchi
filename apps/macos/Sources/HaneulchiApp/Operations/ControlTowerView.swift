@@ -3,10 +3,11 @@ import SwiftUI
 struct ControlTowerView: View {
     let model: ControlTowerViewModel
     let onAction: (AppShellAction) -> Void
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
+            VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                 HaneulchiHeaderDeck(
                     title: "Control Tower",
                     subtitle: "Scan control-plane health and multi-project activity without leaving the operator surface.",
@@ -31,7 +32,7 @@ struct ControlTowerView: View {
                     onReload: { onAction(.reloadWorkflow) },
                 )
 
-                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.md) {
+                VStack(alignment: .leading, spacing: layout.sectionSpacing) {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Project Matrix")
                             .font(HaneulchiTypography.sectionHeading)
@@ -52,7 +53,7 @@ struct ControlTowerView: View {
                     }
 
                     ViewThatFits(in: .horizontal) {
-                        HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
+                        HStack(alignment: .top, spacing: layout.columnSpacing) {
                             AttentionQueueSummaryView(items: model.attentionItems) { item in
                                 if let sessionID = item.targetSessionID {
                                     onAction(.jumpToSession(sessionID))
@@ -66,7 +67,7 @@ struct ControlTowerView: View {
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Padding.columnGap) {
+                        VStack(alignment: .leading, spacing: layout.columnSpacing) {
                             AttentionQueueSummaryView(items: model.attentionItems) { item in
                                 if let sessionID = item.targetSessionID {
                                     onAction(.jumpToSession(sessionID))
@@ -82,9 +83,9 @@ struct ControlTowerView: View {
                     }
                 }
             }
-            .padding(.horizontal, HaneulchiMetrics.Padding.page)
-            .padding(.vertical, HaneulchiChrome.Spacing.panelGap)
-            .padding(.bottom, HaneulchiChrome.Spacing.panelGap)
+            .padding(.horizontal, layout.screenPadding)
+            .padding(.vertical, layout.sectionSpacing)
+            .padding(.bottom, layout.sectionSpacing)
         }
         .background(HaneulchiChrome.Surface.foundation)
     }

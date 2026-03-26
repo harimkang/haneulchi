@@ -3,17 +3,18 @@ import SwiftUI
 struct ControlTowerProjectCardGrid: View {
     let cards: [ControlTowerViewModel.ProjectCard]
     let onOpenProject: (String) -> Void
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     private let columns = [
         GridItem(
             .adaptive(minimum: 220, maximum: 280),
-            spacing: HaneulchiChrome.Spacing.itemGap,
+            spacing: HaneulchiOperationalLayoutMetrics.standard.gridSpacing,
             alignment: .topLeading,
         ),
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: HaneulchiChrome.Spacing.itemGap) {
+        LazyVGrid(columns: columns, spacing: layout.gridSpacing) {
             ForEach(cards) { card in
                 Button {
                     onOpenProject(card.projectID)

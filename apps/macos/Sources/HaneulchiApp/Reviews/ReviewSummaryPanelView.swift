@@ -3,6 +3,7 @@ import SwiftUI
 struct ReviewSummaryPanelView: View {
     let item: ReviewQueueProjectionPayload.Item?
     let onDecision: ((ReviewDecisionCommand) -> Void)?
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     init(
         item: ReviewQueueProjectionPayload.Item?,
@@ -13,7 +14,7 @@ struct ReviewSummaryPanelView: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
+        HStack(alignment: .top, spacing: layout.columnSpacing) {
             HaneulchiOpsRailPanel(title: "Review Summary") {
                 if let item {
                     VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
@@ -98,7 +99,7 @@ struct ReviewSummaryPanelView: View {
                         .frame(maxWidth: .infinity)
                 }
             }
-            .frame(width: 200, alignment: .topLeading)
+            .frame(width: layout.decisionRailWidth, alignment: .topLeading)
         }
     }
 }

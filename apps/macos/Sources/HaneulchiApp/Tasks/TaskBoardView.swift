@@ -3,6 +3,7 @@ import SwiftUI
 struct TaskBoardView: View {
     let summary: String
     @StateObject private var viewModel: TaskBoardViewModel
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
     init(
         summary: String = "Task board projection is loaded from Rust-owned task data.",
@@ -13,14 +14,9 @@ struct TaskBoardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                Text("Task Board")
-                    .font(HaneulchiTypography.display)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                Text(summary)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
+        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+            HaneulchiHeaderDeck(title: "Task Board", subtitle: summary) {
+                EmptyView()
             }
 
             projectFilterBar
@@ -39,7 +35,7 @@ struct TaskBoardView: View {
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
+                HStack(alignment: .top, spacing: layout.columnSpacing) {
                     ForEach(viewModel.columns) { column in
                         columnView(column)
                     }
@@ -47,7 +43,8 @@ struct TaskBoardView: View {
                 .padding(.bottom, HaneulchiMetrics.Spacing.xs)
             }
         }
-        .padding(HaneulchiChrome.Spacing.screenPadding)
+        .padding(.horizontal, layout.screenPadding)
+        .padding(.vertical, layout.sectionSpacing)
         .background(HaneulchiChrome.Surface.foundation)
         .task {
             do {
