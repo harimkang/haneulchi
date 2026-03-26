@@ -5,6 +5,7 @@ struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
     @State private var launcherNotice: String?
+    @State private var viewportContext = HaneulchiViewportContext(width: 0)
     private let projectFolderPicker: ProjectFolderPicker
     private let demoWorkspaceScaffold: DemoWorkspaceScaffold
 
@@ -104,7 +105,8 @@ struct AppShellView: View {
                             performAction(.dismissQuickDispatch)
                         },
                     )
-                    .frame(maxWidth: 520)
+                    .frame(width: quickDispatchWidth)
+                    .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
                 }
             }
         }
@@ -185,6 +187,15 @@ struct AppShellView: View {
                         }
                     },
                 )
+            }
+        }
+        .environment(\.viewportContext, viewportContext)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, shellWidth in
+            let resolvedContext = HaneulchiViewportContext(shellWidth: shellWidth)
+            if resolvedContext != viewportContext {
+                viewportContext = resolvedContext
             }
         }
     }
@@ -320,6 +331,16 @@ struct AppShellView: View {
         Task {
             await shellModel.perform(action)
         }
+    }
+
+    private var quickDispatchWidth: CGFloat {
+        viewportContext.modalWidthPolicy.resolvedWidth(
+            preferredWidth: 520,
+            availableWidth: max(
+                0,
+                viewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+            ),
+        )
     }
 
     private var launcherEntryReason: AppShellModel.LauncherEntryReason {

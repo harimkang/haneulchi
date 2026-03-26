@@ -68,6 +68,10 @@ struct HaneulchiViewportContext: Equatable, Sendable {
         .init(viewportClass: viewportClass)
     }
 
+    func drawerWidthPolicy(for role: HaneulchiDrawerWidthRole) -> HaneulchiDrawerWidthPolicy {
+        .init(role: role)
+    }
+
     var shellChromeDensity: HaneulchiShellChromeDensity {
         viewportClass >= .wide ? .regular : .compact
     }
@@ -293,6 +297,60 @@ struct HaneulchiModalWidthPolicy: Equatable, Sendable {
 
     func clampedWidth(_ width: CGFloat) -> CGFloat {
         HaneulchiMetrics.clamped(width, to: minimumWidth ... maximumWidth)
+    }
+
+    func resolvedWidth(
+        preferredWidth: CGFloat? = nil,
+        availableWidth: CGFloat,
+    ) -> CGFloat {
+        let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
+
+        guard availableWidth > 0 else {
+            return targetWidth
+        }
+
+        return min(targetWidth, availableWidth)
+    }
+}
+
+enum HaneulchiDrawerWidthRole: Equatable, Sendable {
+    case notification
+    case context
+}
+
+struct HaneulchiDrawerWidthPolicy: Equatable, Sendable {
+    let minimumWidth: CGFloat
+    let idealWidth: CGFloat
+    let maximumWidth: CGFloat
+
+    init(role: HaneulchiDrawerWidthRole) {
+        switch role {
+        case .notification:
+            minimumWidth = HaneulchiMetrics.Panel.inspectorMin
+            idealWidth = HaneulchiMetrics.Panel.inspectorMin
+            maximumWidth = HaneulchiMetrics.Panel.inspectorMax
+        case .context:
+            minimumWidth = 360
+            idealWidth = 420
+            maximumWidth = 520
+        }
+    }
+
+    func clampedWidth(_ width: CGFloat) -> CGFloat {
+        HaneulchiMetrics.clamped(width, to: minimumWidth ... maximumWidth)
+    }
+
+    func resolvedWidth(
+        preferredWidth: CGFloat? = nil,
+        availableWidth: CGFloat,
+    ) -> CGFloat {
+        let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
+
+        guard availableWidth > 0 else {
+            return targetWidth
+        }
+
+        return min(targetWidth, availableWidth)
     }
 }
 

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct TaskContextDrawerView: View {
+    @Environment(\.viewportContext) private var viewportContext
     let model: TaskDrawerModel?
     let onPrimaryAction: ((TaskDrawerModel) -> Void)?
     let onQuickDispatch: (() -> Void)?
@@ -114,7 +115,12 @@ struct TaskContextDrawerView: View {
             }
         }
         .padding(16)
-        .frame(minWidth: 420, alignment: .topLeading)
+        .frame(
+            width: viewportContext.drawerWidthPolicy(for: .context).resolvedWidth(
+                availableWidth: viewportContext.width,
+            ),
+            alignment: .topLeading,
+        )
         .background(HaneulchiChrome.Colors.surfaceRaised)
     }
 }

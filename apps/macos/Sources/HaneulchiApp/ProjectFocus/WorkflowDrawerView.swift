@@ -163,6 +163,7 @@ struct WorkflowStatusPayload: Codable, Equatable, Sendable {
 }
 
 struct WorkflowDrawerView: View {
+    @Environment(\.viewportContext) private var viewportContext
     let status: WorkflowStatusPayload?
     let onReload: () -> Void
 
@@ -240,7 +241,12 @@ struct WorkflowDrawerView: View {
                 .buttonStyle(.bordered)
         }
         .padding(16)
-        .frame(minWidth: 420, alignment: .topLeading)
+        .frame(
+            width: viewportContext.drawerWidthPolicy(for: .context).resolvedWidth(
+                availableWidth: viewportContext.width,
+            ),
+            alignment: .topLeading,
+        )
         .background(HaneulchiChrome.Colors.surfaceRaised)
     }
 }

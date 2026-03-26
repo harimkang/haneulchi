@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NewSessionSheetView: View {
+    @Environment(\.viewportContext) private var viewportContext
     @ObservedObject var viewModel: NewSessionSheetViewModel
     let onLaunch: (SessionLaunchDescriptor) -> Void
 
@@ -45,6 +46,12 @@ struct NewSessionSheetView: View {
             }
         }
         .padding(24)
-        .frame(minWidth: 520)
+        .frame(
+            width: viewportContext.modalWidthPolicy.resolvedWidth(
+                preferredWidth: 520,
+                availableWidth: viewportContext.width,
+            ),
+            alignment: .leading,
+        )
     }
 }

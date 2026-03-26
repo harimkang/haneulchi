@@ -152,6 +152,43 @@ func modalWidthPolicyUsesSharedTokensAndClamps() {
     #expect(wide.clampedWidth(wideTokens.maximumWidth + 1) == wideTokens.maximumWidth)
 }
 
+@Test("shared modal policy resolves a viewport-safe frame width from the preferred width")
+func modalWidthPolicyResolvesViewportSafeFrameWidth() {
+    let compact = HaneulchiViewportContext(width: 959).modalWidthPolicy
+    let expanded = HaneulchiViewportContext(width: 1520).modalWidthPolicy
+
+    #expect(compact.resolvedWidth(availableWidth: 480) == 480)
+    #expect(compact.resolvedWidth(availableWidth: 640) == HaneulchiMetrics.Modal.compact.idealWidth)
+    #expect(compact.resolvedWidth(preferredWidth: 760, availableWidth: 900) ==
+        HaneulchiMetrics.Modal.compact.maximumWidth)
+
+    #expect(expanded.resolvedWidth(availableWidth: 0) == HaneulchiMetrics.Modal.expanded.idealWidth)
+    #expect(expanded.resolvedWidth(availableWidth: 720) == 720)
+    #expect(expanded.resolvedWidth(preferredWidth: 840, availableWidth: 900) ==
+        HaneulchiMetrics.Modal.expanded.maximumWidth)
+}
+
+@Test("shared drawer policies expose notification and context width roles with viewport clamps")
+func drawerWidthPoliciesUseSharedRolesAndViewportClamps() {
+    let compact = HaneulchiViewportContext(width: 959)
+    let expanded = HaneulchiViewportContext(width: 1520)
+    let notification = compact.drawerWidthPolicy(for: .notification)
+    let context = expanded.drawerWidthPolicy(for: .context)
+
+    #expect(notification.minimumWidth == HaneulchiMetrics.Panel.inspectorMin)
+    #expect(notification.idealWidth == HaneulchiMetrics.Panel.inspectorMin)
+    #expect(notification.maximumWidth == HaneulchiMetrics.Panel.inspectorMax)
+    #expect(notification.resolvedWidth(availableWidth: 280) == 280)
+    #expect(notification.resolvedWidth(availableWidth: 420) == notification.idealWidth)
+
+    #expect(context.minimumWidth == 360)
+    #expect(context.idealWidth == 420)
+    #expect(context.maximumWidth == 520)
+    #expect(context.resolvedWidth(availableWidth: 0) == context.idealWidth)
+    #expect(context.resolvedWidth(availableWidth: 380) == 380)
+    #expect(context.resolvedWidth(preferredWidth: 560, availableWidth: 900) == context.maximumWidth)
+}
+
 @Test("shell viewport context derives content width from the shell width once")
 func shellViewportContextDerivesContentWidthFromShellWidth() {
     let context = HaneulchiViewportContext(shellWidth: 512)

@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct CommandPaletteOverlay: View {
+    @Environment(\.viewportContext) private var viewportContext
     @ObservedObject var viewModel: CommandPaletteViewModel
     let onExecute: (AppShellAction) -> Void
     let onClose: () -> Void
@@ -66,15 +67,13 @@ struct CommandPaletteOverlay: View {
                     .padding(HaneulchiMetrics.Spacing.md)
                 }
             }
-            .frame(
-                minWidth: HaneulchiMetrics.Panel.commandPaletteMin,
-                maxWidth: HaneulchiMetrics.Panel.commandPaletteMax,
-                maxHeight: 520,
-            )
+            .frame(width: paletteWidth)
+            .frame(maxHeight: 520)
             .glassPanel()
             .ambientShadow()
             .floatingSurface(isVisible: true)
             .padding(.top, HaneulchiMetrics.Spacing.xxl)
+            .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
         }
         .onAppear {
             isSearchFocused = true
@@ -98,5 +97,14 @@ struct CommandPaletteOverlay: View {
         }
 
         onExecute(action)
+    }
+
+    private var paletteWidth: CGFloat {
+        viewportContext.modalWidthPolicy.resolvedWidth(
+            availableWidth: max(
+                0,
+                viewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+            ),
+        )
     }
 }

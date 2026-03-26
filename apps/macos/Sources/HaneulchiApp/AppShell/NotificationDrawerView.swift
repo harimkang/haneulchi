@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct NotificationDrawerView: View {
+    @Environment(\.viewportContext) private var viewportContext
     let items: [NotificationDrawerModel.Item]
     let onAction: (AppShellAction) -> Void
 
@@ -28,6 +29,12 @@ struct NotificationDrawerView: View {
             }
         }
         .padding(16)
-        .frame(minWidth: 320, alignment: .topLeading)
+        .frame(width: drawerWidth, alignment: .topLeading)
+    }
+
+    private var drawerWidth: CGFloat {
+        viewportContext.drawerWidthPolicy(for: .notification).resolvedWidth(
+            availableWidth: max(0, viewportContext.width - HaneulchiChrome.Spacing.screenPadding),
+        )
     }
 }
