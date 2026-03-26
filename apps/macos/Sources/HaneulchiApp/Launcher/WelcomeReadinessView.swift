@@ -72,8 +72,11 @@ struct WelcomeReadinessView: View {
             return shellViewportContext
         }
 
-        let fallbackWidth = max(localWidth, HaneulchiMetrics.Responsive.mediumWidth)
-        return .init(width: fallbackWidth)
+        if localWidth > 0 {
+            return .init(width: localWidth)
+        }
+
+        return .init(width: HaneulchiMetrics.Responsive.mediumWidth)
     }
 
     private var recentProjectsPane: some View {

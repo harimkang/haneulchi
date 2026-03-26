@@ -83,14 +83,19 @@ func welcomeRoutePolicyUsesSharedViewportClasses() {
 func welcomeReadinessUsesLocalViewportFallback() {
     let local = WelcomeReadinessView.resolvedViewportContext(
         shellViewportContext: .init(width: 0),
-        localWidth: 1240,
+        localWidth: 480,
+    )
+    let bootstrap = WelcomeReadinessView.resolvedViewportContext(
+        shellViewportContext: .init(width: 0),
+        localWidth: 0,
     )
     let shell = WelcomeReadinessView.resolvedViewportContext(
         shellViewportContext: .init(width: 959),
         localWidth: 1520,
     )
 
-    #expect(local.viewportClass == .wide)
+    #expect(local.viewportClass == .compact)
+    #expect(bootstrap.viewportClass == .medium)
     #expect(shell.viewportClass == .compact)
 }
 
@@ -98,14 +103,19 @@ func welcomeReadinessUsesLocalViewportFallback() {
 func worktreeInventoryUsesLocalViewportFallback() {
     let local = WorktreeInventoryView.resolvedViewportContext(
         shellViewportContext: .init(width: 0),
-        localWidth: 1520,
+        localWidth: 480,
+    )
+    let bootstrap = WorktreeInventoryView.resolvedViewportContext(
+        shellViewportContext: .init(width: 0),
+        localWidth: 0,
     )
     let shell = WorktreeInventoryView.resolvedViewportContext(
         shellViewportContext: .init(width: 960),
         localWidth: 480,
     )
 
-    #expect(local.viewportClass == .expanded)
+    #expect(local.viewportClass == .compact)
+    #expect(bootstrap.viewportClass == .medium)
     #expect(shell.viewportClass == .medium)
 }
 
