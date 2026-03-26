@@ -17,15 +17,20 @@ struct ControlTowerProjectCardGrid: View {
                 } label: {
                     HaneulchiCard {
                         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                            HStack(alignment: .firstTextBaseline) {
-                                Text(card.title)
-                                    .font(HaneulchiTypography.sectionHeading)
-                                    .foregroundStyle(HaneulchiChrome.Label.primary)
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                    Text(card.title)
+                                        .font(HaneulchiTypography.sectionHeading)
+                                        .foregroundStyle(HaneulchiChrome.Label.primary)
+                                    HaneulchiStatusBadge(
+                                        state: card.statusBadgeState,
+                                        label: card.statusLabel,
+                                    )
+                                }
                                 Spacer()
-                                HaneulchiStatusBadge(
-                                    state: card.statusBadgeState,
-                                    label: card.statusLabel,
-                                )
+                                Image(systemName: card.iconName)
+                                    .font(.system(size: HaneulchiMetrics.Icon.standard))
+                                    .foregroundStyle(HaneulchiChrome.Label.muted)
                             }
 
                             HStack(spacing: HaneulchiMetrics.Spacing.md) {
@@ -44,12 +49,7 @@ struct ControlTowerProjectCardGrid: View {
                                 }
                             }
 
-                            HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                                heatChip("run", card.heatStrip.running)
-                                heatChip("wait", card.heatStrip.waitingInput)
-                                heatChip("review", card.heatStrip.reviewReady)
-                                heatChip("block", card.heatStrip.blocked)
-                            }
+                            visualHeatmap(strip: card.heatStrip)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -70,13 +70,28 @@ struct ControlTowerProjectCardGrid: View {
         }
     }
 
-    private func heatChip(_ label: String, _ value: Int) -> some View {
-        Text("\(label) \(value)")
-            .font(HaneulchiTypography.compactMeta)
-            .foregroundStyle(HaneulchiChrome.Label.muted)
-            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
-            .background(HaneulchiChrome.Surface.recess)
-            .clipShape(Capsule())
+    private func visualHeatmap(strip: ControlTowerViewModel.HeatStrip) -> some View {
+        HStack(spacing: 4) {
+            let total = strip.running + strip.waitingInput + strip.reviewReady + strip.blocked
+            if total == 0 {
+                ForEach(0..<7, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(HaneulchiChrome.Surface.recess)
+                        .frame(height: 12)
+                }
+            } else {
+                let baseColor = strip.blocked > 0 ? HaneulchiChrome.State.errorSolid :
+                    (strip.waitingInput > 0 || strip.reviewReady > 0) ? HaneulchiChrome.Gradient.primaryEnd :
+                    HaneulchiChrome.State.successSolid
+                
+                let opacities: [Double] = [0.2, 0.4, 0.8, 0.6, 0.9, 0.3, 1.0] // Simulated active density
+                
+                ForEach(0..<opacities.count, id: \.self) { idx in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(baseColor.opacity(opacities[idx]))
+                        .frame(height: 12)
+                }
+            }
+        }
     }
 }

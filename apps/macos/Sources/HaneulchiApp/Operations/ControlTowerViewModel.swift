@@ -11,6 +11,7 @@ struct ControlTowerViewModel: Equatable, Sendable {
     struct ProjectCard: Equatable, Identifiable, Sendable {
         let projectID: String
         let title: String
+        let iconName: String
         let statusLabel: String
         let sessionCountLabel: String
         let attentionCountLabel: String
@@ -84,9 +85,18 @@ struct ControlTowerViewModel: Equatable, Sendable {
             )
             let statusLabel = project.attentionCount > 0 ? "attention" : project.status.rawValue
 
+            let iconName: String
+            let lowerName = project.name.lowercased()
+            if lowerName.contains("auth") { iconName = "lock.shield" }
+            else if lowerName.contains("api") { iconName = "network" }
+            else if lowerName.contains("ios") || lowerName.contains("mobile") { iconName = "iphone" }
+            else if lowerName.contains("infra") || lowerName.contains("k8s") { iconName = "server.rack" }
+            else { iconName = "folder" }
+
             return ProjectCard(
                 projectID: project.projectID,
                 title: project.name,
+                iconName: iconName,
                 statusLabel: statusLabel,
                 sessionCountLabel: "\(project.sessionCount) sessions",
                 attentionCountLabel: "\(project.attentionCount) items",
