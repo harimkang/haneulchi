@@ -84,7 +84,7 @@ struct TaskDrawerModel: Equatable, Sendable {
             lastError: workflowStatus?.lastError,
             lastBootstrapOutcome: workflowStatus?.lastBootstrap?.outcomeCode,
             bootstrapPhaseSummary: workflowStatus?.lastBootstrap?.phaseSequence.joined(
-                separator: " -> "
+                separator: " -> ",
             ),
             renderedPromptPath: workflowStatus?.lastBootstrap?.renderedPromptPath,
             hookPhaseResults: workflowStatus?.lastBootstrap?.hookPhaseResults ?? [],

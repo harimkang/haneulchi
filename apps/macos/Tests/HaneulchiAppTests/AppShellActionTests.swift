@@ -1265,7 +1265,13 @@ func isolatedLaunchUsesRustBootstrapSummary() async throws {
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
         prepareIsolatedLaunch: { projectRoot, projectName, taskID, taskTitle, workspaceRoot in
-            bootstrapCalls.value.append((projectRoot, projectName, taskID, taskTitle, workspaceRoot))
+            bootstrapCalls.value.append((
+                projectRoot,
+                projectName,
+                taskID,
+                taskTitle,
+                workspaceRoot,
+            ))
             let sessionCwd = workspaceRoot + "/nested"
             try FileManager.default.createDirectory(
                 atPath: sessionCwd,
@@ -1282,7 +1288,15 @@ func isolatedLaunchUsesRustBootstrapSummary() async throws {
                 baseRoot: ".",
                 sessionCwd: sessionCwd,
                 renderedPromptPath: renderedPromptPath,
-                phaseSequence: ["resolve", "normalize", "workspace", "paths", "after_create", "prompt", "before_run"],
+                phaseSequence: [
+                    "resolve",
+                    "normalize",
+                    "workspace",
+                    "paths",
+                    "after_create",
+                    "prompt",
+                    "before_run",
+                ],
                 hookPhaseResults: [],
                 outcomeCode: "launch_prepared",
                 warningCodes: [],

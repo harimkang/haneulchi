@@ -167,9 +167,17 @@ func commandPaletteExposesOperatorCommands() {
     )
     let commandItems = catalog.sections.first(where: { $0.kind == .commands })?.items ?? []
 
-    #expect(commandItems.contains(where: { $0.title == "Refresh Automation Snapshot" && $0.action == .refreshShellSnapshot }))
-    #expect(commandItems.contains(where: { $0.title == "Reconcile Now" && $0.action == .reconcileAutomation }))
-    #expect(commandItems.contains(where: { $0.title == "Reload Workflow Contract" && $0.action == .reloadWorkflow }))
-    #expect(commandItems.contains(where: { $0.title == "Export State JSON" && $0.action == .exportSnapshot }))
-    #expect(commandItems.contains(where: { $0.title == "Open Automation Panel" && $0.action == .openSettings }))
+    #expect(commandItems
+        .contains(where: {
+            $0.title == "Refresh Automation Snapshot" && $0.action == .refreshShellSnapshot
+        }))
+    #expect(commandItems
+        .contains(where: { $0.title == "Reconcile Now" && $0.action == .reconcileAutomation }))
+    #expect(commandItems
+        .contains(where: { $0.title == "Reload Workflow Contract" && $0.action == .reloadWorkflow
+        }))
+    #expect(commandItems
+        .contains(where: { $0.title == "Export State JSON" && $0.action == .exportSnapshot }))
+    #expect(commandItems
+        .contains(where: { $0.title == "Open Automation Panel" && $0.action == .openSettings }))
 }

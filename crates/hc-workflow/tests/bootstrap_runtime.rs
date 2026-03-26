@@ -329,8 +329,11 @@ fn optional_before_run_failure_records_warning_and_continues_launch() {
     let workspace_root = root.join("worktrees/task-104");
     let before_run = root.join("before-run-optional.sh");
 
-    fs::write(&before_run, "#!/bin/sh\necho optional-blocked >&2\nexit 7\n")
-        .expect("before run optional");
+    fs::write(
+        &before_run,
+        "#!/bin/sh\necho optional-blocked >&2\nexit 7\n",
+    )
+    .expect("before run optional");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -354,7 +357,10 @@ fn optional_before_run_failure_records_warning_and_continues_launch() {
     );
     assert_eq!(result.launch_exit_code, Some(0));
     assert!(
-        result.warning_codes.iter().any(|code| code.contains("before_run")),
+        result
+            .warning_codes
+            .iter()
+            .any(|code| code.contains("before_run")),
         "expected optional before_run failure warning, got: {:?}",
         result.warning_codes
     );
@@ -434,12 +440,21 @@ fn prepare_bootstrap_runs_setup_phases_without_launching_runtime_or_after_run() 
     let before_run = root.join("before-run.sh");
     let after_run = root.join("after-run.sh");
 
-    fs::write(&after_create, "#!/bin/sh\necho after-create > \"$PWD/after-create.txt\"\n")
-        .expect("after create");
-    fs::write(&before_run, "#!/bin/sh\necho before-run > \"$PWD/before-run.txt\"\n")
-        .expect("before run");
-    fs::write(&after_run, "#!/bin/sh\necho after-run > \"$PWD/after-run.txt\"\n")
-        .expect("after run");
+    fs::write(
+        &after_create,
+        "#!/bin/sh\necho after-create > \"$PWD/after-create.txt\"\n",
+    )
+    .expect("after create");
+    fs::write(
+        &before_run,
+        "#!/bin/sh\necho before-run > \"$PWD/before-run.txt\"\n",
+    )
+    .expect("before run");
+    fs::write(
+        &after_run,
+        "#!/bin/sh\necho after-run > \"$PWD/after-run.txt\"\n",
+    )
+    .expect("after run");
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -462,8 +477,20 @@ fn prepare_bootstrap_runs_setup_phases_without_launching_runtime_or_after_run() 
         .expect("prepare bootstrap result");
 
     assert_eq!(result.outcome_code, "launch_prepared");
-    assert!(PathBuf::from(&result.session_cwd).join("after-create.txt").exists());
-    assert!(PathBuf::from(&result.session_cwd).join("before-run.txt").exists());
-    assert!(!PathBuf::from(&result.session_cwd).join("after-run.txt").exists());
+    assert!(
+        PathBuf::from(&result.session_cwd)
+            .join("after-create.txt")
+            .exists()
+    );
+    assert!(
+        PathBuf::from(&result.session_cwd)
+            .join("before-run.txt")
+            .exists()
+    );
+    assert!(
+        !PathBuf::from(&result.session_cwd)
+            .join("after-run.txt")
+            .exists()
+    );
     assert!(PathBuf::from(&result.rendered_prompt_path).exists());
 }

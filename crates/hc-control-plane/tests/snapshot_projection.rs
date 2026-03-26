@@ -50,13 +50,7 @@ fn orchestrator_runtime(
 #[test]
 fn session_projection_includes_workflow_review_ready_and_retry_due_attention() {
     let snapshot = project_snapshot(SnapshotSeed {
-        orchestrator_runtime: orchestrator_runtime(
-            15_000,
-            1,
-            4,
-            "invalid_kept_last_good",
-            "ok",
-        ),
+        orchestrator_runtime: orchestrator_runtime(15_000, 1, 4, "invalid_kept_last_good", "ok"),
         workflow: workflow_status(WorkflowHealth::InvalidKeptLastGood),
         tracker: tracker_status(),
         projects: vec![ProjectSummary::new(
@@ -266,7 +260,10 @@ fn snapshot_builder_uses_explicit_orchestrator_runtime_values() {
     });
 
     assert_eq!(snapshot.ops.automation.cadence_ms, 30_000);
-    assert_eq!(snapshot.ops.automation.last_tick_at.as_deref(), Some("2026-03-26T03:00:00Z"));
+    assert_eq!(
+        snapshot.ops.automation.last_tick_at.as_deref(),
+        Some("2026-03-26T03:00:00Z")
+    );
     assert_eq!(
         snapshot.ops.automation.last_reconcile_at.as_deref(),
         Some("2026-03-26T03:01:00Z")
@@ -279,13 +276,7 @@ fn snapshot_builder_uses_explicit_orchestrator_runtime_values() {
 #[test]
 fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_projection() {
     let result = build_authoritative_snapshot(SnapshotSeed {
-        orchestrator_runtime: orchestrator_runtime(
-            15_000,
-            0,
-            1,
-            "ok",
-            "snapshot_unavailable",
-        ),
+        orchestrator_runtime: orchestrator_runtime(15_000, 0, 1, "ok", "snapshot_unavailable"),
         workflow: workflow_status(WorkflowHealth::Ok),
         tracker: TrackerStatus {
             state: "local_only".to_string(),

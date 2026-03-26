@@ -361,7 +361,12 @@ fn normalize_hooks(
             raw.after_create,
             HookPhase::AfterCreate,
         )?,
-        before_run: normalize_hook(repo_root, workflow_dir, raw.before_run, HookPhase::BeforeRun)?,
+        before_run: normalize_hook(
+            repo_root,
+            workflow_dir,
+            raw.before_run,
+            HookPhase::BeforeRun,
+        )?,
         after_run: normalize_hook(repo_root, workflow_dir, raw.after_run, HookPhase::AfterRun)?,
     })
 }

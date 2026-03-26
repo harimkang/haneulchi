@@ -110,11 +110,11 @@ pub use settings_bridge::{
     terminal_settings_json, upsert_secret_ref_json, upsert_terminal_settings_json,
 };
 pub use state_bridge::{
-    hc_session_attach_task_json, hc_session_detach_task_json, hc_session_focus,
-    hc_session_details_json, hc_session_release_takeover, hc_session_takeover,
-    hc_sessions_list_json, hc_state_snapshot_json, session_attach_task_json,
-    session_details_json, session_detach_task_json, session_focus, session_release_takeover,
-    session_takeover, sessions_list_json, state_snapshot_json,
+    hc_session_attach_task_json, hc_session_detach_task_json, hc_session_details_json,
+    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
+    hc_state_snapshot_json, session_attach_task_json, session_detach_task_json,
+    session_details_json, session_focus, session_release_takeover, session_takeover,
+    sessions_list_json, state_snapshot_json,
 };
 pub use task_bridge::{
     hc_task_board_json, hc_task_move_json, hc_task_prepare_isolated_launch_json,

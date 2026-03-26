@@ -4,14 +4,16 @@ use std::sync::{Mutex, OnceLock};
 
 use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, OrchestratorRuntime,
-    ProjectSummary,
-    SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
-    WorkflowHealth, WorkflowRuntimeStatus,
+    ProjectSummary, SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus,
+    WarningSummary, WorkflowHealth, WorkflowRuntimeStatus,
     inventory::{InventoryRow, InventorySummary},
     time::now_iso8601,
 };
 use hc_runtime::terminal::runtime::TerminalSessionSnapshot as RuntimeSessionSnapshot;
-use hc_workflow::{LoadWorkflowRequest, PrepareBootstrapRequest, WorkflowLoader, WorkflowRuntime, prepare_bootstrap};
+use hc_workflow::{
+    LoadWorkflowRequest, PrepareBootstrapRequest, WorkflowLoader, WorkflowRuntime,
+    prepare_bootstrap,
+};
 
 use crate::attention::derive_attention;
 use crate::inventory::{build_inventory_for_project, build_inventory_summary};

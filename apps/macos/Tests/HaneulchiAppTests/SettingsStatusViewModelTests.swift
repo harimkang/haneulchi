@@ -140,7 +140,8 @@ func settingsStatusViewModelSeparatesSections() {
     #expect(model.automationRows.first(where: { $0.id == .localAPI })?.statusLabel == "available")
     #expect(model.automationRows.first(where: { $0.id == .localAPI })?.detail
         .contains("ffi_c_abi") == true)
-    #expect(model.automationRows.first(where: { $0.id == .localAPI })?.nextAction == "Export Snapshot")
+    #expect(model.automationRows.first(where: { $0.id == .localAPI })?
+        .nextAction == "Export Snapshot")
     #expect(model.automationRows.first(where: { $0.id == .workflowWatch })?
         .statusLabel == "invalid_kept_last_good")
     #expect(model.automationRows.first(where: { $0.id == .workflowDefaults })?.detail

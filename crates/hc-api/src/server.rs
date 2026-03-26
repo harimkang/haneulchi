@@ -158,25 +158,31 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
         }
     };
 
-    let (status, payload) = match resolve_route_response(route(method, path, body, &request_id), &request_id) {
-        Ok(response) => response,
-        Err(error) => (
-            500,
-            error_json(
-                "internal_error",
-                &error,
-                current_snapshot().ok().as_ref(),
-                request_id,
-                false,
-                serde_json::json!({}),
-            )?,
-        ),
-    };
+    let (status, payload) =
+        match resolve_route_response(route(method, path, body, &request_id), &request_id) {
+            Ok(response) => response,
+            Err(error) => (
+                500,
+                error_json(
+                    "internal_error",
+                    &error,
+                    current_snapshot().ok().as_ref(),
+                    request_id,
+                    false,
+                    serde_json::json!({}),
+                )?,
+            ),
+        };
     write_response(&mut stream, status, &payload)?;
     Ok(())
 }
 
-fn route(method: &str, raw_path: &str, body: &str, request_id: &str) -> Result<(u16, String), String> {
+fn route(
+    method: &str,
+    raw_path: &str,
+    body: &str,
+    request_id: &str,
+) -> Result<(u16, String), String> {
     let (path, query) = raw_path.split_once('?').unwrap_or((raw_path, ""));
     let segments = path.trim_start_matches('/').split('/').collect::<Vec<_>>();
     let query = parse_query(query);
@@ -186,7 +192,10 @@ fn route(method: &str, raw_path: &str, body: &str, request_id: &str) -> Result<(
             200,
             state_json_for(StateQuery {
                 project_id: query.get("project_id").map(String::as_str),
-                compact: query.get("view").map(|view| view == "compact").unwrap_or(false),
+                compact: query
+                    .get("view")
+                    .map(|view| view == "compact")
+                    .unwrap_or(false),
                 include_attention: parse_bool_query(&query, "include_attention", true),
                 include_retry_queue: parse_bool_query(&query, "include_retry_queue", true),
             })?,
@@ -225,7 +234,11 @@ fn route(method: &str, raw_path: &str, body: &str, request_id: &str) -> Result<(
                 .get("task_id")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_task_id".to_string())?;
-            wrap_success(200, session_attach_task_json(session_id, task_id)?, request_id)
+            wrap_success(
+                200,
+                session_attach_task_json(session_id, task_id)?,
+                request_id,
+            )
         }
         ("POST", ["v1", "sessions", session_id, "detach-task"]) => {
             wrap_success(200, session_detach_task_json(session_id)?, request_id)
@@ -241,7 +254,11 @@ fn route(method: &str, raw_path: &str, body: &str, request_id: &str) -> Result<(
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_title".to_string())?;
             let priority = json.get("priority").and_then(Value::as_str);
-            wrap_success(200, task_create_json(project_id, title, priority)?, request_id)
+            wrap_success(
+                200,
+                task_create_json(project_id, title, priority)?,
+                request_id,
+            )
         }
         ("POST", ["v1", "tasks", task_id, "move"]) => {
             let json = parse_json(body)?;
@@ -316,7 +333,10 @@ pub fn route_for_test(method: &str, path: &str, body: &str) -> Result<(u16, Stri
     resolve_route_response(route(method, path, body, "req_test"), "req_test")
 }
 
-fn resolve_route_response(result: Result<(u16, String), String>, request_id: &str) -> Result<(u16, String), String> {
+fn resolve_route_response(
+    result: Result<(u16, String), String>,
+    request_id: &str,
+) -> Result<(u16, String), String> {
     match result {
         Ok(response) => Ok(response),
         Err(error) => {
@@ -373,13 +393,22 @@ fn parse_json(body: &str) -> Result<Value, String> {
     serde_json::from_str(body).map_err(|error| error.to_string())
 }
 
-fn wrap_success(status: u16, payload_json: String, request_id: &str) -> Result<(u16, String), String> {
+fn wrap_success(
+    status: u16,
+    payload_json: String,
+    request_id: &str,
+) -> Result<(u16, String), String> {
     let snapshot = current_snapshot()?;
     let value: Value = serde_json::from_str(&payload_json).map_err(|error| error.to_string())?;
     Ok((status, success_json(value, &snapshot, request_id)?))
 }
 
-fn wrap_error(status: u16, code: &str, message: &str, request_id: &str) -> Result<(u16, String), String> {
+fn wrap_error(
+    status: u16,
+    code: &str,
+    message: &str,
+    request_id: &str,
+) -> Result<(u16, String), String> {
     let snapshot = current_snapshot().ok();
     Ok((
         status,
@@ -450,7 +479,8 @@ fn parse_bool_query(
     key: &str,
     default: bool,
 ) -> bool {
-    query.get(key)
+    query
+        .get(key)
         .map(|value| value.eq_ignore_ascii_case("true"))
         .unwrap_or(default)
 }

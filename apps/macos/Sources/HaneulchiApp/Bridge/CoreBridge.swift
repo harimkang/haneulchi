@@ -722,7 +722,10 @@ private func decodeSessionDetails(from data: Data) throws -> SessionDetailsPaylo
 private func decodeWorkflowBootstrapSummary(from data: Data) throws
     -> WorkflowStatusPayload.BootstrapSummary
 {
-    guard let payload = try? JSONDecoder().decode(WorkflowStatusPayload.BootstrapSummary.self, from: data)
+    guard let payload = try? JSONDecoder().decode(
+        WorkflowStatusPayload.BootstrapSummary.self,
+        from: data,
+    )
     else {
         throw CoreBridgeError.invalidRuntimeInfo
     }

@@ -95,7 +95,10 @@ fn isolated_launch_prep_uses_last_known_good_runtime_when_current_file_is_invali
         &workflow_reload_json(root.to_str().unwrap()).expect("initial reload"),
     )
     .expect("reload json");
-    let last_good_hash = initial_reload["last_good_hash"].as_str().unwrap().to_string();
+    let last_good_hash = initial_reload["last_good_hash"]
+        .as_str()
+        .unwrap()
+        .to_string();
 
     fs::write(
         root.join("WORKFLOW.md"),

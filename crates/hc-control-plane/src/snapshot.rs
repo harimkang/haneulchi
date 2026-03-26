@@ -1,7 +1,7 @@
 use hc_domain::{
     AppSnapshot, AppSnapshotMeta, AppState, OpsSummary, OrchestratorRuntime, ProjectSummary,
-    RetryQueueEntry, RetryState, SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus,
-    WarningSummary, WorkflowRuntimeStatus, time::now_iso8601,
+    RetryQueueEntry, RetryState, SessionFocusState, SessionRuntimeState, SessionSummary,
+    TrackerStatus, WarningSummary, WorkflowRuntimeStatus, time::now_iso8601,
 };
 
 use crate::attention::derive_attention;

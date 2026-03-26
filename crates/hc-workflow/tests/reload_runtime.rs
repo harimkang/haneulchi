@@ -340,10 +340,7 @@ fn invalid_hook_path_reload_keeps_last_good_and_records_last_error() {
         "expected invalid hook path error, got: {error}"
     );
     assert!(
-        runtime
-            .last_error()
-            .unwrap_or_default()
-            .contains("hook"),
+        runtime.last_error().unwrap_or_default().contains("hook"),
         "expected runtime.last_error to capture hook validation failure"
     );
 }

@@ -253,8 +253,13 @@ pub fn run_bootstrap(request: BootstrapRequest) -> Result<BootstrapResult, Strin
     }
 
     let rendered_prompt_path = session_cwd.join("prompt.rendered.md");
-    let rendered_prompt =
-        render_prompt(&request, &workspace_root, &session_cwd, &session_id, &now_iso8601)?;
+    let rendered_prompt = render_prompt(
+        &request,
+        &workspace_root,
+        &session_cwd,
+        &session_id,
+        &now_iso8601,
+    )?;
     fs::write(&rendered_prompt_path, rendered_prompt).map_err(|error| error.to_string())?;
     phases.push("prompt".to_string());
 
@@ -476,7 +481,13 @@ fn render_prompt(
         .name
         .clone()
         .unwrap_or_default();
-    let review_checklist_markdown = if request.workflow.effective_config.review.checklist.is_empty() {
+    let review_checklist_markdown = if request
+        .workflow
+        .effective_config
+        .review
+        .checklist
+        .is_empty()
+    {
         String::new()
     } else {
         request
@@ -511,7 +522,10 @@ fn render_prompt(
         .with("project.repo_root", request.repo_root.display().to_string())
         .with("session.id", session_id.to_string())
         .with("session.mode", "preset")
-        .with("session.workspace_root", workspace_root.display().to_string())
+        .with(
+            "session.workspace_root",
+            workspace_root.display().to_string(),
+        )
         .with("session.cwd", session_cwd.display().to_string())
         .with("session.branch", "")
         .with("session.adapter_name", "")
@@ -526,7 +540,10 @@ fn render_prompt(
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         )
-        .with("workflow.contract_hash", request.workflow.contract_hash.clone())
+        .with(
+            "workflow.contract_hash",
+            request.workflow.contract_hash.clone(),
+        )
         .with(
             "review.required",
             if request.workflow.effective_config.review.required {
@@ -557,7 +574,13 @@ fn render_prepare_prompt(
         .name
         .clone()
         .unwrap_or_default();
-    let review_checklist_markdown = if request.workflow.effective_config.review.checklist.is_empty() {
+    let review_checklist_markdown = if request
+        .workflow
+        .effective_config
+        .review
+        .checklist
+        .is_empty()
+    {
         String::new()
     } else {
         request
@@ -592,7 +615,10 @@ fn render_prepare_prompt(
         .with("project.repo_root", request.repo_root.display().to_string())
         .with("session.id", session_id.to_string())
         .with("session.mode", "preset")
-        .with("session.workspace_root", workspace_root.display().to_string())
+        .with(
+            "session.workspace_root",
+            workspace_root.display().to_string(),
+        )
         .with("session.cwd", session_cwd.display().to_string())
         .with("session.branch", "")
         .with("session.adapter_name", "")
@@ -607,7 +633,10 @@ fn render_prepare_prompt(
                 .map(|value| value.to_string())
                 .unwrap_or_default(),
         )
-        .with("workflow.contract_hash", request.workflow.contract_hash.clone())
+        .with(
+            "workflow.contract_hash",
+            request.workflow.contract_hash.clone(),
+        )
         .with(
             "review.required",
             if request.workflow.effective_config.review.required {
@@ -641,8 +670,14 @@ fn bootstrap_env(
             "HC_REPO_ROOT".to_string(),
             request.repo_root.display().to_string(),
         ),
-        ("HC_WORKSPACE_ROOT".to_string(), workspace_root.display().to_string()),
-        ("HC_SESSION_CWD".to_string(), session_cwd.display().to_string()),
+        (
+            "HC_WORKSPACE_ROOT".to_string(),
+            workspace_root.display().to_string(),
+        ),
+        (
+            "HC_SESSION_CWD".to_string(),
+            session_cwd.display().to_string(),
+        ),
         ("HC_SESSION_ID".to_string(), session_id.to_string()),
         (
             "HC_WORKFLOW_FILE".to_string(),
@@ -708,8 +743,14 @@ fn bootstrap_env_prepare(
             "HC_REPO_ROOT".to_string(),
             request.repo_root.display().to_string(),
         ),
-        ("HC_WORKSPACE_ROOT".to_string(), workspace_root.display().to_string()),
-        ("HC_SESSION_CWD".to_string(), session_cwd.display().to_string()),
+        (
+            "HC_WORKSPACE_ROOT".to_string(),
+            workspace_root.display().to_string(),
+        ),
+        (
+            "HC_SESSION_CWD".to_string(),
+            session_cwd.display().to_string(),
+        ),
         ("HC_SESSION_ID".to_string(), session_id.to_string()),
         (
             "HC_WORKFLOW_FILE".to_string(),

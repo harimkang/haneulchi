@@ -700,7 +700,8 @@ final class AppShellModel: ObservableObject {
             return nil
         }
 
-        guard let decoded = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload) else {
+        guard let decoded = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+        else {
             return nil
         }
 

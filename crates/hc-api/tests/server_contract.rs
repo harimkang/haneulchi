@@ -196,10 +196,7 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     assert_eq!(status, 200);
     assert_eq!(session_details["data"]["session_id"], "ses_api");
     assert!(session_details["data"]["recent_events"].is_array());
-    assert_eq!(
-        session_details["data"]["workflow_binding"]["state"],
-        "ok"
-    );
+    assert_eq!(session_details["data"]["workflow_binding"]["state"], "ok");
 
     let (status, _) = request(
         "POST",
