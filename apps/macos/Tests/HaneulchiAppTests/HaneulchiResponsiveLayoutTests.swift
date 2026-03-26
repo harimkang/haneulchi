@@ -199,6 +199,32 @@ func newSessionSheetUsesCompactActionFallback() {
     #expect(NewSessionSheetView.actionLayout(for: 439) == .stacked)
 }
 
+@Test("command palette surface preserves its 640 to 760 width contract")
+func commandPaletteSurfacePreservesPanelClamp() {
+    let compact = HaneulchiViewportContext(width: 959)
+
+    #expect(
+        compact.commandPaletteWidth(availableWidth: nil) ==
+            HaneulchiMetrics.Panel.commandPaletteMax,
+    )
+    #expect(
+        compact.commandPaletteWidth(availableWidth: 900) ==
+            HaneulchiMetrics.Panel.commandPaletteMax,
+    )
+    #expect(compact.commandPaletteWidth(availableWidth: 700) == 700)
+    #expect(compact.commandPaletteWidth(availableWidth: 620) == 620)
+}
+
+@Test("context drawers prefer their expanded width when room is available")
+func contextDrawerSurfacesPreferExpandedWidth() {
+    let expanded = HaneulchiViewportContext(width: 1520)
+
+    #expect(expanded.contextDrawerWidth(availableWidth: nil) == 520)
+    #expect(expanded.contextDrawerWidth(availableWidth: 900) == 520)
+    #expect(expanded.contextDrawerWidth(availableWidth: 460) == 460)
+    #expect(expanded.contextDrawerWidth(availableWidth: 0) == 0)
+}
+
 @Test("shell viewport context derives content width from the shell width once")
 func shellViewportContextDerivesContentWidthFromShellWidth() {
     let context = HaneulchiViewportContext(shellWidth: 512)

@@ -76,6 +76,23 @@ struct HaneulchiViewportContext: Equatable, Sendable {
         .init(role: role)
     }
 
+    func commandPaletteWidth(availableWidth: CGFloat?) -> CGFloat {
+        HaneulchiResponsiveWidthResolution.resolvedWidth(
+            preferredWidth: HaneulchiMetrics.Panel.commandPaletteMax,
+            minimumWidth: HaneulchiMetrics.Panel.commandPaletteMin,
+            maximumWidth: HaneulchiMetrics.Panel.commandPaletteMax,
+            availableWidth: availableWidth,
+        )
+    }
+
+    func contextDrawerWidth(availableWidth: CGFloat?) -> CGFloat {
+        let policy = drawerWidthPolicy(for: .context)
+        return policy.resolvedWidth(
+            preferredWidth: policy.maximumWidth,
+            availableWidth: availableWidth,
+        )
+    }
+
     var shellChromeDensity: HaneulchiShellChromeDensity {
         viewportClass >= .wide ? .regular : .compact
     }
@@ -307,13 +324,12 @@ struct HaneulchiModalWidthPolicy: Equatable, Sendable {
         preferredWidth: CGFloat? = nil,
         availableWidth: CGFloat?,
     ) -> CGFloat {
-        let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
-
-        guard let availableWidth else {
-            return targetWidth
-        }
-
-        return min(targetWidth, availableWidth)
+        HaneulchiResponsiveWidthResolution.resolvedWidth(
+            preferredWidth: preferredWidth ?? idealWidth,
+            minimumWidth: minimumWidth,
+            maximumWidth: maximumWidth,
+            availableWidth: availableWidth,
+        )
     }
 }
 
@@ -348,7 +364,26 @@ struct HaneulchiDrawerWidthPolicy: Equatable, Sendable {
         preferredWidth: CGFloat? = nil,
         availableWidth: CGFloat?,
     ) -> CGFloat {
-        let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
+        HaneulchiResponsiveWidthResolution.resolvedWidth(
+            preferredWidth: preferredWidth ?? idealWidth,
+            minimumWidth: minimumWidth,
+            maximumWidth: maximumWidth,
+            availableWidth: availableWidth,
+        )
+    }
+}
+
+private enum HaneulchiResponsiveWidthResolution {
+    static func resolvedWidth(
+        preferredWidth: CGFloat,
+        minimumWidth: CGFloat,
+        maximumWidth: CGFloat,
+        availableWidth: CGFloat?,
+    ) -> CGFloat {
+        let targetWidth = HaneulchiMetrics.clamped(
+            preferredWidth,
+            to: minimumWidth ... maximumWidth,
+        )
 
         guard let availableWidth else {
             return targetWidth

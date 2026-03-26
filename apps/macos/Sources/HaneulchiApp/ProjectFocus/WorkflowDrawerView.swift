@@ -242,7 +242,7 @@ struct WorkflowDrawerView: View {
         }
         .padding(16)
         .frame(
-            width: viewportContext.drawerWidthPolicy(for: .context).resolvedWidth(
+            width: viewportContext.contextDrawerWidth(
                 availableWidth: viewportContext.width > 0 ? viewportContext.width : nil,
             ),
             alignment: .topLeading,

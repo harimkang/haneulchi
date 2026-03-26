@@ -100,7 +100,7 @@ struct CommandPaletteOverlay: View {
     }
 
     private var paletteWidth: CGFloat {
-        viewportContext.modalWidthPolicy.resolvedWidth(
+        viewportContext.commandPaletteWidth(
             availableWidth: viewportContext.width > 0
                 ? max(
                     0,
