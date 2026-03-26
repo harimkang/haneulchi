@@ -4,6 +4,7 @@ struct LeftRailView: View {
     let items: [AppShellChromeState.RailItem]
     let activeRoute: Route
     let onAction: (AppShellAction) -> Void
+    private let railWidth = HaneulchiMetrics.Shell.railWidth
 
     var body: some View {
         VStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xxs) {
@@ -19,8 +20,8 @@ struct LeftRailView: View {
         }
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .frame(
-            minWidth: HaneulchiMetrics.Shell.railWidth,
-            maxWidth: HaneulchiMetrics.Shell.railWidth,
+            minWidth: railWidth,
+            maxWidth: railWidth,
             maxHeight: .infinity,
         )
         .background(HaneulchiChrome.Surface.recess)
@@ -41,6 +42,7 @@ private struct RailItemButton: View {
     let onAction: (AppShellAction) -> Void
 
     @State private var isHovered = false
+    private let railWidth = HaneulchiMetrics.Shell.railWidth
 
     var body: some View {
         Button {
@@ -86,8 +88,8 @@ private struct RailItemButton: View {
                 .padding(.leading, 2) // offset for accent line space
             }
             .frame(
-                width: HaneulchiMetrics.Shell.railWidth,
-                height: HaneulchiMetrics.Shell.railWidth,
+                width: railWidth,
+                height: railWidth,
             )
             .background(
                 isActive

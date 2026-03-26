@@ -57,3 +57,28 @@ func modalWidthPolicyUsesSharedTokensAndClamps() {
     #expect(wide.clampedWidth(wideTokens.idealWidth) == wideTokens.idealWidth)
     #expect(wide.clampedWidth(wideTokens.maximumWidth + 1) == wideTokens.maximumWidth)
 }
+
+@Test("shell viewport context derives content width from the shell width once")
+func shellViewportContextDerivesContentWidthFromShellWidth() {
+    let context = HaneulchiViewportContext(shellWidth: 512)
+
+    #expect(context.width == 464)
+    #expect(context.viewportClass == .compact)
+}
+
+@Test("shell viewport context clamps content width before classifying it")
+func shellViewportContextClampsContentWidthBeforeClassifying() {
+    let context = HaneulchiViewportContext(shellWidth: 24)
+
+    #expect(context.width == 0)
+    #expect(context.viewportClass == .compact)
+}
+
+@Test("shell chrome density switches from compact to regular at the wide threshold")
+func shellChromeDensityUsesSharedWidthRules() {
+    let compact = HaneulchiViewportContext(shellWidth: 959 + HaneulchiMetrics.Shell.railWidth)
+    let regular = HaneulchiViewportContext(shellWidth: 1240 + HaneulchiMetrics.Shell.railWidth)
+
+    #expect(compact.shellChromeDensity == .compact)
+    #expect(regular.shellChromeDensity == .regular)
+}

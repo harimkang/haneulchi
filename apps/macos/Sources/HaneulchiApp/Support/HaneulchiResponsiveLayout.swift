@@ -25,6 +25,11 @@ enum HaneulchiViewportClass: Int, CaseIterable, Comparable, Sendable {
     }
 }
 
+enum HaneulchiShellChromeDensity: Equatable, Sendable {
+    case compact
+    case regular
+}
+
 struct HaneulchiViewportContext: Equatable, Sendable {
     let width: CGFloat
     let viewportClass: HaneulchiViewportClass
@@ -34,12 +39,27 @@ struct HaneulchiViewportContext: Equatable, Sendable {
         viewportClass = .forWidth(width)
     }
 
+    init(shellWidth: CGFloat) {
+        self.init(width: Self.contentWidth(forShellWidth: shellWidth))
+    }
+
+    private static func contentWidth(forShellWidth shellWidth: CGFloat) -> CGFloat {
+        HaneulchiMetrics.clamped(
+            shellWidth - HaneulchiMetrics.Shell.railWidth,
+            to: 0 ... .greatestFiniteMagnitude,
+        )
+    }
+
     var routeLayoutPolicy: HaneulchiRouteLayoutPolicy {
         .init(viewportClass: viewportClass)
     }
 
     var modalWidthPolicy: HaneulchiModalWidthPolicy {
         .init(viewportClass: viewportClass)
+    }
+
+    var shellChromeDensity: HaneulchiShellChromeDensity {
+        viewportClass >= .wide ? .regular : .compact
     }
 }
 
