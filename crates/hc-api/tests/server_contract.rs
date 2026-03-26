@@ -7,8 +7,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_control_plane::{reset_shared_control_plane_snapshot_for_tests, reset_task_board_for_tests};
 use hc_domain::{
-    AppSnapshot, AppState, OpsSummary, SessionFocusState, SessionRuntimeState, SessionSummary,
-    TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
+    AppSnapshot, AppState, AttentionSummary, ClaimState, OpsSummary, RetryQueueEntry, RetryState,
+    SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WorkflowHealth,
+    WorkflowRuntimeStatus,
 };
 
 fn temp_socket_path() -> PathBuf {
@@ -63,6 +64,28 @@ fn seeded_snapshot() -> AppSnapshot {
             .with_workspace_root("/tmp/other")
             .with_base_root("."),
     ];
+    snapshot.attention = vec![AttentionSummary {
+        attention_id: "att_api".to_string(),
+        kind: "retry_due".to_string(),
+        project_id: "proj_demo".to_string(),
+        session_id: None,
+        task_id: Some("task_ready".to_string()),
+        title: "Retry due".to_string(),
+        summary: "Task is ready to retry".to_string(),
+        created_at: Some("2026-03-23T18:00:30Z".to_string()),
+        severity: "warn".to_string(),
+        action_hint: Some("open_retry_queue".to_string()),
+    }];
+    snapshot.retry_queue = vec![RetryQueueEntry {
+        task_id: "task_ready".to_string(),
+        project_id: "proj_demo".to_string(),
+        attempt: 2,
+        reason_code: "adapter_timeout".to_string(),
+        due_at: Some("2026-03-23T18:01:00Z".to_string()),
+        backoff_ms: 60_000,
+        claim_state: ClaimState::Claimed,
+        retry_state: RetryState::Due,
+    }];
     snapshot
 }
 
@@ -93,6 +116,7 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     assert_eq!(status, 200);
     assert_eq!(value["ok"], true);
     assert!(value["data"]["sessions"].is_array());
+    assert!(value["meta"]["request_id"].is_string());
 
     let (status, project_state) =
         request("GET", "/v1/state?project_id=proj_demo&view=compact", None);
@@ -108,6 +132,46 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
         project_state["data"]["sessions"][0]["project_id"],
         "proj_demo"
     );
+    assert_eq!(
+        project_state["data"]["attention"]
+            .as_array()
+            .expect("attention")
+            .len(),
+        0
+    );
+    assert_eq!(
+        project_state["data"]["retry_queue"]
+            .as_array()
+            .expect("retry queue")
+            .len(),
+        0
+    );
+
+    let (status, filtered_state) = request(
+        "GET",
+        "/v1/state?project_id=proj_demo&include_attention=false&include_retry_queue=false",
+        None,
+    );
+    assert_eq!(status, 200);
+    assert_eq!(
+        filtered_state["data"]["attention"]
+            .as_array()
+            .expect("attention")
+            .len(),
+        0
+    );
+    assert_eq!(
+        filtered_state["data"]["retry_queue"]
+            .as_array()
+            .expect("retry queue")
+            .len(),
+        0
+    );
+
+    let (status, automation) = request("GET", "/v1/automation", None);
+    assert_eq!(status, 200);
+    assert_eq!(automation["data"]["automation"]["running_slots"], 1);
+    assert_eq!(automation["data"]["workflow"]["state"], "ok");
 
     let (status, sessions) = request("GET", "/v1/sessions", None);
     assert_eq!(status, 200);
@@ -131,6 +195,11 @@ fn uds_server_contract_covers_state_sessions_tasks_workflow_dispatch_and_reconci
     let (status, session_details) = request("GET", "/v1/sessions/ses_api", None);
     assert_eq!(status, 200);
     assert_eq!(session_details["data"]["session_id"], "ses_api");
+    assert!(session_details["data"]["recent_events"].is_array());
+    assert_eq!(
+        session_details["data"]["workflow_binding"]["state"],
+        "ok"
+    );
 
     let (status, _) = request(
         "POST",
@@ -257,6 +326,8 @@ fn uds_server_writes_real_http_response_over_unix_socket() {
 
     assert!(response.starts_with("HTTP/1.1 200"));
     assert!(response.contains("\r\n\r\n"));
+    assert!(response.contains("X-HC-Api-Version: 1"));
+    assert!(response.contains("X-HC-Snapshot-Rev: "));
 
     handle.join().expect("server join").expect("server result");
     let _ = std::fs::remove_file(socket_path);
@@ -317,6 +388,8 @@ fn uds_server_returns_typed_status_codes_for_domain_failures() {
     assert_eq!(status, 404);
     assert_eq!(focus_error["ok"], false);
     assert_eq!(focus_error["error"]["code"], "session_not_found");
+    assert_eq!(focus_error["error"]["retryable"], false);
+    assert!(focus_error["error"]["details"].is_object());
 
     let (status, conflict) = request(
         "POST",

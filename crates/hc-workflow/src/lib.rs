@@ -9,11 +9,13 @@ mod template;
 mod watch;
 
 pub use bootstrap::{
-    BootstrapRequest, BootstrapResult, BootstrapStatusSummary, HookPhaseResult, run_bootstrap,
+    BootstrapRequest, BootstrapResult, BootstrapStatusSummary, HookPhaseResult,
+    PrepareBootstrapRequest, prepare_bootstrap, run_bootstrap,
 };
 pub use contract::{
-    EffectiveWorkflowConfig, HookDefinition, HookPhase, HooksConfig, LoadedWorkflow, PolicyConfig,
-    ResolvedPaths, ReviewConfig, WorkflowConfig, WorkspaceConfig, WorkspaceStrategy,
+    EffectiveWorkflowConfig, HaneulchiConfig, HookDefinition, HookPhase, HooksConfig,
+    LoadedWorkflow, PolicyConfig, ResolvedPaths, ReviewConfig, WorkflowConfig, WorkspaceConfig,
+    WorkspaceStrategy,
 };
 pub use loader::{LoadWorkflowRequest, WorkflowLoader};
 pub use runtime::{WorkflowLaunchBinding, WorkflowRuntime, WorkflowState};
@@ -25,6 +27,7 @@ pub enum WorkflowErrorCode {
     UnsupportedVersion,
     UnknownTemplateVariable,
     InvalidBaseRoot,
+    InvalidHookPath,
     Io,
 }
 
@@ -38,6 +41,8 @@ pub enum WorkflowError {
     UnknownTemplateVariable(String),
     #[error("invalid base root: {0}")]
     InvalidBaseRoot(String),
+    #[error("invalid hook path: {0}")]
+    InvalidHookPath(String),
     #[error("io error: {0}")]
     Io(String),
 }
@@ -49,6 +54,7 @@ impl WorkflowError {
             Self::UnsupportedVersion(_) => WorkflowErrorCode::UnsupportedVersion,
             Self::UnknownTemplateVariable(_) => WorkflowErrorCode::UnknownTemplateVariable,
             Self::InvalidBaseRoot(_) => WorkflowErrorCode::InvalidBaseRoot,
+            Self::InvalidHookPath(_) => WorkflowErrorCode::InvalidHookPath,
             Self::Io(_) => WorkflowErrorCode::Io,
         }
     }

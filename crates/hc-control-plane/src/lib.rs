@@ -25,7 +25,8 @@ mod worktrees;
 
 pub use adapter_watch::{AdapterWatchSummary, adapter_watch_for_session};
 pub use commands::{
-    ControlPlaneError, ControlPlaneState, lock_shared_control_plane, reload_workflow,
+    ControlPlaneError, ControlPlaneState, lock_shared_control_plane, prepare_isolated_launch,
+    reload_workflow,
     reset_shared_control_plane_for_tests, reset_shared_control_plane_snapshot_for_tests,
     shared_inventory_for_project, shared_inventory_summary, shared_set_worktree_pinned,
     shared_update_worktree_lifecycle, validate_workflow,

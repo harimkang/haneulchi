@@ -141,3 +141,64 @@ fn invalid_yaml_reports_front_matter_parse_error_code() {
 
     assert_eq!(error.code(), WorkflowErrorCode::FrontMatterParse);
 }
+
+#[test]
+fn hook_path_outside_repo_root_is_rejected_during_load() {
+    let root = temp_dir("outside-hook-root");
+    let outside_root = temp_dir("outside-hook-external");
+    let outside_hook = outside_root.join("outside-hook.sh");
+    fs::write(&outside_hook, "#!/bin/sh\nexit 0\n").expect("outside hook");
+
+    write_workflow(
+        &root,
+        &format!(
+            "---\nhooks:\n  after_create: {}\n---\n{{{{task.title}}}}\n",
+            outside_hook.display()
+        ),
+    );
+
+    let error = WorkflowLoader::load(&LoadWorkflowRequest {
+        repo_root: root,
+        explicit_workflow_path: None,
+    })
+    .expect_err("hook path outside repo root must fail");
+
+    assert!(
+        error.to_string().contains("hook"),
+        "expected hook-path validation error, got: {error}"
+    );
+}
+
+#[test]
+fn haneulchi_front_matter_fields_survive_normalization() {
+    let root = temp_dir("haneulchi-front-matter");
+    write_workflow(
+        &root,
+        r#"---
+haneulchi:
+  board_mapping:
+    ready: Ready
+    review: Review
+  notification_policy:
+    review_ready: true
+    retry_due: true
+  quick_dispatch_presets:
+    - ask-for-status
+---
+{{task.title}}
+"#,
+    );
+
+    let loaded = WorkflowLoader::load(&LoadWorkflowRequest {
+        repo_root: root,
+        explicit_workflow_path: None,
+    })
+    .expect("load succeeds")
+    .expect("workflow discovered");
+
+    let normalized = format!("{loaded:#?}");
+    assert!(
+        normalized.contains("ask-for-status"),
+        "expected normalized config to preserve haneulchi quick dispatch presets, got:\n{normalized}"
+    );
+}

@@ -109,7 +109,7 @@ struct SettingsStatusViewModel: Equatable, Sendable {
 
         if let workflowStatus {
             let title = workflowStatus.workflow?.name ?? "Workflow Contract"
-            var detailParts = [workflowStatus.path]
+            var detailParts = ["watched path: \(workflowStatus.path)"]
             if let strategy = workflowStatus.workflow?.strategy,
                let baseRoot = workflowStatus.workflow?.baseRoot
             {
@@ -118,6 +118,10 @@ struct SettingsStatusViewModel: Equatable, Sendable {
             if let lastGoodHash = workflowStatus.lastGoodHash {
                 detailParts.append("last good: \(lastGoodHash)")
             }
+            if let lastReloadAt = workflowStatus.lastReloadAt {
+                detailParts.append("last reload: \(lastReloadAt)")
+            }
+            detailParts.append("future launches and retries use the current workflow contract")
             workflowRow = WorkflowRow(
                 title: title,
                 path: workflowStatus.path,
@@ -151,9 +155,13 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                 title: "Local API Boundary",
                 statusLabel: runtimeInfo == nil ? "deferred" : "available",
                 detail: runtimeInfo.map {
-                    "Rust core connected via \($0.transport). Local-only diagnostics remain the trust boundary."
+                    var detail = "Rust core connected via \($0.transport). Local-only diagnostics remain the trust boundary."
+                    if let socketPath = runtimeInfoSummary?.socketPath {
+                        detail += " socket: \(socketPath)."
+                    }
+                    return detail
                 } ?? "Local control API diagnostics are not surfaced in this build yet.",
-                nextAction: runtimeInfo == nil ? "Open Workflow Contract" : nil,
+                nextAction: runtimeInfo == nil ? "Open Workflow Contract" : "Export Snapshot",
             ),
             AutomationRow(
                 id: .cli,
@@ -178,10 +186,11 @@ struct SettingsStatusViewModel: Equatable, Sendable {
                     if let lastError = $0.lastError {
                         parts.append("error: \(lastError)")
                     }
+                    parts.append("future launches and retries use the active contract")
                     return parts.joined(separator: " · ")
                 }
                     ?? workflowStatus.map {
-                        "Workflow contract loaded from \($0.path). Watch diagnostics will surface here once runtime watch state is exported."
+                        "Workflow contract loaded from \($0.path). future launches and retries use the active contract."
                     }
                     ?? "Workflow watch state is not available until a repo workflow is loaded.",
                 nextAction: snapshot == nil && workflowStatus == nil ? "Open Workflow Contract" :

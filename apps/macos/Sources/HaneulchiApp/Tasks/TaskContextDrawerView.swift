@@ -60,6 +60,10 @@ struct TaskContextDrawerView: View {
                         Text("last reload: \(lastReloadAt)")
                             .font(.caption)
                     }
+                    Text("binding: \(model.workflowBindingSummary)")
+                        .font(.caption)
+                    Text("lineage: \(model.lineageSummary)")
+                        .font(.caption)
                     if !model.reviewChecklist.isEmpty {
                         Text("review: \(model.reviewChecklist.joined(separator: ", "))")
                             .font(.caption)
@@ -72,6 +76,15 @@ struct TaskContextDrawerView: View {
                         Text(lastError)
                             .font(.caption)
                             .foregroundStyle(HaneulchiChrome.Colors.warning)
+                    }
+                    if let bootstrapPhaseSummary = model.bootstrapPhaseSummary {
+                        Text("bootstrap: \(bootstrapPhaseSummary)")
+                            .font(.caption)
+                    }
+                    if let renderedPromptPath = model.renderedPromptPath {
+                        Text("prompt: \(renderedPromptPath)")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
 

@@ -4,8 +4,9 @@ use std::path::PathBuf;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_domain::{
-    AppSnapshot, AppState, AutomationOpsSummary, ClaimState, RetryQueueEntry, RetryState,
-    TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
+    AppSnapshot, AppState, AutomationOpsSummary, ClaimState, OrchestratorRuntime,
+    RetryQueueEntry, RetryState, TrackerStatus, WorkflowHealth, WorkflowReloadEvent,
+    WorkflowRuntimeStatus,
 };
 use hc_storage::{
     NewRetryQueueEntry, NewTaskRecord, RetryFailureClass, SqliteStore, advance_retry_state,
@@ -138,6 +139,81 @@ fn retry_queue_backoff_and_stall_semantics_are_deterministic() {
         ClaimState::Released,
     );
     assert_eq!(non_retryable, None);
+}
+
+#[test]
+fn automation_health_view_rolls_up_runtime_and_retry_queue_state() {
+    let store = SqliteStore::in_memory().expect("sqlite store");
+    seed_task(&store, "task_retry_health");
+
+    store
+        .orchestrator()
+        .save_runtime(OrchestratorRuntime {
+            singleton_key: "main".to_string(),
+            cadence_ms: 30_000,
+            last_tick_at: Some("2026-03-26T01:00:00Z".to_string()),
+            last_reconcile_at: Some("2026-03-26T01:01:00Z".to_string()),
+            max_slots: 6,
+            running_slots: 4,
+            workflow_state: "invalid_kept_last_good".to_string(),
+            tracker_state: "degraded".to_string(),
+        })
+        .expect("runtime row");
+    store
+        .orchestrator()
+        .append_workflow_reload_event(WorkflowReloadEvent {
+            id: "reload_health".to_string(),
+            project_id: "proj_demo".to_string(),
+            file_path: "/tmp/demo/WORKFLOW.md".to_string(),
+            status: "invalid_kept_last_good".to_string(),
+            loaded_hash: Some("sha256:new".to_string()),
+            kept_last_good_hash: Some("sha256:last-good".to_string()),
+            message: Some("front matter parse error".to_string()),
+            created_at: "2026-03-26T01:02:00Z".to_string(),
+        })
+        .expect("reload event");
+    store
+        .retry_queue()
+        .save(NewRetryQueueEntry {
+            id: "retry_health".to_string(),
+            task_id: "task_retry_health".to_string(),
+            project_id: "proj_demo".to_string(),
+            attempt: 2,
+            reason_code: "adapter_timeout".to_string(),
+            due_at: Some("2026-03-26T01:03:00Z".to_string()),
+            backoff_ms: 60_000,
+            claim_state: ClaimState::Claimed,
+            retry_state: RetryState::Due,
+        })
+        .expect("retry row");
+
+    let row = store
+        .connection()
+        .query_row(
+            r#"
+            SELECT
+                workflow_state,
+                running_slots,
+                max_slots,
+                retry_due_count
+            FROM v_automation_health
+            "#,
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    row.get::<_, i64>(1)?,
+                    row.get::<_, i64>(2)?,
+                    row.get::<_, i64>(3)?,
+                ))
+            },
+        )
+        .expect("automation health row");
+
+    assert_eq!(
+        row,
+        ("invalid_kept_last_good".to_string(), 4_i64, 6_i64, 1_i64)
+    );
 }
 
 fn seed_task(store: &SqliteStore, task_id: &str) {

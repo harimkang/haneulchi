@@ -26,6 +26,6 @@ impl WorkflowLoader {
 
         let contents = fs::read_to_string(&workflow_path)
             .map_err(|error| WorkflowError::Io(error.to_string()))?;
-        parse_workflow_file(&workflow_path, &contents).map(Some)
+        parse_workflow_file(&request.repo_root, &workflow_path, &contents).map(Some)
     }
 }

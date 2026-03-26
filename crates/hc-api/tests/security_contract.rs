@@ -123,3 +123,23 @@ fn sessions_endpoint_does_not_expose_secrets() {
     assert_eq!(value["ok"], true);
     assert!(value["data"].is_array());
 }
+
+#[test]
+fn automation_endpoint_does_not_expose_secrets() {
+    reset_task_board_for_tests();
+    reset_shared_control_plane_snapshot_for_tests(seeded_snapshot());
+
+    let secret_sentinel = "SUPER_SECRET_TOKEN_XYZ_SENTINEL_12345";
+
+    let (status, value) = request("GET", "/v1/automation", None);
+    assert_eq!(status, 200);
+
+    let body = serde_json::to_string(&value).expect("serialize response");
+    assert!(
+        !body.contains(secret_sentinel),
+        "automation endpoint must not expose planted secret sentinel"
+    );
+
+    assert_eq!(value["ok"], true);
+    assert!(value["data"]["automation"].is_object());
+}

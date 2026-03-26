@@ -1,7 +1,7 @@
 use hc_domain::{
-    AppSnapshot, AppSnapshotMeta, AppState, OpsSummary, ProjectSummary, RetryQueueEntry,
-    SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
-    WorkflowRuntimeStatus, time::now_iso8601,
+    AppSnapshot, AppSnapshotMeta, AppState, OpsSummary, OrchestratorRuntime, ProjectSummary,
+    RetryQueueEntry, RetryState, SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus,
+    WarningSummary, WorkflowRuntimeStatus, time::now_iso8601,
 };
 
 use crate::attention::derive_attention;
@@ -9,6 +9,7 @@ use crate::recovery::{RecoveryContext, detect_degraded_issues};
 
 #[derive(Clone, Debug)]
 pub struct SnapshotSeed {
+    pub orchestrator_runtime: OrchestratorRuntime,
     pub workflow: WorkflowRuntimeStatus,
     pub tracker: TrackerStatus,
     pub projects: Vec<ProjectSummary>,
@@ -47,6 +48,11 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
         .iter()
         .filter(|session| session.claim_state == hc_domain::ClaimState::Claimed)
         .count() as u32;
+    let retry_due_count = seed
+        .retry_queue
+        .iter()
+        .filter(|entry| entry.retry_state == RetryState::Due)
+        .count() as u32;
 
     // Detect degraded issues from the current workflow health.  Details are
     // reduced to issue codes only — secret values must never appear in flags.
@@ -62,12 +68,12 @@ pub fn build_authoritative_snapshot(seed: SnapshotSeed) -> Result<AppSnapshot, S
     let mut snapshot = AppSnapshot::new(seed.workflow.clone(), seed.tracker.clone())
         .with_automation(OpsSummary {
             status: "running".to_string(),
-            cadence_ms: 15_000,
-            last_tick_at: Some(now_iso8601()),
-            last_reconcile_at: None,
-            running_slots,
-            max_slots: running_slots.max(1),
-            retry_due_count: seed.retry_queue.len() as u32,
+            cadence_ms: seed.orchestrator_runtime.cadence_ms,
+            last_tick_at: seed.orchestrator_runtime.last_tick_at.clone(),
+            last_reconcile_at: seed.orchestrator_runtime.last_reconcile_at.clone(),
+            running_slots: seed.orchestrator_runtime.running_slots.max(running_slots),
+            max_slots: seed.orchestrator_runtime.max_slots.max(1),
+            retry_due_count,
             queued_claim_count,
             paused: false,
         })

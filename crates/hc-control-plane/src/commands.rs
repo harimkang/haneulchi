@@ -3,14 +3,15 @@ use std::path::{Path, PathBuf};
 use std::sync::{Mutex, OnceLock};
 
 use hc_domain::{
-    AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, ProjectSummary,
+    AppSnapshot, AppSnapshotMeta, AppState, ClaimState, OpsSummary, OrchestratorRuntime,
+    ProjectSummary,
     SessionFocusState, SessionRuntimeState, SessionSummary, TrackerStatus, WarningSummary,
     WorkflowHealth, WorkflowRuntimeStatus,
     inventory::{InventoryRow, InventorySummary},
     time::now_iso8601,
 };
 use hc_runtime::terminal::runtime::TerminalSessionSnapshot as RuntimeSessionSnapshot;
-use hc_workflow::{LoadWorkflowRequest, WorkflowLoader, WorkflowRuntime};
+use hc_workflow::{LoadWorkflowRequest, PrepareBootstrapRequest, WorkflowLoader, WorkflowRuntime, prepare_bootstrap};
 
 use crate::attention::derive_attention;
 use crate::inventory::{build_inventory_for_project, build_inventory_summary};
@@ -53,6 +54,16 @@ impl ControlPlaneState {
 
     pub fn sample() -> Self {
         let snapshot = project_snapshot(SnapshotSeed {
+            orchestrator_runtime: OrchestratorRuntime {
+                singleton_key: "main".to_string(),
+                cadence_ms: 15_000,
+                last_tick_at: Some(now_iso8601()),
+                last_reconcile_at: None,
+                max_slots: 2,
+                running_slots: 2,
+                workflow_state: sample_workflow_status().state.as_str().to_string(),
+                tracker_state: sample_tracker_status().health.clone(),
+            },
             workflow: sample_workflow_status(),
             tracker: sample_tracker_status(),
             projects: vec![ProjectSummary::new(
@@ -486,6 +497,71 @@ pub fn reload_workflow(
         }
         Err(error) => Err(error),
     }
+}
+
+pub fn prepare_isolated_launch(
+    repo_root: impl Into<PathBuf>,
+    project_name: &str,
+    task_id: &str,
+    task_title: &str,
+    workspace_root: impl Into<PathBuf>,
+) -> Result<hc_workflow::BootstrapStatusSummary, String> {
+    let repo_root = repo_root.into();
+    let workspace_root = workspace_root.into();
+    let key = repo_root.display().to_string();
+    let runtimes = workflow_runtimes();
+    let mut runtimes = runtimes.lock().expect("workflow runtime cache lock");
+    let runtime = runtimes.entry(key).or_insert_with(|| {
+        WorkflowRuntime::new(LoadWorkflowRequest {
+            repo_root: repo_root.clone(),
+            explicit_workflow_path: None,
+        })
+    });
+
+    if runtime.current().is_none()
+        && runtime.last_known_good().is_none()
+        && runtime.last_error().is_none()
+    {
+        match runtime.reload() {
+            Ok(()) => {}
+            Err(_error) if runtime.state() == hc_workflow::WorkflowState::InvalidKeptLastGood => {}
+            Err(error) => return Err(error.to_string()),
+        }
+    }
+
+    let Some(workflow) = runtime.current().cloned() else {
+        return Ok(hc_workflow::BootstrapStatusSummary {
+            workspace_root: workspace_root.display().to_string(),
+            base_root: ".".to_string(),
+            session_cwd: workspace_root.display().to_string(),
+            rendered_prompt_path: String::new(),
+            phase_sequence: vec![
+                "resolve".to_string(),
+                "normalize".to_string(),
+                "workspace".to_string(),
+                "paths".to_string(),
+            ],
+            hook_phase_results: Vec::new(),
+            outcome_code: "launch_prepared".to_string(),
+            warning_codes: Vec::new(),
+            claim_released: false,
+            launch_exit_code: None,
+            last_known_good_hash: runtime
+                .last_known_good()
+                .map(|loaded| loaded.contract_hash.clone()),
+        });
+    };
+
+    let summary = prepare_bootstrap(PrepareBootstrapRequest {
+        workflow,
+        project_name: project_name.to_string(),
+        task_id: task_id.to_string(),
+        task_title: task_title.to_string(),
+        repo_root,
+        workspace_root,
+    })?;
+    runtime.record_bootstrap(summary.clone());
+    Ok(summary)
 }
 
 fn workflow_runtimes() -> &'static Mutex<std::collections::HashMap<String, WorkflowRuntime>> {

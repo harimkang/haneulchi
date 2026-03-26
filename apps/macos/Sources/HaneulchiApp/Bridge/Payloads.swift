@@ -165,3 +165,33 @@ struct RecoverableSessionPayload: Codable, Sendable {
         case isRecoverable = "is_recoverable"
     }
 }
+
+struct SessionDetailsPayload: Decodable, Sendable {
+    struct RecentEvent: Decodable, Sendable {
+        var kind: String
+        var title: String
+        var summary: String?
+        var createdAt: String?
+        var actionHint: String?
+
+        enum CodingKeys: String, CodingKey {
+            case kind
+            case title
+            case summary
+            case createdAt = "created_at"
+            case actionHint = "action_hint"
+        }
+    }
+
+    var sessionID: String
+    var title: String
+    var workflowBinding: WorkflowRuntimeStatus
+    var recentEvents: [RecentEvent]
+
+    enum CodingKeys: String, CodingKey {
+        case sessionID = "session_id"
+        case title
+        case workflowBinding = "workflow_binding"
+        case recentEvents = "recent_events"
+    }
+}

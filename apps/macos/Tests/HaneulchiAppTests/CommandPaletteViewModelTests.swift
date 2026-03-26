@@ -145,3 +145,31 @@ func commandPaletteIncludesLatestUnreadCommand() {
 
     #expect(commandItems.contains(where: { $0.action == .jumpToLatestUnread }))
 }
+
+@Test("command palette exposes workflow and automation operator commands")
+func commandPaletteExposesOperatorCommands() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 2, runtimeRev: 2, projectionRev: 2, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 4, retryQueueCount: 1, workflowHealth: .ok),
+        app: .init(activeRoute: .projectFocus, focusedSessionID: "restore-1", degradedFlags: []),
+        projects: [],
+        sessions: [],
+        attention: [],
+        retryQueue: [],
+        warnings: [],
+    )
+
+    let catalog = CommandPaletteCatalog.build(
+        snapshot: snapshot,
+        files: [],
+        tasks: [],
+        inventory: [],
+    )
+    let commandItems = catalog.sections.first(where: { $0.kind == .commands })?.items ?? []
+
+    #expect(commandItems.contains(where: { $0.title == "Refresh Automation Snapshot" && $0.action == .refreshShellSnapshot }))
+    #expect(commandItems.contains(where: { $0.title == "Reconcile Now" && $0.action == .reconcileAutomation }))
+    #expect(commandItems.contains(where: { $0.title == "Reload Workflow Contract" && $0.action == .reloadWorkflow }))
+    #expect(commandItems.contains(where: { $0.title == "Export State JSON" && $0.action == .exportSnapshot }))
+    #expect(commandItems.contains(where: { $0.title == "Open Automation Panel" && $0.action == .openSettings }))
+}

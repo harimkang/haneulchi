@@ -1,3 +1,15 @@
+use crate::state::current_snapshot;
+
+pub fn automation_json() -> Result<String, String> {
+    let snapshot = current_snapshot()?;
+    serde_json::to_string(&serde_json::json!({
+        "automation": snapshot.ops.automation,
+        "workflow": snapshot.ops.workflow,
+        "tracker": snapshot.ops.tracker,
+    }))
+    .map_err(|error| error.to_string())
+}
+
 pub fn reconcile_now_json(project_id: Option<&str>) -> Result<String, String> {
     let mut control_plane = hc_control_plane::lock_shared_control_plane()?;
     let snapshot = control_plane.snapshot().clone();

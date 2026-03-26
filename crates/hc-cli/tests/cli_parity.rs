@@ -76,6 +76,7 @@ fn cli_parity_covers_state_session_task_workflow_reconcile_and_dispatch_commands
 
     let state = run(&["state".into(), "--json".into()]).expect("state json");
     assert!(state.contains("\"ok\":true"));
+    assert!(state.contains("\"request_id\""));
     let state_human = run(&["state".into()]).expect("state human");
     assert!(state_human.contains("snapshot_rev="));
     assert!(state_human.contains("slots="));
@@ -242,5 +243,7 @@ fn cli_parity_covers_state_session_task_workflow_reconcile_and_dispatch_commands
     ])
     .expect_err("missing session json should fail");
     assert!(missing_focus_json.contains("\"code\":\"session_not_found\""));
+    assert!(missing_focus_json.contains("\"retryable\":false"));
+    assert!(missing_focus_json.contains("\"details\""));
     handle.join().expect("server join");
 }

@@ -1,9 +1,11 @@
 use std::ffi::{CStr, CString};
+use std::fs;
 use std::sync::Mutex;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use hc_ffi::{
     hc_string_free, hc_task_board_json, hc_task_move_json, reset_test_state, task_board_json,
-    task_move_json,
+    task_move_json, task_prepare_isolated_launch_json, workflow_reload_json,
 };
 use serde_json::Value;
 
@@ -69,4 +71,50 @@ fn c_abi_task_board_bridge_matches_json_helpers() {
     hc_string_free(move_payload);
     let move_value: Value = serde_json::from_str(&move_json).unwrap();
     assert_eq!(move_value["task"]["column"], "done");
+}
+
+#[test]
+fn isolated_launch_prep_uses_last_known_good_runtime_when_current_file_is_invalid() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
+
+    let unique = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("clock drift")
+        .as_nanos();
+    let root = std::env::temp_dir().join(format!("hc-task-prepare-{unique}"));
+    let workspace = root.join("worktrees/task-104");
+    fs::create_dir_all(&workspace).expect("workspace");
+    fs::write(
+        root.join("WORKFLOW.md"),
+        "---\nworkflow:\n  name: Good\n---\n{{task.title}}\n",
+    )
+    .expect("good workflow");
+
+    let initial_reload: Value = serde_json::from_str(
+        &workflow_reload_json(root.to_str().unwrap()).expect("initial reload"),
+    )
+    .expect("reload json");
+    let last_good_hash = initial_reload["last_good_hash"].as_str().unwrap().to_string();
+
+    fs::write(
+        root.join("WORKFLOW.md"),
+        "---\nworkflow:\n  name: Broken\n  max_slots: [\n---\n{{task.title}}\n",
+    )
+    .expect("broken workflow");
+
+    let prepared: Value = serde_json::from_str(
+        &task_prepare_isolated_launch_json(
+            root.to_str().unwrap(),
+            "demo",
+            "task-104",
+            "task-104",
+            workspace.to_str().unwrap(),
+        )
+        .expect("prepare launch json"),
+    )
+    .expect("prepare json");
+
+    assert_eq!(prepared["outcome_code"], "launch_prepared");
+    assert_eq!(prepared["last_known_good_hash"], last_good_hash);
 }

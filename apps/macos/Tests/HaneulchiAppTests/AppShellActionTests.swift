@@ -1238,29 +1238,12 @@ func openSettingsLoadsWorkflowSummary() async {
 
 @MainActor
 @Test(
-    "isolated launch materializes workspace, executes hooks, and writes a rendered prompt artifact",
+    "isolated launch uses rust bootstrap summary instead of local hook execution",
 )
-func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
+func isolatedLaunchUsesRustBootstrapSummary() async throws {
     let projectRoot = FileManager.default.temporaryDirectory
         .appendingPathComponent("isolated-launch-\(UUID().uuidString)", isDirectory: true)
     try FileManager.default.createDirectory(at: projectRoot, withIntermediateDirectories: true)
-
-    let afterCreate = projectRoot.appendingPathComponent("after-create.sh")
-    try """
-    #!/bin/sh
-    echo after-create > "$PWD/after-create.txt"
-    """.write(to: afterCreate, atomically: true, encoding: .utf8)
-    try FileManager.default.setAttributes(
-        [.posixPermissions: 0o755],
-        ofItemAtPath: afterCreate.path,
-    )
-
-    let beforeRun = projectRoot.appendingPathComponent("before-run.sh")
-    try """
-    #!/bin/sh
-    echo before-run > "$PWD/before-run.txt"
-    """.write(to: beforeRun, atomically: true, encoding: .utf8)
-    try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: beforeRun.path)
 
     let project = LauncherProject(
         projectID: "proj_demo",
@@ -1268,6 +1251,7 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
         rootPath: projectRoot.path,
         lastOpenedAt: .now,
     )
+    let bootstrapCalls = SendableBox<[(String, String, String, String, String)]>([])
     let bridge = CoreBridge(
         runtimeInfo: { TerminalBackendDescriptor(
             rendererID: "swiftterm",
@@ -1280,30 +1264,31 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
         resizeSession: { _, _ in },
         terminateSession: { _ in },
         snapshotSession: { _ in throw CoreBridgeError.operationFailed("snapshot_unused") },
-        workflowValidate: { _ in
-            Data(
-                #"""
-                {
-                  "state": "ok",
-                  "path": "/tmp/demo/WORKFLOW.md",
-                  "last_good_hash": "sha256:abc123",
-                  "last_reload_at": null,
-                  "last_error": null,
-                  "workflow": {
-                    "name": "Demo Workflow",
-                    "strategy": "worktree",
-                    "base_root": ".",
-                    "review_checklist": ["tests passed"],
-                    "allowed_agents": ["codex"],
-                    "hooks": ["after_create", "before_run"],
-                    "hook_runs": {
-                      "after_create": "\#(afterCreate.path)",
-                      "before_run": "\#(beforeRun.path)"
-                    },
-                    "template_body": "Project: {{project.name}}"
-                  }
-                }
-                """#.utf8,
+        prepareIsolatedLaunch: { projectRoot, projectName, taskID, taskTitle, workspaceRoot in
+            bootstrapCalls.value.append((projectRoot, projectName, taskID, taskTitle, workspaceRoot))
+            let sessionCwd = workspaceRoot + "/nested"
+            try FileManager.default.createDirectory(
+                atPath: sessionCwd,
+                withIntermediateDirectories: true,
+            )
+            let renderedPromptPath = sessionCwd + "/prompt.rendered.md"
+            try "Project: \(projectName)".write(
+                toFile: renderedPromptPath,
+                atomically: true,
+                encoding: .utf8,
+            )
+            return WorkflowStatusPayload.BootstrapSummary(
+                workspaceRoot: workspaceRoot,
+                baseRoot: ".",
+                sessionCwd: sessionCwd,
+                renderedPromptPath: renderedPromptPath,
+                phaseSequence: ["resolve", "normalize", "workspace", "paths", "after_create", "prompt", "before_run"],
+                hookPhaseResults: [],
+                outcomeCode: "launch_prepared",
+                warningCodes: [],
+                claimReleased: false,
+                launchExitCode: nil,
+                lastKnownGoodHash: "sha256:abc123",
             )
         },
     )
@@ -1341,14 +1326,21 @@ func isolatedLaunchBootstrapsWorkflowArtifacts() async throws {
     await model.perform(.launchSession(descriptor))
 
     let savedBundles = try restoreStore.load()
-    let renderedPrompt = isolatedRoot + "/prompt.rendered.md"
-    #expect(FileManager.default.fileExists(atPath: isolatedRoot))
-    #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/after-create.txt"))
-    #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/before-run.txt"))
-    #expect(FileManager.default.fileExists(atPath: renderedPrompt))
-    #expect(try String(contentsOfFile: renderedPrompt, encoding: .utf8)
+    #expect(bootstrapCalls.value.count == 1)
+    #expect(bootstrapCalls.value.first?.0 == projectRoot.path)
+    #expect(bootstrapCalls.value.first?.1 == "demo")
+    #expect(bootstrapCalls.value.first?.2 == "task-104")
+    #expect(bootstrapCalls.value.first?.3 == "task-104")
+    #expect(bootstrapCalls.value.first?.4 == isolatedRoot)
+    #expect(FileManager.default.fileExists(atPath: isolatedRoot + "/nested/prompt.rendered.md"))
+    #expect(try String(contentsOfFile: isolatedRoot + "/nested/prompt.rendered.md", encoding: .utf8)
         .contains("Project: demo") == true)
-    #expect(savedBundles.last?.launch.currentDirectory == isolatedRoot)
+    #expect(savedBundles.last?.launch.currentDirectory == isolatedRoot + "/nested")
+    #expect(model.workflowStatus?.lastBootstrap?.sessionCwd == isolatedRoot + "/nested")
+
+    await model.perform(.openSettings)
+
+    #expect(model.workflowStatus?.lastBootstrap?.sessionCwd == isolatedRoot + "/nested")
 }
 
 @MainActor

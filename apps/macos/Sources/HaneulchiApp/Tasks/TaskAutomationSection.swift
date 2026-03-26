@@ -23,6 +23,10 @@ struct TaskAutomationSection: View {
                 Text("tracker: \(trackerBindingState)")
                     .font(HaneulchiTypography.caption)
             }
+            Text("workflow: \(model.workflowBindingSummary)")
+                .font(HaneulchiTypography.caption)
+            Text("lineage: \(model.lineageSummary)")
+                .font(HaneulchiTypography.caption)
             Text("require review: \(model.requireReview ? "yes" : "no")")
                 .font(HaneulchiTypography.caption)
             if let maxRuntimeMinutes = model.maxRuntimeMinutes {
@@ -37,6 +41,10 @@ struct TaskAutomationSection: View {
                 Text("blocker: \(blockerReason)")
                     .font(HaneulchiTypography.caption)
                     .foregroundStyle(HaneulchiChrome.Colors.warning)
+            }
+            if let bootstrapPhaseSummary = model.bootstrapPhaseSummary {
+                Text("bootstrap: \(bootstrapPhaseSummary)")
+                    .font(HaneulchiTypography.caption)
             }
         }
     }

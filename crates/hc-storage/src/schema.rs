@@ -138,6 +138,89 @@ pub fn migrate(connection: &Connection) -> rusqlite::Result<()> {
             ON workflow_reload_events(project_id, created_at);
         CREATE INDEX IF NOT EXISTS idx_tracker_bindings_task_provider
             ON tracker_bindings(task_id, provider);
+        CREATE INDEX IF NOT EXISTS idx_tasks_automation_mode
+            ON tasks(automation_mode);
+        CREATE INDEX IF NOT EXISTS idx_retry_queue_due_state
+            ON retry_queue(due_at, retry_state);
+
+        CREATE VIEW IF NOT EXISTS v_control_tower_ops_strip AS
+        SELECT
+            runtime.cadence_ms AS cadence_ms,
+            runtime.last_tick_at AS last_tick_at,
+            runtime.last_reconcile_at AS last_reconcile_at,
+            runtime.running_slots AS running_slots,
+            runtime.max_slots AS max_slots,
+            COALESCE(retry.retry_due_count, 0) AS retry_due_count,
+            runtime.workflow_state AS workflow_state,
+            runtime.tracker_state AS tracker_state
+        FROM orchestrator_runtime runtime
+        LEFT JOIN (
+            SELECT COUNT(*) AS retry_due_count
+            FROM retry_queue
+            WHERE retry_state = 'due'
+        ) retry ON 1 = 1
+        WHERE runtime.singleton_key = 'main';
+
+        CREATE VIEW IF NOT EXISTS v_task_drawer_automation AS
+        SELECT
+            tasks.id AS task_id,
+            tasks.project_id AS project_id,
+            tasks.automation_mode AS automation_mode,
+            tasks.tracker_binding_state AS tracker_binding_state,
+            (
+                SELECT task_claims.state
+                FROM task_claims
+                WHERE task_claims.task_id = tasks.id
+                ORDER BY task_claims.claimed_at DESC, task_claims.id DESC
+                LIMIT 1
+            ) AS latest_claim_state,
+            (
+                SELECT retry_queue.retry_state
+                FROM retry_queue
+                WHERE retry_queue.task_id = tasks.id
+                ORDER BY retry_queue.attempt DESC, retry_queue.id DESC
+                LIMIT 1
+            ) AS latest_retry_state,
+            (
+                SELECT retry_queue.due_at
+                FROM retry_queue
+                WHERE retry_queue.task_id = tasks.id
+                ORDER BY retry_queue.attempt DESC, retry_queue.id DESC
+                LIMIT 1
+            ) AS latest_retry_due_at,
+            tasks.linked_session_id AS linked_session_id,
+            tasks.linked_worktree_id AS linked_worktree_id,
+            tasks.latest_review_id AS latest_review_id
+        FROM tasks;
+
+        CREATE VIEW IF NOT EXISTS v_automation_health AS
+        SELECT
+            runtime.workflow_state AS workflow_state,
+            runtime.tracker_state AS tracker_state,
+            runtime.running_slots AS running_slots,
+            runtime.max_slots AS max_slots,
+            COALESCE(retry.retry_due_count, 0) AS retry_due_count,
+            COALESCE(retry.retry_backing_off_count, 0) AS retry_backing_off_count,
+            reload.status AS last_reload_status,
+            reload.kept_last_good_hash AS last_reload_last_good_hash,
+            reload.message AS last_reload_message
+        FROM orchestrator_runtime runtime
+        LEFT JOIN (
+            SELECT
+                SUM(CASE WHEN retry_state = 'due' THEN 1 ELSE 0 END) AS retry_due_count,
+                SUM(CASE WHEN retry_state = 'backing_off' THEN 1 ELSE 0 END) AS retry_backing_off_count
+            FROM retry_queue
+        ) retry ON 1 = 1
+        LEFT JOIN (
+            SELECT
+                workflow_reload_events.status AS status,
+                workflow_reload_events.kept_last_good_hash AS kept_last_good_hash,
+                workflow_reload_events.message AS message
+            FROM workflow_reload_events
+            ORDER BY workflow_reload_events.created_at DESC, workflow_reload_events.id DESC
+            LIMIT 1
+        ) reload ON 1 = 1
+        WHERE runtime.singleton_key = 'main';
 
         CREATE TABLE IF NOT EXISTS cache_roots (
             id TEXT PRIMARY KEY,

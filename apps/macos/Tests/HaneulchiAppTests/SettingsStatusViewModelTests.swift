@@ -140,6 +140,7 @@ func settingsStatusViewModelSeparatesSections() {
     #expect(model.automationRows.first(where: { $0.id == .localAPI })?.statusLabel == "available")
     #expect(model.automationRows.first(where: { $0.id == .localAPI })?.detail
         .contains("ffi_c_abi") == true)
+    #expect(model.automationRows.first(where: { $0.id == .localAPI })?.nextAction == "Export Snapshot")
     #expect(model.automationRows.first(where: { $0.id == .workflowWatch })?
         .statusLabel == "invalid_kept_last_good")
     #expect(model.automationRows.first(where: { $0.id == .workflowDefaults })?.detail
@@ -148,6 +149,8 @@ func settingsStatusViewModelSeparatesSections() {
         .contains("2/4") == true)
     #expect(model.automationRows.first(where: { $0.id == .workflowDefaults })?.detail
         .contains("3 retry") == true)
+    #expect(model.automationRows.first(where: { $0.id == .workflowWatch })?.detail
+        .contains("future launches and retries") == true)
     #expect(model.controlPanel != nil)
 }
 
@@ -299,4 +302,46 @@ func settingsStatusViewModelMarksUnavailableAutomationDetails() {
     #expect(model.automationRows.first(where: { $0.id == .workflowWatch })?
         .statusLabel == "deferred")
     #expect(model.controlPanel == nil)
+}
+
+@Test("settings status view model surfaces socket path and workflow watch context")
+func settingsStatusViewModelSurfacesSocketPathAndWatchContext() {
+    let workflowStatus = WorkflowStatusPayload(
+        state: .invalidKeptLastGood,
+        path: "/tmp/demo/WORKFLOW.md",
+        lastGoodHash: "sha256:abc123",
+        lastReloadAt: "2026-03-23T12:00:00Z",
+        lastError: "front matter parse error",
+        workflow: .init(
+            name: "Demo Workflow",
+            strategy: "worktree",
+            baseRoot: ".",
+            reviewChecklist: ["tests passed"],
+            allowedAgents: ["codex"],
+            hooks: ["after_create"],
+            hookRuns: [:],
+            templateBody: nil,
+        ),
+    )
+    let runtimeSummary = RuntimeInfoSummaryPayload(
+        socketPath: "/tmp/haneulchi.sock",
+        transport: "unix_domain_socket_local_only",
+        status: "running",
+    )
+
+    let model = SettingsStatusViewModel(
+        report: nil,
+        workflowStatus: workflowStatus,
+        presetRegistry: .init(presets: []),
+        runtimeInfo: .init(rendererID: "swiftterm", transport: "ffi_c_abi", demoMode: false),
+        snapshot: makeAutomationSnapshot(),
+        terminalSettings: nil,
+        runtimeInfoSummary: runtimeSummary,
+        degradedIssues: [],
+    )
+
+    #expect(model.workflowRow?.detail.contains("watched path") == true)
+    #expect(model.workflowRow?.detail.contains("future launches and retries") == true)
+    #expect(model.automationRows.first(where: { $0.id == .localAPI })?.detail
+        .contains("/tmp/haneulchi.sock") == true)
 }

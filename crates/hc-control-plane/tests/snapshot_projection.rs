@@ -5,9 +5,9 @@ use hc_control_plane::{
     shared_task_move,
 };
 use hc_domain::{
-    ClaimState, ProjectSummary, RetryQueueEntry, RetryState, SessionFocusState,
-    SessionRuntimeState, SessionSummary, TaskAutomationMode, TaskColumn, TrackerStatus,
-    WorkflowHealth, WorkflowRuntimeStatus,
+    ClaimState, OrchestratorRuntime, ProjectSummary, RetryQueueEntry, RetryState,
+    SessionFocusState, SessionRuntimeState, SessionSummary, TaskAutomationMode, TaskColumn,
+    TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
 };
 
 fn workflow_status(state: WorkflowHealth) -> WorkflowRuntimeStatus {
@@ -28,9 +28,35 @@ fn tracker_status() -> TrackerStatus {
     }
 }
 
+fn orchestrator_runtime(
+    cadence_ms: u64,
+    running_slots: u32,
+    max_slots: u32,
+    workflow_state: &str,
+    tracker_state: &str,
+) -> OrchestratorRuntime {
+    OrchestratorRuntime {
+        singleton_key: "main".to_string(),
+        cadence_ms,
+        last_tick_at: Some("2026-03-22T00:00:00Z".to_string()),
+        last_reconcile_at: Some("2026-03-22T00:00:30Z".to_string()),
+        max_slots,
+        running_slots,
+        workflow_state: workflow_state.to_string(),
+        tracker_state: tracker_state.to_string(),
+    }
+}
+
 #[test]
 fn session_projection_includes_workflow_review_ready_and_retry_due_attention() {
     let snapshot = project_snapshot(SnapshotSeed {
+        orchestrator_runtime: orchestrator_runtime(
+            15_000,
+            1,
+            4,
+            "invalid_kept_last_good",
+            "ok",
+        ),
         workflow: workflow_status(WorkflowHealth::InvalidKeptLastGood),
         tracker: tracker_status(),
         projects: vec![ProjectSummary::new(
@@ -105,6 +131,7 @@ fn session_projection_includes_workflow_review_ready_and_retry_due_attention() {
 fn shared_commands_update_projection_state_consistently() {
     reset_task_board_for_tests();
     let snapshot = project_snapshot(SnapshotSeed {
+        orchestrator_runtime: orchestrator_runtime(15_000, 2, 2, "ok", "ok"),
         workflow: workflow_status(WorkflowHealth::Ok),
         tracker: tracker_status(),
         projects: vec![ProjectSummary::new(
@@ -189,6 +216,7 @@ fn shared_commands_update_projection_state_consistently() {
 #[test]
 fn snapshot_projection_carries_meta_and_ops_parity_fields() {
     let snapshot = project_snapshot(SnapshotSeed {
+        orchestrator_runtime: orchestrator_runtime(15_000, 0, 1, "ok", "ok"),
         workflow: workflow_status(WorkflowHealth::Ok),
         tracker: tracker_status(),
         projects: vec![],
@@ -205,8 +233,59 @@ fn snapshot_projection_carries_meta_and_ops_parity_fields() {
 }
 
 #[test]
+fn snapshot_builder_uses_explicit_orchestrator_runtime_values() {
+    let snapshot = project_snapshot(SnapshotSeed {
+        orchestrator_runtime: OrchestratorRuntime {
+            singleton_key: "main".to_string(),
+            cadence_ms: 30_000,
+            last_tick_at: Some("2026-03-26T03:00:00Z".to_string()),
+            last_reconcile_at: Some("2026-03-26T03:01:00Z".to_string()),
+            max_slots: 6,
+            running_slots: 4,
+            workflow_state: "invalid_kept_last_good".to_string(),
+            tracker_state: "degraded".to_string(),
+        },
+        workflow: workflow_status(WorkflowHealth::InvalidKeptLastGood),
+        tracker: TrackerStatus {
+            state: "local_only".to_string(),
+            last_sync_at: None,
+            health: "degraded".to_string(),
+        },
+        projects: vec![],
+        sessions: vec![],
+        retry_queue: vec![RetryQueueEntry {
+            task_id: "task_retry".to_string(),
+            project_id: "proj_demo".to_string(),
+            attempt: 2,
+            reason_code: "adapter_timeout".to_string(),
+            due_at: Some("2026-03-26T03:02:00Z".to_string()),
+            backoff_ms: 60_000,
+            claim_state: ClaimState::Claimed,
+            retry_state: RetryState::Due,
+        }],
+    });
+
+    assert_eq!(snapshot.ops.automation.cadence_ms, 30_000);
+    assert_eq!(snapshot.ops.automation.last_tick_at.as_deref(), Some("2026-03-26T03:00:00Z"));
+    assert_eq!(
+        snapshot.ops.automation.last_reconcile_at.as_deref(),
+        Some("2026-03-26T03:01:00Z")
+    );
+    assert_eq!(snapshot.ops.automation.running_slots, 4);
+    assert_eq!(snapshot.ops.automation.max_slots, 6);
+    assert_eq!(snapshot.ops.automation.retry_due_count, 1);
+}
+
+#[test]
 fn snapshot_builder_reports_snapshot_unavailable_instead_of_silent_empty_projection() {
     let result = build_authoritative_snapshot(SnapshotSeed {
+        orchestrator_runtime: orchestrator_runtime(
+            15_000,
+            0,
+            1,
+            "ok",
+            "snapshot_unavailable",
+        ),
         workflow: workflow_status(WorkflowHealth::Ok),
         tracker: TrackerStatus {
             state: "local_only".to_string(),

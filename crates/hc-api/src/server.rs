@@ -4,19 +4,20 @@ use std::io::{Read, Write};
 use std::os::unix::fs::PermissionsExt;
 use std::os::unix::net::{UnixListener, UnixStream};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 use httparse::Request;
 use serde_json::Value;
 
-use crate::automation::reconcile_now_json;
+use crate::automation::{automation_json, reconcile_now_json};
 use crate::dispatch::dispatch_send_json;
 use crate::envelope::{error_json, success_json};
 use crate::sessions::{
     session_attach_task_json, session_detach_task_json, session_details_json, session_focus_json,
     session_release_takeover_json, session_takeover_json, sessions_list_json_filtered,
 };
-use crate::state::{current_snapshot, state_json_for};
+use crate::state::{StateQuery, current_snapshot, state_json_for};
 use crate::tasks::{task_automation_mode_json, task_create_json, task_move_json, tasks_list_json};
 use crate::workflow::{workflow_reload_json, workflow_validate_json};
 
@@ -75,10 +76,18 @@ impl ApiServer {
 }
 
 fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
+    let default_request_id = generate_request_id();
     let bytes = match read_http_request(&mut stream) {
         Ok(bytes) => bytes,
         Err(error) => {
-            let payload = error_json("invalid_request", &error, current_snapshot().ok().as_ref())?;
+            let payload = error_json(
+                "invalid_request",
+                &error,
+                current_snapshot().ok().as_ref(),
+                default_request_id.clone(),
+                false,
+                serde_json::json!({}),
+            )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
@@ -93,6 +102,9 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
                 "invalid_request",
                 "incomplete_request",
                 current_snapshot().ok().as_ref(),
+                default_request_id.clone(),
+                false,
+                serde_json::json!({}),
             )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
@@ -106,6 +118,9 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
                 "invalid_request",
                 "missing_method",
                 current_snapshot().ok().as_ref(),
+                default_request_id.clone(),
+                false,
+                serde_json::json!({}),
             )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
@@ -118,11 +133,15 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
                 "invalid_request",
                 "missing_path",
                 current_snapshot().ok().as_ref(),
+                default_request_id.clone(),
+                false,
+                serde_json::json!({}),
             )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
     };
+    let request_id = request_id_from_headers(request.headers, &default_request_id);
     let body = match std::str::from_utf8(&bytes[header_len..]) {
         Ok(body) => body.trim(),
         Err(error) => {
@@ -130,24 +149,34 @@ fn handle_stream(mut stream: UnixStream) -> Result<(), String> {
                 "invalid_request",
                 &error.to_string(),
                 current_snapshot().ok().as_ref(),
+                request_id.clone(),
+                false,
+                serde_json::json!({}),
             )?;
             write_response(&mut stream, 400, &payload)?;
             return Ok(());
         }
     };
 
-    let (status, payload) = match resolve_route_response(route(method, path, body)) {
+    let (status, payload) = match resolve_route_response(route(method, path, body, &request_id), &request_id) {
         Ok(response) => response,
         Err(error) => (
             500,
-            error_json("internal_error", &error, current_snapshot().ok().as_ref())?,
+            error_json(
+                "internal_error",
+                &error,
+                current_snapshot().ok().as_ref(),
+                request_id,
+                false,
+                serde_json::json!({}),
+            )?,
         ),
     };
     write_response(&mut stream, status, &payload)?;
     Ok(())
 }
 
-fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), String> {
+fn route(method: &str, raw_path: &str, body: &str, request_id: &str) -> Result<(u16, String), String> {
     let (path, query) = raw_path.split_once('?').unwrap_or((raw_path, ""));
     let segments = path.trim_start_matches('/').split('/').collect::<Vec<_>>();
     let query = parse_query(query);
@@ -155,8 +184,15 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
     match (method, segments.as_slice()) {
         ("GET", ["v1", "state"]) => wrap_success(
             200,
-            state_json_for(query.get("project_id").map(String::as_str))?,
+            state_json_for(StateQuery {
+                project_id: query.get("project_id").map(String::as_str),
+                compact: query.get("view").map(|view| view == "compact").unwrap_or(false),
+                include_attention: parse_bool_query(&query, "include_attention", true),
+                include_retry_queue: parse_bool_query(&query, "include_retry_queue", true),
+            })?,
+            request_id,
         ),
+        ("GET", ["v1", "automation"]) => wrap_success(200, automation_json()?, request_id),
         ("GET", ["v1", "sessions"]) => wrap_success(
             200,
             sessions_list_json_filtered(
@@ -168,19 +204,20 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                     .get("dispatchable")
                     .and_then(|value| value.parse::<bool>().ok()),
             )?,
+            request_id,
         ),
         ("GET", ["v1", "sessions", session_id]) => {
-            wrap_success(200, session_details_json(session_id)?)
+            wrap_success(200, session_details_json(session_id)?, request_id)
         }
-        ("GET", ["v1", "tasks"]) => wrap_success(200, tasks_list_json(None)?),
+        ("GET", ["v1", "tasks"]) => wrap_success(200, tasks_list_json(None)?, request_id),
         ("POST", ["v1", "sessions", session_id, "focus"]) => {
-            wrap_success(202, session_focus_json(session_id)?)
+            wrap_success(202, session_focus_json(session_id)?, request_id)
         }
         ("POST", ["v1", "sessions", session_id, "takeover"]) => {
-            wrap_success(200, session_takeover_json(session_id)?)
+            wrap_success(200, session_takeover_json(session_id)?, request_id)
         }
         ("POST", ["v1", "sessions", session_id, "release-takeover"]) => {
-            wrap_success(200, session_release_takeover_json(session_id)?)
+            wrap_success(200, session_release_takeover_json(session_id)?, request_id)
         }
         ("POST", ["v1", "sessions", session_id, "attach-task"]) => {
             let json = parse_json(body)?;
@@ -188,10 +225,10 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .get("task_id")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_task_id".to_string())?;
-            wrap_success(200, session_attach_task_json(session_id, task_id)?)
+            wrap_success(200, session_attach_task_json(session_id, task_id)?, request_id)
         }
         ("POST", ["v1", "sessions", session_id, "detach-task"]) => {
-            wrap_success(200, session_detach_task_json(session_id)?)
+            wrap_success(200, session_detach_task_json(session_id)?, request_id)
         }
         ("POST", ["v1", "tasks"]) => {
             let json = parse_json(body)?;
@@ -204,7 +241,7 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_title".to_string())?;
             let priority = json.get("priority").and_then(Value::as_str);
-            wrap_success(200, task_create_json(project_id, title, priority)?)
+            wrap_success(200, task_create_json(project_id, title, priority)?, request_id)
         }
         ("POST", ["v1", "tasks", task_id, "move"]) => {
             let json = parse_json(body)?;
@@ -212,7 +249,7 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .get("column")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_column".to_string())?;
-            wrap_success(200, task_move_json(task_id, column)?)
+            wrap_success(200, task_move_json(task_id, column)?, request_id)
         }
         ("POST", ["v1", "tasks", task_id, "automation-mode"]) => {
             let json = parse_json(body)?;
@@ -220,7 +257,7 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .get("mode")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_mode".to_string())?;
-            wrap_success(200, task_automation_mode_json(task_id, mode)?)
+            wrap_success(200, task_automation_mode_json(task_id, mode)?, request_id)
         }
         ("POST", ["v1", "dispatch"]) => {
             let json = parse_json(body)?;
@@ -245,9 +282,9 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                     .and_then(|events| events.last())
                     .and_then(|event| event["reason_code"].as_str())
                     .unwrap_or("dispatch_failed");
-                wrap_error(409, reason, reason)
+                wrap_error(409, reason, reason, request_id)
             } else {
-                wrap_success(200, response)
+                wrap_success(200, response, request_id)
             }
         }
         ("POST", ["v1", "workflow", "validate"]) => {
@@ -256,7 +293,7 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .get("project_root")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_project_root".to_string())?;
-            wrap_success(200, workflow_validate_json(project_root)?)
+            wrap_success(200, workflow_validate_json(project_root)?, request_id)
         }
         ("POST", ["v1", "workflow", "reload"]) => {
             let json = parse_json(body)?;
@@ -264,52 +301,68 @@ fn route(method: &str, raw_path: &str, body: &str) -> Result<(u16, String), Stri
                 .get("project_root")
                 .and_then(Value::as_str)
                 .ok_or_else(|| "missing_project_root".to_string())?;
-            wrap_success(200, workflow_reload_json(project_root)?)
+            wrap_success(200, workflow_reload_json(project_root)?, request_id)
         }
         ("POST", ["v1", "reconcile"]) => {
             let json = parse_json(body)?;
             let project_id = json.get("project_id").and_then(Value::as_str);
-            wrap_success(200, reconcile_now_json(project_id)?)
+            wrap_success(200, reconcile_now_json(project_id)?, request_id)
         }
-        _ => wrap_error(404, "not_found", "route_not_found"),
+        _ => wrap_error(404, "not_found", "route_not_found", request_id),
     }
 }
 
 pub fn route_for_test(method: &str, path: &str, body: &str) -> Result<(u16, String), String> {
-    resolve_route_response(route(method, path, body))
+    resolve_route_response(route(method, path, body, "req_test"), "req_test")
 }
 
-fn resolve_route_response(result: Result<(u16, String), String>) -> Result<(u16, String), String> {
+fn resolve_route_response(result: Result<(u16, String), String>, request_id: &str) -> Result<(u16, String), String> {
     match result {
         Ok(response) => Ok(response),
         Err(error) => {
-            let (status, code, message) = classify_route_error(&error);
-            let payload = error_json(&code, &message, current_snapshot().ok().as_ref())?;
+            let (status, code, message, retryable) = classify_route_error(&error);
+            let payload = error_json(
+                &code,
+                &message,
+                current_snapshot().ok().as_ref(),
+                request_id,
+                retryable,
+                serde_json::json!({}),
+            )?;
             Ok((status, payload))
         }
     }
 }
 
-fn classify_route_error(error: &str) -> (u16, String, String) {
+fn classify_route_error(error: &str) -> (u16, String, String, bool) {
     if error.starts_with("missing_") || error == "invalid_request" {
-        return (400, error.to_string(), error.to_string());
+        return (400, error.to_string(), error.to_string(), false);
     }
 
     match error {
-        "session_not_found" | "task_not_found" => (404, error.to_string(), error.to_string()),
+        "session_not_found" | "task_not_found" => {
+            (404, error.to_string(), error.to_string(), false)
+        }
         "task_claim_conflict"
         | "takeover_conflict"
         | "stale_target_session"
-        | "manual_takeover_active" => (409, error.to_string(), error.to_string()),
-        "invalid_transition" | "dispatch_failed" => (422, error.to_string(), error.to_string()),
+        | "manual_takeover_active" => (409, error.to_string(), error.to_string(), false),
+        "invalid_transition" | "dispatch_failed" => {
+            (422, error.to_string(), error.to_string(), false)
+        }
         _ if error.contains("front matter parse error")
             || error.contains("workflow")
             || error.contains("last-known-good")
             || error.contains("invalid_kept_last_good") =>
         {
-            (422, "workflow_invalid".to_string(), error.to_string())
+            (
+                422,
+                "workflow_invalid".to_string(),
+                error.to_string(),
+                false,
+            )
         }
-        _ => (500, "internal_error".to_string(), error.to_string()),
+        _ => (500, "internal_error".to_string(), error.to_string(), false),
     }
 }
 
@@ -320,15 +373,25 @@ fn parse_json(body: &str) -> Result<Value, String> {
     serde_json::from_str(body).map_err(|error| error.to_string())
 }
 
-fn wrap_success(status: u16, payload_json: String) -> Result<(u16, String), String> {
+fn wrap_success(status: u16, payload_json: String, request_id: &str) -> Result<(u16, String), String> {
     let snapshot = current_snapshot()?;
     let value: Value = serde_json::from_str(&payload_json).map_err(|error| error.to_string())?;
-    Ok((status, success_json(value, &snapshot)?))
+    Ok((status, success_json(value, &snapshot, request_id)?))
 }
 
-fn wrap_error(status: u16, code: &str, message: &str) -> Result<(u16, String), String> {
+fn wrap_error(status: u16, code: &str, message: &str, request_id: &str) -> Result<(u16, String), String> {
     let snapshot = current_snapshot().ok();
-    Ok((status, error_json(code, message, snapshot.as_ref())?))
+    Ok((
+        status,
+        error_json(
+            code,
+            message,
+            snapshot.as_ref(),
+            request_id,
+            false,
+            serde_json::json!({}),
+        )?,
+    ))
 }
 
 fn status_text(status: u16) -> &'static str {
@@ -344,15 +407,73 @@ fn status_text(status: u16) -> &'static str {
 }
 
 fn write_response(stream: &mut UnixStream, status: u16, payload: &str) -> Result<(), String> {
-    let response = format!(
-        "HTTP/1.1 {status} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
-        status_text(status),
-        payload.len(),
-        payload
-    );
+    let headers = response_headers_from_payload(payload);
+    let response = if headers.is_empty() {
+        format!(
+            "HTTP/1.1 {status} {}\r\nContent-Type: application/json\r\nContent-Length: {}\r\n\r\n{}",
+            status_text(status),
+            payload.len(),
+            payload
+        )
+    } else {
+        format!(
+            "HTTP/1.1 {status} {}\r\nContent-Type: application/json\r\n{}\r\nContent-Length: {}\r\n\r\n{}",
+            status_text(status),
+            headers,
+            payload.len(),
+            payload
+        )
+    };
     stream
         .write_all(response.as_bytes())
         .map_err(|error| error.to_string())
+}
+
+fn generate_request_id() -> String {
+    static REQUEST_COUNTER: AtomicU64 = AtomicU64::new(1);
+    format!("req_{}", REQUEST_COUNTER.fetch_add(1, Ordering::Relaxed))
+}
+
+fn request_id_from_headers(headers: &[httparse::Header<'_>], fallback: &str) -> String {
+    headers
+        .iter()
+        .find(|header| header.name.eq_ignore_ascii_case("X-HC-Request-Id"))
+        .and_then(|header| std::str::from_utf8(header.value).ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .unwrap_or_else(|| fallback.to_string())
+}
+
+fn parse_bool_query(
+    query: &std::collections::HashMap<String, String>,
+    key: &str,
+    default: bool,
+) -> bool {
+    query.get(key)
+        .map(|value| value.eq_ignore_ascii_case("true"))
+        .unwrap_or(default)
+}
+
+fn response_headers_from_payload(payload: &str) -> String {
+    let value: Value = serde_json::from_str(payload).unwrap_or(Value::Null);
+    let mut headers = Vec::new();
+
+    if let Some(api_version) = value["meta"]["api_version"].as_str() {
+        headers.push(format!("X-HC-Api-Version: {api_version}"));
+    }
+    if let Some(snapshot_rev) = value["meta"]["snapshot_rev"].as_u64() {
+        headers.push(format!("X-HC-Snapshot-Rev: {snapshot_rev}"));
+    }
+    if let Some(request_id) = value["meta"]["request_id"].as_str() {
+        headers.push(format!("X-HC-Request-Id: {request_id}"));
+    }
+
+    if headers.is_empty() {
+        String::new()
+    } else {
+        headers.join("\r\n")
+    }
 }
 
 fn read_http_request(stream: &mut UnixStream) -> Result<Vec<u8>, String> {

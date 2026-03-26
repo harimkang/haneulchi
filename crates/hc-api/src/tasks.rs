@@ -4,6 +4,7 @@ use hc_control_plane::{
     shared_task_drawer, shared_task_move,
 };
 use hc_domain::TaskColumn;
+use hc_control_plane::prepare_isolated_launch;
 
 pub fn tasks_list_json(project_id: Option<&str>) -> Result<String, String> {
     let projection = shared_task_board_projection(project_id).map_err(|error| error.to_string())?;
@@ -50,6 +51,24 @@ pub fn task_provision_workspace_json(
     let workspace = shared_provision_task_workspace(project_root, task_id, base_root)
         .map_err(|error| error.to_string())?;
     serde_json::to_string(&workspace).map_err(|error| error.to_string())
+}
+
+pub fn task_prepare_isolated_launch_json(
+    project_root: &str,
+    project_name: &str,
+    task_id: &str,
+    task_title: &str,
+    workspace_root: &str,
+) -> Result<String, String> {
+    let summary = prepare_isolated_launch(
+        project_root,
+        project_name,
+        task_id,
+        task_title,
+        workspace_root,
+    )?;
+
+    serde_json::to_string(&summary).map_err(|error| error.to_string())
 }
 
 pub fn review_queue_json() -> Result<String, String> {

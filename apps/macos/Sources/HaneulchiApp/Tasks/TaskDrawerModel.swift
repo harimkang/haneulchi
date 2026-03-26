@@ -19,12 +19,15 @@ struct TaskDrawerModel: Equatable, Sendable {
     let workflowName: String
     let workflowPath: String
     let strategy: String?
+    let workflowBindingSummary: String
+    let lineageSummary: String
     let reviewChecklist: [String]
     let allowedAgents: [String]
     let lastGoodHash: String?
     let lastReloadAt: String?
     let lastError: String?
     let lastBootstrapOutcome: String?
+    let bootstrapPhaseSummary: String?
     let renderedPromptPath: String?
     let hookPhaseResults: [WorkflowStatusPayload.HookPhaseResult]
     let timeline: [TaskTimelineEntry]
@@ -72,12 +75,17 @@ struct TaskDrawerModel: Equatable, Sendable {
             workflowName: workflowStatus?.workflow?.name ?? "Workflow Contract",
             workflowPath: workflowStatus?.path ?? "",
             strategy: workflowStatus?.workflow?.strategy,
+            workflowBindingSummary: workflowBindingSummary(workflowStatus: workflowStatus),
+            lineageSummary: lineageSummary(session: session),
             reviewChecklist: workflowStatus?.workflow?.reviewChecklist ?? [],
             allowedAgents: workflowStatus?.workflow?.allowedAgents ?? [],
             lastGoodHash: workflowStatus?.lastGoodHash,
             lastReloadAt: workflowStatus?.lastReloadAt,
             lastError: workflowStatus?.lastError,
             lastBootstrapOutcome: workflowStatus?.lastBootstrap?.outcomeCode,
+            bootstrapPhaseSummary: workflowStatus?.lastBootstrap?.phaseSequence.joined(
+                separator: " -> "
+            ),
             renderedPromptPath: workflowStatus?.lastBootstrap?.renderedPromptPath,
             hookPhaseResults: workflowStatus?.lastBootstrap?.hookPhaseResults ?? [],
             timeline: timeline,
@@ -106,5 +114,27 @@ struct TaskDrawerModel: Equatable, Sendable {
             return "task_claim_conflict"
         }
         return nil
+    }
+
+    private static func workflowBindingSummary(workflowStatus: WorkflowStatusPayload?) -> String {
+        var parts: [String] = []
+        if let state = workflowStatus?.state.rawValue {
+            parts.append(state)
+        }
+        if let lastGoodHash = workflowStatus?.lastGoodHash {
+            parts.append("last good \(lastGoodHash)")
+        }
+        if let lastReloadAt = workflowStatus?.lastReloadAt {
+            parts.append("reloaded \(lastReloadAt)")
+        }
+        return parts.isEmpty ? "none" : parts.joined(separator: " · ")
+    }
+
+    private static func lineageSummary(session: AppShellSnapshot.SessionSummary) -> String {
+        [
+            "session \(session.sessionID)",
+            session.workspaceRoot.map { "workspace \($0)" } ?? "workspace none",
+            session.taskID.map { "task \($0)" } ?? "task none",
+        ].joined(separator: " · ")
     }
 }

@@ -6,6 +6,7 @@ enum CoreBridgeError: Error, Equatable {
     case invalidBytesPayload
     case invalidRuntimeInfo
     case invalidSessionSnapshot
+    case invalidSessionDetails
     case invalidSpawnResponse
     case operationFailed(String)
 }
@@ -23,6 +24,9 @@ struct CoreBridge: Sendable {
     let stateSnapshot: @Sendable () throws -> AppShellSnapshot
     let stateSnapshotJSON: @Sendable () throws -> String
     let sessionsList: @Sendable () throws -> [AppShellSnapshot.SessionSummary]
+    let sessionDetails: @Sendable (String) throws -> SessionDetailsPayload
+    let prepareIsolatedLaunch: @Sendable (String, String, String, String, String) throws
+        -> WorkflowStatusPayload.BootstrapSummary
     let focusSession: @Sendable (String) throws -> Void
     let takeoverSession: @Sendable (String) throws -> Void
     let releaseTakeoverSession: @Sendable (String) throws -> Void
@@ -68,6 +72,13 @@ struct CoreBridge: Sendable {
         sessionsList: @escaping @Sendable () throws -> [AppShellSnapshot.SessionSummary] = {
             throw CoreBridgeError.operationFailed("sessions_list_unavailable")
         },
+        sessionDetails: @escaping @Sendable (String) throws -> SessionDetailsPayload = { _ in
+            throw CoreBridgeError.operationFailed("session_details_unavailable")
+        },
+        prepareIsolatedLaunch: @escaping @Sendable (String, String, String, String, String) throws
+            -> WorkflowStatusPayload.BootstrapSummary = { _, _, _, _, _ in
+                throw CoreBridgeError.operationFailed("prepare_isolated_launch_unavailable")
+            },
         focusSession: @escaping @Sendable (String) throws -> Void = { _ in
             throw CoreBridgeError.operationFailed("session_focus_unavailable")
         },
@@ -139,6 +150,8 @@ struct CoreBridge: Sendable {
         self.stateSnapshot = stateSnapshot
         self.stateSnapshotJSON = stateSnapshotJSON
         self.sessionsList = sessionsList
+        self.sessionDetails = sessionDetails
+        self.prepareIsolatedLaunch = prepareIsolatedLaunch
         self.focusSession = focusSession
         self.takeoverSession = takeoverSession
         self.releaseTakeoverSession = releaseTakeoverSession
@@ -285,6 +298,40 @@ struct CoreBridge: Sendable {
         sessionsList: {
             let payload = try stringPayloadData(hc_sessions_list_json())
             return try decodeSessionSummaries(from: payload)
+        },
+        sessionDetails: { sessionID in
+            let session = try CStringBox(sessionID)
+            let payload = try session.withPointer { pointer in
+                try stringPayloadData(hc_session_details_json(pointer))
+            }
+            return try decodeSessionDetails(from: payload)
+        },
+        prepareIsolatedLaunch: { projectRoot, projectName, taskID, taskTitle, workspaceRoot in
+            let root = try CStringBox(projectRoot)
+            let name = try CStringBox(projectName)
+            let task = try CStringBox(taskID)
+            let title = try CStringBox(taskTitle)
+            let workspace = try CStringBox(workspaceRoot)
+            let payload = try root.withPointer { rootPointer in
+                try name.withPointer { namePointer in
+                    try task.withPointer { taskPointer in
+                        try title.withPointer { titlePointer in
+                            try workspace.withPointer { workspacePointer in
+                                try stringPayloadData(
+                                    hc_task_prepare_isolated_launch_json(
+                                        rootPointer,
+                                        namePointer,
+                                        taskPointer,
+                                        titlePointer,
+                                        workspacePointer,
+                                    ),
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            return try decodeWorkflowBootstrapSummary(from: payload)
         },
         focusSession: { sessionID in
             let session = try CStringBox(sessionID)
@@ -511,6 +558,35 @@ struct CoreBridge: Sendable {
             sessionsList: {
                 []
             },
+            sessionDetails: { sessionID in
+                SessionDetailsPayload(
+                    sessionID: sessionID,
+                    title: "Mock Session",
+                    workflowBinding: .init(
+                        state: .ok,
+                        path: "/tmp/demo/WORKFLOW.md",
+                        lastGoodHash: "sha256:mock",
+                        lastReloadAt: "2026-03-22T00:00:00Z",
+                        lastError: nil,
+                    ),
+                    recentEvents: [],
+                )
+            },
+            prepareIsolatedLaunch: { _, _, _, _, workspaceRoot in
+                WorkflowStatusPayload.BootstrapSummary(
+                    workspaceRoot: workspaceRoot,
+                    baseRoot: ".",
+                    sessionCwd: workspaceRoot,
+                    renderedPromptPath: workspaceRoot + "/prompt.rendered.md",
+                    phaseSequence: ["resolve", "normalize", "workspace", "paths", "prompt"],
+                    hookPhaseResults: [],
+                    outcomeCode: "launch_prepared",
+                    warningCodes: [],
+                    claimReleased: false,
+                    launchExitCode: nil,
+                    lastKnownGoodHash: "sha256:mock",
+                )
+            },
             focusSession: { _ in },
             takeoverSession: { _ in },
             releaseTakeoverSession: { _ in },
@@ -633,6 +709,25 @@ private func decodeSessionSummaries(from data: Data) throws -> [AppShellSnapshot
     }
 
     return sessions
+}
+
+private func decodeSessionDetails(from data: Data) throws -> SessionDetailsPayload {
+    guard let payload = try? JSONDecoder().decode(SessionDetailsPayload.self, from: data) else {
+        throw CoreBridgeError.invalidSessionDetails
+    }
+
+    return payload
+}
+
+private func decodeWorkflowBootstrapSummary(from data: Data) throws
+    -> WorkflowStatusPayload.BootstrapSummary
+{
+    guard let payload = try? JSONDecoder().decode(WorkflowStatusPayload.BootstrapSummary.self, from: data)
+    else {
+        throw CoreBridgeError.invalidRuntimeInfo
+    }
+
+    return payload
 }
 
 private struct SpawnSessionResponse: Decodable {

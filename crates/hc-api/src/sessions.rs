@@ -38,6 +38,34 @@ pub fn session_details_json(session_id: &str) -> Result<String, String> {
         .find(|session| session.session_id == session_id)
         .cloned()
         .ok_or_else(|| "session_not_found".to_string())?;
+    let recent_events = snapshot
+        .attention
+        .iter()
+        .filter(|item| {
+            item.session_id.as_deref() == Some(session_id)
+                || (session.task_id.is_some() && item.task_id == session.task_id)
+        })
+        .take(10)
+        .map(|item| {
+            json!({
+                "kind": item.kind,
+                "title": item.title,
+                "summary": item.summary,
+                "created_at": item.created_at,
+                "action_hint": item.action_hint,
+            })
+        })
+        .collect::<Vec<_>>();
+    let review_binding = if session.runtime_state == hc_domain::SessionRuntimeState::ReviewReady {
+        session.task_id.as_ref().map(|task_id| {
+            json!({
+                "task_id": task_id,
+                "status": "review_ready",
+            })
+        })
+    } else {
+        None
+    };
     let payload = json!({
         "session_id": session.session_id,
         "project_id": session.project_id,
@@ -66,8 +94,8 @@ pub fn session_details_json(session_id: &str) -> Result<String, String> {
         },
         "workflow_binding": snapshot.ops.workflow,
         "task_binding": session.task_id,
-        "recent_events": [],
-        "review_binding": serde_json::Value::Null,
+        "recent_events": recent_events,
+        "review_binding": review_binding,
         "terminal_geometry": serde_json::Value::Null,
         "started_at": serde_json::Value::Null,
         "ended_at": serde_json::Value::Null,

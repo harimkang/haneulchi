@@ -54,6 +54,16 @@ func coreBridgeHasSettingsCalls() throws {
     #expect(settings?.shell.isEmpty == false)
 }
 
+@Test("core bridge mock has session details call")
+func coreBridgeHasSessionDetailsCall() throws {
+    let bridge = CoreBridge.mockLiveSession(outputChunks: [])
+    let details = try bridge.sessionDetails("session-0001")
+
+    #expect(details.sessionID == "session-0001")
+    #expect(details.workflowBinding.state == .ok)
+    #expect(details.recentEvents.isEmpty)
+}
+
 @Test("app shell snapshot payload can decode the richer sprint 2 bridge contract")
 func bridgeDecodesStateSnapshotPayload() throws {
     let payload = Data(

@@ -1,3 +1,5 @@
+use std::collections::BTreeMap;
+
 use regex::Regex;
 
 use crate::WorkflowError;
@@ -30,6 +32,22 @@ const ALLOWED_VARIABLES: &[&str] = &[
     "now.date",
 ];
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub(crate) struct RenderContext {
+    values: BTreeMap<&'static str, String>,
+}
+
+impl RenderContext {
+    pub(crate) fn with(mut self, key: &'static str, value: impl Into<String>) -> Self {
+        self.values.insert(key, value.into());
+        self
+    }
+
+    fn lookup(&self, key: &str) -> String {
+        self.values.get(key).cloned().unwrap_or_default()
+    }
+}
+
 pub(crate) fn validate_template_variables(template_body: &str) -> Result<(), WorkflowError> {
     let pattern = Regex::new(r#"(\\)?\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}"#).expect("template regex");
 
@@ -46,4 +64,22 @@ pub(crate) fn validate_template_variables(template_body: &str) -> Result<(), Wor
     }
 
     Ok(())
+}
+
+pub(crate) fn render_template(
+    template_body: &str,
+    context: &RenderContext,
+) -> Result<String, WorkflowError> {
+    validate_template_variables(template_body)?;
+
+    let escaped_open = "__HC_ESCAPED_OPEN__";
+    let normalized = template_body.replace(r"\{{", escaped_open);
+    let pattern = Regex::new(r"\{\{\s*([a-zA-Z0-9_.]+)\s*\}\}").expect("template regex");
+
+    let rendered = pattern.replace_all(&normalized, |captures: &regex::Captures<'_>| {
+        let key = captures.get(1).expect("variable capture").as_str();
+        context.lookup(key)
+    });
+
+    Ok(rendered.replace(escaped_open, "{{"))
 }

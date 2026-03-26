@@ -148,6 +148,45 @@ fn orchestrator_runtime_reload_tracker_and_review_evidence_restore_across_reopen
     fs::remove_file(path).ok();
 }
 
+#[test]
+fn schema_exposes_authoritative_automation_views_and_indexes() {
+    let store = SqliteStore::in_memory().expect("sqlite store");
+    let mut statement = store
+        .connection()
+        .prepare(
+            r#"
+            SELECT name
+            FROM sqlite_master
+            WHERE name IN (
+                'v_control_tower_ops_strip',
+                'v_task_drawer_automation',
+                'v_automation_health',
+                'idx_tasks_automation_mode',
+                'idx_retry_queue_due_state'
+            )
+            ORDER BY name ASC
+            "#,
+        )
+        .expect("sqlite master query");
+
+    let names = statement
+        .query_map([], |row| row.get::<_, String>(0))
+        .expect("sqlite master rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("collect names");
+
+    assert_eq!(
+        names,
+        vec![
+            "idx_retry_queue_due_state".to_string(),
+            "idx_tasks_automation_mode".to_string(),
+            "v_automation_health".to_string(),
+            "v_control_tower_ops_strip".to_string(),
+            "v_task_drawer_automation".to_string(),
+        ]
+    );
+}
+
 fn seed_task(store: &SqliteStore, task_id: &str) {
     store
         .tasks()

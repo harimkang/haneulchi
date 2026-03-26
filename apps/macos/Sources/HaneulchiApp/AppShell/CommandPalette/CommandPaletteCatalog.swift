@@ -98,6 +98,61 @@ struct CommandPaletteCatalog: Equatable, Sendable {
             ),
         )
 
+        items.append(
+            .init(
+                id: "command-refresh-automation-snapshot",
+                section: .commands,
+                title: "Refresh Automation Snapshot",
+                subtitle: "Control Plane",
+                tokens: ["refresh automation", "refresh snapshot", "automation snapshot"],
+                action: .refreshShellSnapshot,
+            ),
+        )
+
+        items.append(
+            .init(
+                id: "command-reconcile-now",
+                section: .commands,
+                title: "Reconcile Now",
+                subtitle: "Control Plane",
+                tokens: ["reconcile", "reconcile now", "automation"],
+                action: .reconcileAutomation,
+            ),
+        )
+
+        items.append(
+            .init(
+                id: "command-reload-workflow-contract",
+                section: .commands,
+                title: "Reload Workflow Contract",
+                subtitle: "Workflow",
+                tokens: ["reload workflow", "workflow contract", "workflow reload"],
+                action: .reloadWorkflow,
+            ),
+        )
+
+        items.append(
+            .init(
+                id: "command-copy-state-json",
+                section: .commands,
+                title: "Export State JSON",
+                subtitle: "Snapshot",
+                tokens: ["export state", "state json", "export snapshot"],
+                action: .exportSnapshot,
+            ),
+        )
+
+        items.append(
+            .init(
+                id: "command-open-automation-panel",
+                section: .commands,
+                title: "Open Automation Panel",
+                subtitle: "Settings",
+                tokens: ["automation panel", "automation settings", "control api"],
+                action: .openSettings,
+            ),
+        )
+
         if !snapshot.attention.isEmpty {
             items.append(
                 .init(

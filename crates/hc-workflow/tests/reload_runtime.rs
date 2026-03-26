@@ -291,3 +291,59 @@ fn reload_valid_workflow_after_invalid_becomes_ok() {
         "state must return to Ok after reloading a valid workflow"
     );
 }
+
+#[test]
+fn invalid_hook_path_reload_keeps_last_good_and_records_last_error() {
+    let root = temp_dir("invalid-hook-reload");
+    let outside_root = temp_dir("invalid-hook-reload-outside");
+    let outside_hook = outside_root.join("outside.sh");
+    fs::write(&outside_hook, "#!/bin/sh\nexit 0\n").expect("outside hook");
+    let workflow_path = write_workflow(
+        &root,
+        "---\nworkflow:\n  name: Initial Good\n---\n{{task.title}}\n",
+    );
+
+    let mut runtime = WorkflowRuntime::new(LoadWorkflowRequest {
+        repo_root: root.clone(),
+        explicit_workflow_path: None,
+    });
+    runtime.reload().expect("initial valid load");
+    let good_hash = runtime
+        .current()
+        .expect("current after valid load")
+        .contract_hash
+        .clone();
+
+    fs::write(
+        &workflow_path,
+        format!(
+            "---\nhooks:\n  after_create: {}\n---\n{{{{task.title}}}}\n",
+            outside_hook.display()
+        ),
+    )
+    .expect("write invalid hook workflow");
+
+    let error = runtime
+        .reload()
+        .expect_err("invalid hook path reload must fail");
+
+    assert_eq!(runtime.state(), WorkflowState::InvalidKeptLastGood);
+    assert_eq!(
+        runtime
+            .current()
+            .expect("last known good remains active")
+            .contract_hash,
+        good_hash
+    );
+    assert!(
+        error.to_string().contains("hook"),
+        "expected invalid hook path error, got: {error}"
+    );
+    assert!(
+        runtime
+            .last_error()
+            .unwrap_or_default()
+            .contains("hook"),
+        "expected runtime.last_error to capture hook validation failure"
+    );
+}

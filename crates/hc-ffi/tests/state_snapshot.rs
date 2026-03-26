@@ -7,14 +7,15 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use hc_control_plane::reset_shared_control_plane_snapshot_for_tests;
 use hc_domain::{
-    AppSnapshot, ClaimState, RetryState, SessionRuntimeState, SessionSummary, TrackerStatus,
-    WorkflowHealth, WorkflowRuntimeStatus,
+    AppSnapshot, AttentionSummary, ClaimState, RetryState, SessionRuntimeState, SessionSummary,
+    TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
 };
 use hc_ffi::{
-    hc_session_focus, hc_session_release_takeover, hc_session_takeover, hc_sessions_list_json,
-    hc_state_snapshot_json, hc_string_free, reset_test_state, session_focus,
-    session_release_takeover, session_takeover, sessions_list_json, state_snapshot_json,
-    terminal_session_spawn_json, workflow_reload_json,
+    hc_session_details_json, hc_session_focus, hc_session_release_takeover,
+    hc_session_takeover, hc_sessions_list_json, hc_state_snapshot_json, hc_string_free,
+    reset_test_state, session_details_json, session_focus, session_release_takeover,
+    session_takeover, sessions_list_json, state_snapshot_json, terminal_session_spawn_json,
+    workflow_reload_json,
 };
 use serde_json::Value;
 
@@ -109,6 +110,67 @@ fn state_snapshot_json_exposes_retry_claim_state_and_adapter_watch_fields() {
     assert_eq!(session["active_window_title"], "Terminal 1");
     assert_eq!(session["dispatch_reason"], "dispatchable");
     assert_eq!(snapshot["retry_queue"][0]["claim_state"], "claimed");
+}
+
+#[test]
+fn session_details_json_exports_recent_events_and_workflow_binding() {
+    let _guard = TEST_LOCK.lock().unwrap();
+    reset_test_state();
+
+    let workflow = WorkflowRuntimeStatus {
+        state: WorkflowHealth::Ok,
+        path: "/tmp/demo/WORKFLOW.md".to_string(),
+        last_good_hash: Some("sha256:ffi".to_string()),
+        last_reload_at: Some("2026-03-23T12:00:00Z".to_string()),
+        last_error: None,
+    };
+    let tracker = TrackerStatus {
+        state: "local_only".to_string(),
+        last_sync_at: None,
+        health: "ok".to_string(),
+    };
+    let mut session = SessionSummary::new("ses_detail", "proj_demo", "Detailed session");
+    session.runtime_state = SessionRuntimeState::ReviewReady;
+    session.task_id = Some("task_ready".to_string());
+
+    let mut snapshot = AppSnapshot::new(workflow, tracker).with_session(session);
+    snapshot.attention = vec![AttentionSummary {
+        attention_id: "att_detail".to_string(),
+        kind: "review_ready".to_string(),
+        project_id: "proj_demo".to_string(),
+        session_id: Some("ses_detail".to_string()),
+        task_id: Some("task_ready".to_string()),
+        title: "Review ready".to_string(),
+        summary: "Evidence pack ready.".to_string(),
+        created_at: Some("2026-03-23T12:01:00Z".to_string()),
+        severity: "info".to_string(),
+        action_hint: Some("open_review".to_string()),
+    }];
+    reset_shared_control_plane_snapshot_for_tests(snapshot);
+
+    let payload: Value =
+        serde_json::from_str(&session_details_json("ses_detail").expect("session details json"))
+            .expect("valid json");
+
+    assert_eq!(payload["session_id"], "ses_detail");
+    assert_eq!(payload["workflow_binding"]["state"], "ok");
+    assert_eq!(
+        payload["recent_events"]
+            .as_array()
+            .expect("recent events")
+            .len(),
+        1
+    );
+
+    let c_session = CString::new("ses_detail").expect("cstring");
+    let c_payload = hc_session_details_json(c_session.as_ptr());
+    let c_json = unsafe { CStr::from_ptr(c_payload.ptr) }
+        .to_str()
+        .unwrap()
+        .to_string();
+    hc_string_free(c_payload);
+    let c_value: Value = serde_json::from_str(&c_json).expect("valid c json");
+    assert_eq!(c_value["session_id"], "ses_detail");
 }
 
 #[test]

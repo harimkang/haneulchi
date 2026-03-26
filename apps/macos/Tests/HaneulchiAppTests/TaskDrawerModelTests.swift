@@ -87,6 +87,8 @@ func taskDrawerModelUsesSnapshotAndWorkflowProjection() {
     #expect(model?.requireReview == true)
     #expect(model?.maxRuntimeMinutes == 45)
     #expect(model?.unsafeOverridePolicy == "explicit_only")
+    #expect(model?.workflowBindingSummary.contains("ok") == true)
+    #expect(model?.lineageSummary.contains("ses_02") == true)
     #expect(model?.primaryActionTitle == "Detach Session")
 }
 
@@ -182,6 +184,8 @@ func taskDrawerModelKeepsTimelineWarningsVisible() {
     #expect(model?.timeline.count == 2)
     #expect(model?.timeline.last?.warningReason == "broken_link")
     #expect(model?.lastBootstrapOutcome == "launch_succeeded")
+    #expect(model?.bootstrapPhaseSummary == "resolve -> launch -> evidence")
+    #expect(model?.lineageSummary.contains("/tmp/demo/worktrees/task_review") == true)
     #expect(model?.trackerBindingState == "bound")
     #expect(model?.blockerReason == "manual_mode")
 }
@@ -264,4 +268,5 @@ func taskDrawerModelSurfacesRetryAndDegradedAutomation() {
     #expect(model?.dispatchReason == "stale_target_session")
     #expect(model?.trackerBindingState == "degraded")
     #expect(model?.blockerReason == "workflow_invalid")
+    #expect(model?.workflowBindingSummary.contains("invalid_kept_last_good") == true)
 }

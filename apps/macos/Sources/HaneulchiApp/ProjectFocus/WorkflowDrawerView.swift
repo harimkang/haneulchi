@@ -175,6 +175,8 @@ struct WorkflowDrawerView: View {
                 Text(status.path)
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                Text("watched path: \(status.path)")
+                    .font(.caption)
                 Text("state: \(status.state.rawValue)")
                     .font(.caption)
                 if let lastGoodHash = status.lastGoodHash {
@@ -185,6 +187,8 @@ struct WorkflowDrawerView: View {
                     Text("last reload: \(lastReloadAt)")
                         .font(.caption)
                 }
+                Text("future runs: future launches and retries use the active workflow contract")
+                    .font(.caption)
                 if let name = status.workflow?.name {
                     Text(name)
                         .font(.subheadline.weight(.semibold))
@@ -216,6 +220,16 @@ struct WorkflowDrawerView: View {
                     Text("last error: \(lastError)")
                         .font(.caption)
                         .foregroundStyle(HaneulchiChrome.Colors.warning)
+                }
+                if let bootstrap = status.lastBootstrap {
+                    Text("prepared cwd: \(bootstrap.sessionCwd)")
+                        .font(.caption)
+                    Text("prompt: \(bootstrap.renderedPromptPath)")
+                        .font(.caption)
+                    if !bootstrap.phaseSequence.isEmpty {
+                        Text("bootstrap: \(bootstrap.phaseSequence.joined(separator: " -> "))")
+                            .font(.caption)
+                    }
                 }
             } else {
                 Text("No workflow loaded.")

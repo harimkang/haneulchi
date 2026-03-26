@@ -700,7 +700,23 @@ final class AppShellModel: ObservableObject {
             return nil
         }
 
-        return try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload)
+        guard let decoded = try? JSONDecoder().decode(WorkflowStatusPayload.self, from: payload) else {
+            return nil
+        }
+
+        if workflowStatus?.path == decoded.path {
+            return WorkflowStatusPayload(
+                state: decoded.state,
+                path: decoded.path,
+                lastGoodHash: decoded.lastGoodHash,
+                lastReloadAt: decoded.lastReloadAt,
+                lastError: decoded.lastError,
+                lastBootstrap: workflowStatus?.lastBootstrap,
+                workflow: decoded.workflow,
+            )
+        }
+
+        return decoded
     }
 
     private func makeSettingsStatusViewModel() -> SettingsStatusViewModel {
@@ -965,80 +981,50 @@ final class AppShellModel: ObservableObject {
     private func bootstrapIfNeeded(_ descriptor: SessionLaunchDescriptor) throws
         -> SessionLaunchDescriptor
     {
-        guard descriptor.mode == .isolated, let selectedProject else {
+        guard descriptor.mode == .isolated, let selectedProject, let coreBridge else {
             return descriptor
         }
-
-        let workflowStatus = workflowStatus ?? fetchWorkflowStatus(for: selectedProject)
         guard let workspaceRoot = descriptor.workspaceRoot else {
             return descriptor
         }
-
-        let workspaceURL = URL(fileURLWithPath: workspaceRoot, isDirectory: true)
-        try FileManager.default.createDirectory(at: workspaceURL, withIntermediateDirectories: true)
-
-        let baseRoot = workflowStatus?.workflow?.baseRoot ?? "."
-        let sessionCwdURL: URL
-        if baseRoot == "." {
-            sessionCwdURL = workspaceURL
+        let taskID = URL(fileURLWithPath: workspaceRoot, isDirectory: true).lastPathComponent
+        let bootstrap = try coreBridge.prepareIsolatedLaunch(
+            selectedProject.rootPath,
+            selectedProject.name,
+            taskID,
+            descriptor.title,
+            workspaceRoot,
+        )
+        if let current = workflowStatus {
+            workflowStatus = WorkflowStatusPayload(
+                state: current.state,
+                path: current.path,
+                lastGoodHash: current.lastGoodHash,
+                lastReloadAt: current.lastReloadAt,
+                lastError: current.lastError,
+                lastBootstrap: bootstrap,
+                workflow: current.workflow,
+            )
         } else {
-            sessionCwdURL = workspaceURL.appendingPathComponent(baseRoot, isDirectory: true)
-            try FileManager.default.createDirectory(
-                at: sessionCwdURL,
-                withIntermediateDirectories: true,
+            workflowStatus = WorkflowStatusPayload(
+                state: .none,
+                path: selectedProject.rootPath + "/WORKFLOW.md",
+                lastGoodHash: bootstrap.lastKnownGoodHash,
+                lastReloadAt: nil,
+                lastError: nil,
+                lastBootstrap: bootstrap,
+                workflow: nil,
             )
         }
-
-        try runHookIfPresent(workflowStatus?.workflow?.hookRuns["after_create"], cwd: sessionCwdURL)
-        try writeRenderedPrompt(
-            workflowStatus: workflowStatus,
-            project: selectedProject,
-            sessionCwdURL: sessionCwdURL,
-        )
-        try runHookIfPresent(workflowStatus?.workflow?.hookRuns["before_run"], cwd: sessionCwdURL)
+        let sessionCwdURL = URL(fileURLWithPath: bootstrap.sessionCwd, isDirectory: true)
 
         return SessionLaunchDescriptor(
             mode: descriptor.mode,
             title: descriptor.title,
             presetID: descriptor.presetID,
             restoreBundle: .genericShell(at: sessionCwdURL.path),
-            workspaceRoot: workspaceURL.path,
+            workspaceRoot: workspaceRoot,
             workflowSummary: descriptor.workflowSummary,
-        )
-    }
-
-    private func runHookIfPresent(_ hookPath: String?, cwd: URL) throws {
-        guard let hookPath, !hookPath.isEmpty else {
-            return
-        }
-
-        let process = Process()
-        process.currentDirectoryURL = cwd
-        process.executableURL = URL(fileURLWithPath: hookPath)
-        try process.run()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else {
-            throw CoreBridgeError.operationFailed("workflow_hook_failed")
-        }
-    }
-
-    private func writeRenderedPrompt(
-        workflowStatus: WorkflowStatusPayload?,
-        project: LauncherProject,
-        sessionCwdURL: URL,
-    ) throws {
-        let template = workflowStatus?.workflow?.templateBody ?? "Project: {{project.name}}"
-        let rendered = template
-            .replacingOccurrences(of: "{{project.name}}", with: project.name)
-            .replacingOccurrences(of: "{{project.repo_root}}", with: project.rootPath)
-            .replacingOccurrences(
-                of: "{{workflow.name}}",
-                with: workflowStatus?.workflow?.name ?? "",
-            )
-        try rendered.write(
-            to: sessionCwdURL.appendingPathComponent("prompt.rendered.md"),
-            atomically: true,
-            encoding: .utf8,
         )
     }
 

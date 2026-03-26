@@ -8,7 +8,8 @@ use hc_control_plane::{
     RecoveryContext, SnapshotSeed, build_authoritative_snapshot, detect_degraded_issues,
 };
 use hc_domain::{
-    SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus, settings::SecretRef,
+    OrchestratorRuntime, SessionSummary, TrackerStatus, WorkflowHealth, WorkflowRuntimeStatus,
+    settings::SecretRef,
 };
 
 const CANARY: &str = "SECRET_VALUE_12345";
@@ -17,6 +18,16 @@ const CANARY: &str = "SECRET_VALUE_12345";
 
 fn snapshot_seed_with_healthy_workflow() -> SnapshotSeed {
     SnapshotSeed {
+        orchestrator_runtime: OrchestratorRuntime {
+            singleton_key: "main".to_string(),
+            cadence_ms: 15_000,
+            last_tick_at: Some("2026-03-25T10:00:00Z".to_string()),
+            last_reconcile_at: Some("2026-03-25T10:01:00Z".to_string()),
+            max_slots: 2,
+            running_slots: 1,
+            workflow_state: "ok".to_string(),
+            tracker_state: "ok".to_string(),
+        },
         workflow: WorkflowRuntimeStatus {
             state: WorkflowHealth::Ok,
             path: "/tmp/project/WORKFLOW.md".to_string(),

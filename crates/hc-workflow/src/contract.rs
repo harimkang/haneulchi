@@ -30,6 +30,7 @@ pub struct EffectiveWorkflowConfig {
     pub review: ReviewConfig,
     pub agents: AgentsConfig,
     pub policy: PolicyConfig,
+    pub haneulchi: HaneulchiConfig,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -97,6 +98,15 @@ pub struct PolicyConfig {
     pub unsafe_override_policy: Option<String>,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct HaneulchiConfig {
+    pub board_mapping_ready: Option<String>,
+    pub board_mapping_review: Option<String>,
+    pub notify_review_ready: bool,
+    pub notify_retry_due: bool,
+    pub quick_dispatch_presets: Vec<String>,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ResolvedPaths {
     pub workflow_file: PathBuf,
@@ -120,6 +130,8 @@ struct WorkflowFrontMatter {
     agents: AgentsConfigRaw,
     #[serde(default)]
     policy: PolicyConfigRaw,
+    #[serde(default)]
+    haneulchi: HaneulchiConfigRaw,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -183,7 +195,30 @@ struct PolicyConfigRaw {
     unsafe_override_policy: Option<String>,
 }
 
+#[derive(Debug, Default, Deserialize)]
+struct HaneulchiConfigRaw {
+    #[serde(default)]
+    board_mapping: HaneulchiBoardMappingRaw,
+    #[serde(default)]
+    notification_policy: HaneulchiNotificationPolicyRaw,
+    #[serde(default)]
+    quick_dispatch_presets: Vec<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct HaneulchiBoardMappingRaw {
+    ready: Option<String>,
+    review: Option<String>,
+}
+
+#[derive(Debug, Default, Deserialize)]
+struct HaneulchiNotificationPolicyRaw {
+    review_ready: Option<bool>,
+    retry_due: Option<bool>,
+}
+
 pub(crate) fn parse_workflow_file(
+    repo_root: &Path,
     workflow_file: &Path,
     contents: &str,
 ) -> Result<LoadedWorkflow, WorkflowError> {
@@ -206,7 +241,7 @@ pub(crate) fn parse_workflow_file(
         .parent()
         .map(Path::to_path_buf)
         .unwrap_or_else(|| PathBuf::from("."));
-    let hooks = normalize_hooks(front_matter.hooks);
+    let hooks = normalize_hooks(repo_root, &workflow_dir, front_matter.hooks)?;
 
     let resolved_paths = ResolvedPaths {
         workflow_file: workflow_file.to_path_buf(),
@@ -215,17 +250,20 @@ pub(crate) fn parse_workflow_file(
             .after_create
             .as_ref()
             .and_then(|hook| hook.run.as_ref())
-            .map(|path| resolve_hook_path(&workflow_dir, path)),
+            .map(|path| resolve_hook_path(repo_root, &workflow_dir, path))
+            .transpose()?,
         before_run: hooks
             .before_run
             .as_ref()
             .and_then(|hook| hook.run.as_ref())
-            .map(|path| resolve_hook_path(&workflow_dir, path)),
+            .map(|path| resolve_hook_path(repo_root, &workflow_dir, path))
+            .transpose()?,
         after_run: hooks
             .after_run
             .as_ref()
             .and_then(|hook| hook.run.as_ref())
-            .map(|path| resolve_hook_path(&workflow_dir, path)),
+            .map(|path| resolve_hook_path(repo_root, &workflow_dir, path))
+            .transpose()?,
     };
 
     let contract_hash = format!("sha256:{:x}", Sha256::digest(contents.as_bytes()));
@@ -254,6 +292,21 @@ pub(crate) fn parse_workflow_file(
             policy: PolicyConfig {
                 max_runtime_minutes: front_matter.policy.max_runtime_minutes,
                 unsafe_override_policy: front_matter.policy.unsafe_override_policy,
+            },
+            haneulchi: HaneulchiConfig {
+                board_mapping_ready: front_matter.haneulchi.board_mapping.ready,
+                board_mapping_review: front_matter.haneulchi.board_mapping.review,
+                notify_review_ready: front_matter
+                    .haneulchi
+                    .notification_policy
+                    .review_ready
+                    .unwrap_or(false),
+                notify_retry_due: front_matter
+                    .haneulchi
+                    .notification_policy
+                    .retry_due
+                    .unwrap_or(false),
+                quick_dispatch_presets: front_matter.haneulchi.quick_dispatch_presets,
             },
         },
         resolved_paths,
@@ -296,16 +349,30 @@ fn normalize_workspace(raw: WorkspaceConfigRaw) -> Result<WorkspaceConfig, Workf
     })
 }
 
-fn normalize_hooks(raw: HooksConfigRaw) -> HooksConfig {
-    HooksConfig {
-        after_create: normalize_hook(raw.after_create, HookPhase::AfterCreate),
-        before_run: normalize_hook(raw.before_run, HookPhase::BeforeRun),
-        after_run: normalize_hook(raw.after_run, HookPhase::AfterRun),
-    }
+fn normalize_hooks(
+    repo_root: &Path,
+    workflow_dir: &Path,
+    raw: HooksConfigRaw,
+) -> Result<HooksConfig, WorkflowError> {
+    Ok(HooksConfig {
+        after_create: normalize_hook(
+            repo_root,
+            workflow_dir,
+            raw.after_create,
+            HookPhase::AfterCreate,
+        )?,
+        before_run: normalize_hook(repo_root, workflow_dir, raw.before_run, HookPhase::BeforeRun)?,
+        after_run: normalize_hook(repo_root, workflow_dir, raw.after_run, HookPhase::AfterRun)?,
+    })
 }
 
-fn normalize_hook(input: Option<HookInput>, phase: HookPhase) -> Option<HookDefinition> {
-    input.map(|input| match input {
+fn normalize_hook(
+    repo_root: &Path,
+    workflow_dir: &Path,
+    input: Option<HookInput>,
+    phase: HookPhase,
+) -> Result<Option<HookDefinition>, WorkflowError> {
+    let definition = input.map(|input| match input {
         HookInput::Shorthand(run) => HookDefinition {
             run: Some(run),
             args: Vec::new(),
@@ -318,7 +385,13 @@ fn normalize_hook(input: Option<HookInput>, phase: HookPhase) -> Option<HookDefi
             timeout_sec: raw.timeout_sec.unwrap_or(default_timeout(phase)),
             optional: raw.optional.unwrap_or(false),
         },
-    })
+    });
+
+    if let Some(run) = definition.as_ref().and_then(|hook| hook.run.as_deref()) {
+        let _ = resolve_hook_path(repo_root, workflow_dir, run)?;
+    }
+
+    Ok(definition)
 }
 
 fn default_timeout(phase: HookPhase) -> u64 {
@@ -328,11 +401,36 @@ fn default_timeout(phase: HookPhase) -> u64 {
     }
 }
 
-fn resolve_hook_path(workflow_dir: &Path, hook_path: &str) -> PathBuf {
+fn resolve_hook_path(
+    repo_root: &Path,
+    workflow_dir: &Path,
+    hook_path: &str,
+) -> Result<PathBuf, WorkflowError> {
     let path = Path::new(hook_path);
-    if path.is_absolute() {
+    let resolved = if path.is_absolute() {
         path.to_path_buf()
     } else {
-        workflow_dir.join(path)
+        normalize_lexical_path(workflow_dir.join(path))
+    };
+
+    let repo_root = normalize_lexical_path(repo_root.to_path_buf());
+    if !resolved.starts_with(&repo_root) {
+        return Err(WorkflowError::InvalidHookPath(hook_path.to_string()));
     }
+
+    Ok(resolved)
+}
+
+fn normalize_lexical_path(path: PathBuf) -> PathBuf {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            std::path::Component::CurDir => {}
+            std::path::Component::ParentDir => {
+                normalized.pop();
+            }
+            other => normalized.push(other.as_os_str()),
+        }
+    }
+    normalized
 }
