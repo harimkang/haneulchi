@@ -457,6 +457,14 @@ func projectFocusUsesFailureExplorerStateWhenIndexingFails() {
     #expect(state == .indexingFailed)
 }
 
+@Test("standalone project focus preview uses an expanded desktop viewport context")
+func projectFocusPreviewUsesExpandedDesktopViewport() {
+    let viewportClass = HaneulchiPreviewGalleryContexts.projectFocusDesktopViewportContext
+        .viewportClass
+
+    #expect(viewportClass == .expanded)
+}
+
 @Test(
     "project focus ignores stale explorer indexing results when the project root changes mid-flight",
 )

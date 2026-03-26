@@ -1,5 +1,11 @@
 import SwiftUI
 
+enum HaneulchiPreviewGalleryContexts {
+    static let projectFocusDesktopViewportContext = HaneulchiViewportContext(
+        width: HaneulchiMetrics.Responsive.expandedWidth,
+    )
+}
+
 #Preview("App Shell / Welcome") {
     AppShellView(
         model: HaneulchiPreviewFixtures.shellModel(
@@ -47,6 +53,11 @@ import SwiftUI
         snapshot: HaneulchiPreviewFixtures.snapshot(activeRoute: .projectFocus),
         onAction: { _ in },
     )
+    .environment(
+        \.viewportContext,
+        HaneulchiPreviewGalleryContexts.projectFocusDesktopViewportContext,
+    )
+    .frame(width: 1600, height: 900)
 }
 
 #Preview("Control Tower") {
