@@ -94,15 +94,18 @@ struct HaneulchiMonolithMetric: Identifiable, Equatable {
 struct HaneulchiHeaderDeck<Trailing: View>: View {
     let title: String
     let subtitle: String?
+    let horizontalPadding: CGFloat
     @ViewBuilder let trailing: Trailing
 
     init(
         title: String,
         subtitle: String? = nil,
+        horizontalPadding: CGFloat = HaneulchiMetrics.Padding.card,
         @ViewBuilder trailing: () -> Trailing,
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.horizontalPadding = horizontalPadding
         self.trailing = trailing()
     }
 
@@ -126,7 +129,7 @@ struct HaneulchiHeaderDeck<Trailing: View>: View {
 
             trailing
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(.horizontal, horizontalPadding)
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .background(HaneulchiChrome.Surface.foundation)
     }

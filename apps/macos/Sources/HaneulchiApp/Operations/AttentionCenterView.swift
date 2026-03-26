@@ -14,6 +14,7 @@ struct AttentionCenterView: View {
                 HaneulchiHeaderDeck(
                     title: "Attention Center",
                     subtitle: "Handle manual takeover, failed flows, degraded state, and unread work in priority order.",
+                    horizontalPadding: layout.headerInnerPadding,
                 ) {
                     EmptyView()
                 }

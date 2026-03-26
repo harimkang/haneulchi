@@ -11,6 +11,7 @@ struct ControlTowerView: View {
                 HaneulchiHeaderDeck(
                     title: "Control Tower",
                     subtitle: "Scan control-plane health and multi-project activity without leaving the operator surface.",
+                    horizontalPadding: layout.headerInnerPadding,
                 ) {
                     HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                         Button {

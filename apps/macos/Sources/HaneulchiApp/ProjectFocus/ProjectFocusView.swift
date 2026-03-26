@@ -81,64 +81,71 @@ struct ProjectFocusView: View {
     }
 
     var body: some View {
-        VStack(spacing: layoutMetrics.columnSpacing) {
-            headerBar
+        GeometryReader { proxy in
+            let layoutMetrics = layoutMetrics(for: proxy.size.width)
 
-            HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
-                if let snapshot, !snapshot.sessions.isEmpty {
-                    SessionStackView(
-                        rows: SessionStackView.rows(from: snapshot),
-                        columnWidth: layoutMetrics.sessionColumnWidth,
-                        onAction: onAction,
-                    )
-                }
+            VStack(spacing: layoutMetrics.columnSpacing) {
+                headerBar
 
-                if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    FilesPanelView(
-                        workspaceState: $workspaceState,
-                        columnWidth: layoutMetrics.explorerColumnWidth,
-                    )
-                }
-
-                TerminalDeckView(
-                    model: model.deck,
-                    signalPresentation: focusedSessionSignal,
-                    onQuickDispatch: {
-                        onAction(.presentQuickDispatch(.projectFocus))
-                    },
-                    onSessionReady: { sessionID in
-                        onAction(.terminalSessionReady(sessionID))
-                    },
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                .layoutPriority(1)
-
-                if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    VStack(alignment: .leading, spacing: layoutMetrics.supportingColumnSpacing) {
-                        if workspaceState.isEditing {
-                            QuickEditView(workspaceState: $workspaceState)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        } else {
-                            QuickPreviewView(workspaceState: workspaceState) {
-                                workspaceState.enterQuickEdit()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-
-                        InspectorPanelView(
-                            workspaceState: $workspaceState,
-                            snapshot: snapshot,
+                HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
+                    if let snapshot, !snapshot.sessions.isEmpty {
+                        SessionStackView(
+                            rows: SessionStackView.rows(from: snapshot),
+                            columnWidth: layoutMetrics.sessionColumnWidth,
                             onAction: onAction,
-                            controlStyle: layoutMetrics.inspectorControlStyle,
                         )
                     }
-                    .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
+
+                    if layoutMetrics.showsExplorerColumn {
+                        FilesPanelView(
+                            workspaceState: $workspaceState,
+                            columnWidth: layoutMetrics.explorerColumnWidth,
+                        )
+                    }
+
+                    TerminalDeckView(
+                        model: model.deck,
+                        signalPresentation: focusedSessionSignal,
+                        onQuickDispatch: {
+                            onAction(.presentQuickDispatch(.projectFocus))
+                        },
+                        onSessionReady: { sessionID in
+                            onAction(.terminalSessionReady(sessionID))
+                        },
+                    )
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .layoutPriority(1)
+
+                    if layoutMetrics.showsSupportingColumn {
+                        VStack(
+                            alignment: .leading,
+                            spacing: layoutMetrics.supportingColumnSpacing,
+                        ) {
+                            if workspaceState.isEditing {
+                                QuickEditView(workspaceState: $workspaceState)
+                                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                            } else {
+                                QuickPreviewView(workspaceState: workspaceState) {
+                                    workspaceState.enterQuickEdit()
+                                }
+                                .frame(maxWidth: .infinity, alignment: .topLeading)
+                            }
+
+                            InspectorPanelView(
+                                workspaceState: $workspaceState,
+                                snapshot: snapshot,
+                                onAction: onAction,
+                                controlStyle: layoutMetrics.inspectorControlStyle,
+                            )
+                        }
+                        .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
+                    }
                 }
+                .padding(.horizontal, layoutMetrics.outerPadding)
+                .padding(.bottom, layoutMetrics.outerPadding)
             }
-            .padding(.horizontal, layoutMetrics.outerPadding)
-            .padding(.bottom, layoutMetrics.outerPadding)
+            .background(HaneulchiChrome.Surface.foundation)
         }
-        .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
             guard let projectRoot = model.projectRoot else {
                 return
@@ -156,8 +163,11 @@ struct ProjectFocusView: View {
         }
     }
 
-    private var layoutMetrics: ProjectFocusWorkspaceLayoutMetrics {
-        .forPreset(workspaceState.layoutPreset)
+    private func layoutMetrics(for availableWidth: CGFloat) -> ProjectFocusWorkspaceLayoutMetrics {
+        .forPreset(
+            workspaceState.layoutPreset,
+            availableWidth: availableWidth,
+        )
     }
 
     private var headerBar: some View {
@@ -179,8 +189,8 @@ struct ProjectFocusView: View {
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         }
-        .padding(.horizontal, layoutMetrics.outerPadding)
-        .padding(.top, layoutMetrics.outerPadding)
+        .padding(.horizontal, HaneulchiMetrics.Workspace.outerPadding)
+        .padding(.top, HaneulchiMetrics.Workspace.outerPadding)
         .frame(minHeight: HaneulchiMetrics.Target.compact)
         .background(HaneulchiChrome.Surface.foundation)
     }

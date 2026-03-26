@@ -15,7 +15,11 @@ struct TaskBoardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: layout.sectionSpacing) {
-            HaneulchiHeaderDeck(title: "Task Board", subtitle: summary) {
+            HaneulchiHeaderDeck(
+                title: "Task Board",
+                subtitle: summary,
+                horizontalPadding: layout.headerInnerPadding,
+            ) {
                 EmptyView()
             }
 

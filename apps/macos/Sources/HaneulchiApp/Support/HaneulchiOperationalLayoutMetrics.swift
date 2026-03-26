@@ -3,6 +3,7 @@ import Foundation
 
 struct HaneulchiOperationalLayoutMetrics: Equatable, Sendable {
     let screenPadding: CGFloat
+    let headerInnerPadding: CGFloat
     let sectionSpacing: CGFloat
     let columnSpacing: CGFloat
     let gridSpacing: CGFloat
@@ -11,6 +12,7 @@ struct HaneulchiOperationalLayoutMetrics: Equatable, Sendable {
 
     static let standard = Self(
         screenPadding: HaneulchiMetrics.Padding.pageCompact,
+        headerInnerPadding: 0,
         sectionSpacing: HaneulchiMetrics.Spacing.lg,
         columnSpacing: HaneulchiMetrics.Workspace.columnGap,
         gridSpacing: HaneulchiMetrics.Workspace.columnGap,

@@ -364,3 +364,26 @@ func projectFocusInspectorUsesCompactTabsWhenSectionCountIsHigh() {
     #expect(denseLayout.inspectorControlStyle == .compactScroll)
     #expect(sparseLayout.inspectorControlStyle == .segmented)
 }
+
+@Test("project focus collapses non-terminal columns as the available width tightens")
+func projectFocusLayoutCollapsesSupportingColumnsOnNarrowWidths() {
+    let wideLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        availableWidth: 1400,
+    )
+    let mediumLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        availableWidth: 1080,
+    )
+    let narrowLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        availableWidth: 880,
+    )
+
+    #expect(wideLayout.showsExplorerColumn == true)
+    #expect(wideLayout.showsSupportingColumn == true)
+    #expect(mediumLayout.showsExplorerColumn == false)
+    #expect(mediumLayout.showsSupportingColumn == true)
+    #expect(narrowLayout.showsExplorerColumn == false)
+    #expect(narrowLayout.showsSupportingColumn == false)
+}

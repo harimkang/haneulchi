@@ -19,6 +19,7 @@ struct ReviewQueueView: View {
             HaneulchiHeaderDeck(
                 title: "Review Queue",
                 subtitle: summary,
+                horizontalPadding: layout.headerInnerPadding,
             ) {
                 EmptyView()
             }

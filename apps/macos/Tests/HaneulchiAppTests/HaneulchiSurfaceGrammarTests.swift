@@ -109,3 +109,11 @@ func reviewScreenLayoutKeepsDecisionRailSecondary() {
 
     #expect(layout.decisionRailWidth < layout.supportingRailWidth)
 }
+
+@Test("operational screen headers align to the same horizontal baseline as their body content")
+func operationalScreenHeaderUsesSharedBaseline() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.headerInnerPadding == 0)
+    #expect(layout.screenPadding == HaneulchiMetrics.Padding.pageCompact)
+}
