@@ -22,9 +22,9 @@ struct ControlTowerOpsStripView: View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
             HaneulchiMonolithStrip(metrics: model.primaryStripMetrics) {
                 HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    actionButton("Refresh", action: onRefresh)
-                    actionButton("Reconcile", action: onReconcile)
-                    actionButton("Reload", action: onReload)
+                    actionButton(.refresh, action: onRefresh)
+                    actionButton(.reconcile, action: onReconcile)
+                    actionButton(.reload, action: onReload)
                 }
             }
 
@@ -37,11 +37,12 @@ struct ControlTowerOpsStripView: View {
         }
     }
 
-    private func actionButton(_ title: String, action: (() -> Void)?) -> some View {
-        Button(title) {
+    private func actionButton(_ chromeAction: HaneulchiChromeAction, action: (() -> Void)?)
+        -> some View
+    {
+        HaneulchiIconButton(action: chromeAction, tone: .secondary) {
             action?()
         }
-        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         .disabled(action == nil)
     }
 }

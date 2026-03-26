@@ -13,8 +13,10 @@ struct ControlTowerView: View {
                     subtitle: "Scan control-plane health and multi-project activity without leaving the operator surface.",
                 ) {
                     HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                        Button("Resync") {
+                        Button {
                             onAction(.refreshShellSnapshot)
+                        } label: {
+                            Label("Resync", systemImage: HaneulchiChromeAction.refresh.symbolName)
                         }
                         .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
 
@@ -42,8 +44,13 @@ struct ControlTowerView: View {
                             .tracking(HaneulchiTypography.Tracking.metaModerate)
                             .foregroundStyle(HaneulchiChrome.Label.muted)
                         Spacer()
-                        Button("Quick Dispatch") {
+                        Button {
                             onAction(.presentQuickDispatch(.controlTower))
+                        } label: {
+                            Label(
+                                "Quick Dispatch",
+                                systemImage: HaneulchiChromeAction.dispatch.symbolName,
+                            )
                         }
                         .buttonStyle(HaneulchiButtonStyle(variant: .tertiary))
                     }

@@ -166,12 +166,16 @@ struct ProjectFocusView: View {
                 .font(HaneulchiTypography.sectionHeading)
                 .foregroundStyle(HaneulchiChrome.Label.primary)
             Spacer()
-            Button("Full Terminal") {
+            Button {
                 workspaceState.layoutPreset = .fullTerminal
+            } label: {
+                Label("Full Terminal", systemImage: "rectangle")
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
-            Button("Explorer + Inspector") {
+            Button {
                 workspaceState.layoutPreset = .explorerTerminalInspector
+            } label: {
+                Label("Explorer + Inspector", systemImage: "sidebar.right")
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         }

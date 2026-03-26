@@ -56,8 +56,10 @@ struct InspectorPanelView: View {
                         .font(HaneulchiTypography.body)
                         .foregroundStyle(HaneulchiChrome.Label.secondary)
                     if Self.focusedSession(from: snapshot)?.taskID != nil {
-                        Button("Open Task Context") {
+                        Button {
                             onAction(.presentTaskContextDrawer)
+                        } label: {
+                            Label("Open Task Context", systemImage: "sidebar.right")
                         }
                         .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
                     }
@@ -97,8 +99,13 @@ struct InspectorPanelView: View {
             }
         case .quickActions:
             HaneulchiPanel {
-                Button("Open Quick Dispatch") {
+                Button {
                     onAction(.presentQuickDispatch(.projectFocus))
+                } label: {
+                    Label(
+                        "Open Quick Dispatch",
+                        systemImage: HaneulchiChromeAction.dispatch.symbolName,
+                    )
                 }
                 .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
             }

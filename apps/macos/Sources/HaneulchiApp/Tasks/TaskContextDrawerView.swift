@@ -98,8 +98,13 @@ struct TaskContextDrawerView: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(onPrimaryAction == nil)
 
-                Button("Quick Dispatch") {
+                Button {
                     onQuickDispatch?()
+                } label: {
+                    Label(
+                        "Quick Dispatch",
+                        systemImage: HaneulchiChromeAction.dispatch.symbolName,
+                    )
                 }
                 .buttonStyle(.bordered)
                 .disabled(onQuickDispatch == nil)
