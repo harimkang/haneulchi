@@ -305,11 +305,11 @@ struct HaneulchiModalWidthPolicy: Equatable, Sendable {
 
     func resolvedWidth(
         preferredWidth: CGFloat? = nil,
-        availableWidth: CGFloat,
+        availableWidth: CGFloat?,
     ) -> CGFloat {
         let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
 
-        guard availableWidth > 0 else {
+        guard let availableWidth else {
             return targetWidth
         }
 
@@ -346,11 +346,11 @@ struct HaneulchiDrawerWidthPolicy: Equatable, Sendable {
 
     func resolvedWidth(
         preferredWidth: CGFloat? = nil,
-        availableWidth: CGFloat,
+        availableWidth: CGFloat?,
     ) -> CGFloat {
         let targetWidth = clampedWidth(preferredWidth ?? idealWidth)
 
-        guard availableWidth > 0 else {
+        guard let availableWidth else {
             return targetWidth
         }
 

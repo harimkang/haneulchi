@@ -117,7 +117,7 @@ struct TaskContextDrawerView: View {
         .padding(16)
         .frame(
             width: viewportContext.drawerWidthPolicy(for: .context).resolvedWidth(
-                availableWidth: viewportContext.width,
+                availableWidth: viewportContext.width > 0 ? viewportContext.width : nil,
             ),
             alignment: .topLeading,
         )

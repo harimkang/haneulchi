@@ -101,10 +101,12 @@ struct CommandPaletteOverlay: View {
 
     private var paletteWidth: CGFloat {
         viewportContext.modalWidthPolicy.resolvedWidth(
-            availableWidth: max(
-                0,
-                viewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
-            ),
+            availableWidth: viewportContext.width > 0
+                ? max(
+                    0,
+                    viewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+                )
+                : nil,
         )
     }
 }

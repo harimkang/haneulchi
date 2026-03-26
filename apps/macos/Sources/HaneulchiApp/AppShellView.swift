@@ -341,10 +341,12 @@ struct AppShellView: View {
     private var quickDispatchWidth: CGFloat {
         rootViewportContext.modalWidthPolicy.resolvedWidth(
             preferredWidth: 520,
-            availableWidth: max(
-                0,
-                rootViewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
-            ),
+            availableWidth: rootViewportContext.width > 0
+                ? max(
+                    0,
+                    rootViewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+                )
+                : nil,
         )
     }
 

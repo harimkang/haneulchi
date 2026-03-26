@@ -34,7 +34,9 @@ struct NotificationDrawerView: View {
 
     private var drawerWidth: CGFloat {
         viewportContext.drawerWidthPolicy(for: .notification).resolvedWidth(
-            availableWidth: max(0, viewportContext.width - HaneulchiChrome.Spacing.screenPadding),
+            availableWidth: viewportContext.width > 0
+                ? max(0, viewportContext.width - HaneulchiChrome.Spacing.screenPadding)
+                : nil,
         )
     }
 }

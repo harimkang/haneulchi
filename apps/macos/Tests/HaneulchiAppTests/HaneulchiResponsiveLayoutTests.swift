@@ -156,13 +156,15 @@ func modalWidthPolicyUsesSharedTokensAndClamps() {
 func modalWidthPolicyResolvesViewportSafeFrameWidth() {
     let compact = HaneulchiViewportContext(width: 959).modalWidthPolicy
     let expanded = HaneulchiViewportContext(width: 1520).modalWidthPolicy
+    let unmeasuredExpandedWidth = expanded.resolvedWidth(availableWidth: nil)
 
     #expect(compact.resolvedWidth(availableWidth: 480) == 480)
     #expect(compact.resolvedWidth(availableWidth: 640) == HaneulchiMetrics.Modal.compact.idealWidth)
     #expect(compact.resolvedWidth(preferredWidth: 760, availableWidth: 900) ==
         HaneulchiMetrics.Modal.compact.maximumWidth)
 
-    #expect(expanded.resolvedWidth(availableWidth: 0) == HaneulchiMetrics.Modal.expanded.idealWidth)
+    #expect(unmeasuredExpandedWidth == HaneulchiMetrics.Modal.expanded.idealWidth)
+    #expect(expanded.resolvedWidth(availableWidth: 0) == 0)
     #expect(expanded.resolvedWidth(availableWidth: 720) == 720)
     #expect(expanded.resolvedWidth(preferredWidth: 840, availableWidth: 900) ==
         HaneulchiMetrics.Modal.expanded.maximumWidth)
@@ -184,9 +186,17 @@ func drawerWidthPoliciesUseSharedRolesAndViewportClamps() {
     #expect(context.minimumWidth == 360)
     #expect(context.idealWidth == 420)
     #expect(context.maximumWidth == 520)
-    #expect(context.resolvedWidth(availableWidth: 0) == context.idealWidth)
+    #expect(context.resolvedWidth(availableWidth: nil) == context.idealWidth)
+    #expect(context.resolvedWidth(availableWidth: 0) == 0)
     #expect(context.resolvedWidth(availableWidth: 380) == 380)
     #expect(context.resolvedWidth(preferredWidth: 560, availableWidth: 900) == context.maximumWidth)
+}
+
+@Test("new session sheet stacks launch actions once modal width becomes narrow")
+func newSessionSheetUsesCompactActionFallback() {
+    #expect(NewSessionSheetView.actionLayout(for: nil) == .inline)
+    #expect(NewSessionSheetView.actionLayout(for: 520) == .inline)
+    #expect(NewSessionSheetView.actionLayout(for: 439) == .stacked)
 }
 
 @Test("shell viewport context derives content width from the shell width once")
