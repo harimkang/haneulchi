@@ -119,6 +119,17 @@ func worktreeInventoryUsesLocalViewportFallback() {
     #expect(shell.viewportClass == .medium)
 }
 
+@Test("worktree inventory rows stack action groups on compact widths and stay inline otherwise")
+func worktreeInventoryRowActionsUseResponsiveLayout() {
+    let compact = WorktreeInventoryRowPresentation(viewportClass: .compact)
+    let medium = WorktreeInventoryRowPresentation(viewportClass: .medium)
+    let wide = WorktreeInventoryRowPresentation(viewportClass: .wide)
+
+    #expect(compact.actionLayout == .stacked)
+    #expect(medium.actionLayout == .inline)
+    #expect(wide.actionLayout == .inline)
+}
+
 @Test("shared modal policy derives from shared modal tokens and clamps to them")
 func modalWidthPolicyUsesSharedTokensAndClamps() {
     let compact = HaneulchiViewportContext(width: 0).modalWidthPolicy

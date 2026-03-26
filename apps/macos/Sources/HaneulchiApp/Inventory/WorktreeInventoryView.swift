@@ -34,6 +34,7 @@ struct WorktreeInventoryView: View {
             header
             content
         }
+        .environment(\.viewportContext, resolvedViewportContext)
         .frame(minHeight: 400)
         .onGeometryChange(for: CGFloat.self) { geometry in
             geometry.size.width
