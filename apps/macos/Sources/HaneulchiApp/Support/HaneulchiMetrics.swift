@@ -23,6 +23,16 @@ enum HaneulchiMetrics {
         static let columnGap: CGFloat = 24 // gap between columns
     }
 
+    // MARK: - Shared Workspace Layout
+
+    enum Workspace {
+        static let outerPadding: CGFloat = Padding.card
+        static let columnGap: CGFloat = Spacing.md
+        static let supportingColumnGap: CGFloat = Spacing.md
+        static let supportingSectionGap: CGFloat = Spacing.md
+        static let inspectorCompactSectionLimit = 4
+    }
+
     // MARK: - Operations Surface Metrics
 
     enum Operations {
@@ -43,6 +53,9 @@ enum HaneulchiMetrics {
     // MARK: - Column / Panel Widths
 
     enum Panel {
+        static let sessionStackWidth: CGFloat = 248
+        static let explorerColumnWidth: CGFloat = 272
+        static let supportingColumnWidth: CGFloat = 352
         static let explorerMin: CGFloat = 240
         static let explorerMax: CGFloat = 280
         static let inspectorMin: CGFloat = 320

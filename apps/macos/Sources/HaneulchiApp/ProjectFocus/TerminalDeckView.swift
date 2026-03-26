@@ -32,8 +32,8 @@ struct TerminalDeckView: View {
     @State private var keyMonitor: Any?
 
     // `WF-02` reserves seams for Session Stack and Inspector outside the central deck.
-    private let reservedSessionStackWidth: CGFloat = 220
-    private let reservedInspectorWidth: CGFloat = 320
+    private let reservedSessionStackWidth: CGFloat = HaneulchiMetrics.Panel.sessionStackWidth
+    private let reservedInspectorWidth: CGFloat = HaneulchiMetrics.Panel.supportingColumnWidth
 
     init(
         model: Model,

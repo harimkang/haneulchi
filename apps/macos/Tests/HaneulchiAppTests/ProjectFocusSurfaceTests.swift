@@ -332,3 +332,35 @@ func taskDrawerUsesFocusedSessionBinding() async {
     #expect(model.taskContextDrawerModel?.sessionID == "ses_02")
     #expect(model.taskContextDrawerModel?.workflowName == "Review Workflow")
 }
+
+@Test(
+    "project focus explorer layout uses shared column widths, gutter, and supporting column alignment",
+)
+func projectFocusExplorerLayoutUsesSharedWorkspaceRhythm() {
+    let layout = ProjectFocusWorkspaceLayoutMetrics.forPreset(.explorerTerminalInspector)
+
+    #expect(layout.outerPadding == HaneulchiMetrics.Padding.card)
+    #expect(layout.columnSpacing == HaneulchiMetrics.Spacing.md)
+    #expect(layout.supportingColumnSpacing == HaneulchiMetrics.Spacing.md)
+    #expect(layout.sessionColumnWidth == 248)
+    #expect(layout.explorerColumnWidth == 272)
+    #expect(layout.supportingColumnWidth == 352)
+    #expect(layout.stacksSupportingPanelsInSharedColumn == true)
+}
+
+@Test(
+    "project focus inspector switches to compact tabs when sections would overflow a segmented control",
+)
+func projectFocusInspectorUsesCompactTabsWhenSectionCountIsHigh() {
+    let denseLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        inspectorSectionCount: InspectorSection.allCases.count,
+    )
+    let sparseLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        inspectorSectionCount: 3,
+    )
+
+    #expect(denseLayout.inspectorControlStyle == .compactScroll)
+    #expect(sparseLayout.inspectorControlStyle == .segmented)
+}

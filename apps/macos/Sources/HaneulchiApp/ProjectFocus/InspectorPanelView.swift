@@ -4,22 +4,13 @@ struct InspectorPanelView: View {
     @Binding var workspaceState: ProjectFocusWorkspaceState
     let snapshot: AppShellSnapshot?
     let onAction: (AppShellAction) -> Void
+    let controlStyle: InspectorSectionControlStyle
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HaneulchiSectionHeader(title: "Inspector")
 
-            Picker("Section", selection: $workspaceState.activeInspectorSection) {
-                Text("Commentary").tag(InspectorSection.commentary)
-                Text("Task").tag(InspectorSection.task)
-                Text("Activity").tag(InspectorSection.activity)
-                Text("Evidence").tag(InspectorSection.evidence)
-                Text("Git").tag(InspectorSection.git)
-                Text("Diff").tag(InspectorSection.diff)
-                Text("Quick Actions").tag(InspectorSection.quickActions)
-            }
-            .pickerStyle(.segmented)
-            .padding(HaneulchiMetrics.Padding.compact)
+            sectionPicker
 
             ScrollView {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
@@ -33,12 +24,12 @@ struct InspectorPanelView: View {
             Spacer()
         }
         .frame(
-            minWidth: HaneulchiMetrics.Panel.inspectorMin,
-            maxWidth: HaneulchiMetrics.Panel.inspectorMax,
+            maxWidth: .infinity,
             maxHeight: .infinity,
             alignment: .topLeading,
         )
         .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
 
     @ViewBuilder
@@ -124,5 +115,61 @@ struct InspectorPanelView: View {
         return snapshot.sessions.first(where: {
             $0.focusState == .focused || snapshot.app.focusedSessionID == $0.sessionID
         }) ?? snapshot.sessions.first
+    }
+
+    @ViewBuilder
+    private var sectionPicker: some View {
+        switch controlStyle {
+        case .segmented:
+            Picker("Section", selection: $workspaceState.activeInspectorSection) {
+                ForEach(InspectorSection.allCases, id: \.self) { section in
+                    Text(section.controlTitle).tag(section)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(HaneulchiMetrics.Padding.compact)
+        case .compactScroll:
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                    ForEach(InspectorSection.allCases, id: \.self) { section in
+                        Button {
+                            workspaceState.activeInspectorSection = section
+                        } label: {
+                            Text(section.controlTitle)
+                        }
+                        .buttonStyle(
+                            HaneulchiButtonStyle(
+                                variant: section == workspaceState.activeInspectorSection
+                                    ? .primary
+                                    : .secondary,
+                            ),
+                        )
+                    }
+                }
+                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+                .padding(.vertical, HaneulchiMetrics.Spacing.xs)
+            }
+        }
+    }
+}
+
+private extension InspectorSection {
+    var controlTitle: String {
+        switch self {
+        case .commentary:
+            "Commentary"
+        case .task:
+            "Task"
+        case .activity:
+            "Activity"
+        case .evidence:
+            "Evidence"
+        case .git:
+            "Git"
+        case .diff:
+            "Diff"
+        case .quickActions:
+            "Actions"
+        }
     }
 }

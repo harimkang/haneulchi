@@ -81,19 +81,23 @@ struct ProjectFocusView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: layoutMetrics.columnSpacing) {
             headerBar
 
-            HStack(spacing: 0) {
+            HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
                 if let snapshot, !snapshot.sessions.isEmpty {
                     SessionStackView(
                         rows: SessionStackView.rows(from: snapshot),
+                        columnWidth: layoutMetrics.sessionColumnWidth,
                         onAction: onAction,
                     )
                 }
 
                 if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    FilesPanelView(workspaceState: $workspaceState)
+                    FilesPanelView(
+                        workspaceState: $workspaceState,
+                        columnWidth: layoutMetrics.explorerColumnWidth,
+                    )
                 }
 
                 TerminalDeckView(
@@ -107,9 +111,10 @@ struct ProjectFocusView: View {
                     },
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .layoutPriority(1)
 
                 if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    VStack(spacing: 0) {
+                    VStack(alignment: .leading, spacing: layoutMetrics.supportingColumnSpacing) {
                         if workspaceState.isEditing {
                             QuickEditView(workspaceState: $workspaceState)
                                 .frame(maxWidth: .infinity, alignment: .topLeading)
@@ -124,10 +129,14 @@ struct ProjectFocusView: View {
                             workspaceState: $workspaceState,
                             snapshot: snapshot,
                             onAction: onAction,
+                            controlStyle: layoutMetrics.inspectorControlStyle,
                         )
                     }
+                    .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
                 }
             }
+            .padding(.horizontal, layoutMetrics.outerPadding)
+            .padding(.bottom, layoutMetrics.outerPadding)
         }
         .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
@@ -147,6 +156,10 @@ struct ProjectFocusView: View {
         }
     }
 
+    private var layoutMetrics: ProjectFocusWorkspaceLayoutMetrics {
+        .forPreset(workspaceState.layoutPreset)
+    }
+
     private var headerBar: some View {
         HStack(spacing: HaneulchiMetrics.Spacing.xs) {
             Text("Project Focus")
@@ -162,7 +175,8 @@ struct ProjectFocusView: View {
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(.horizontal, layoutMetrics.outerPadding)
+        .padding(.top, layoutMetrics.outerPadding)
         .frame(minHeight: HaneulchiMetrics.Target.compact)
         .background(HaneulchiChrome.Surface.foundation)
     }

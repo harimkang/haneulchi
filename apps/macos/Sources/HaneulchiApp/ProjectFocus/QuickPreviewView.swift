@@ -6,48 +6,56 @@ struct QuickPreviewView: View {
     let onEdit: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Quick Preview")
-                .font(.headline)
+        VStack(alignment: .leading, spacing: 0) {
+            HaneulchiSectionHeader(title: "Quick Preview")
 
-            if let selectedFilePath = workspaceState.selectedFilePath {
-                Text(selectedFilePath)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                if let selectedFilePath = workspaceState.selectedFilePath {
+                    Text(selectedFilePath)
+                        .font(HaneulchiTypography.compactMeta)
+                        .tracking(HaneulchiTypography.Tracking.metaModerate)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                        .lineLimit(1)
+                }
 
-            Group {
-                switch workspaceState.previewMode {
-                case .empty:
-                    Text("Select a file to preview.")
-                        .foregroundStyle(.secondary)
-                case .image:
-                    if
-                        let path = workspaceState.selectedFilePath,
-                        let image = NSImage(contentsOfFile: path)
-                    {
-                        Image(nsImage: image)
-                            .resizable()
-                            .scaledToFit()
-                    } else {
-                        Text("Image preview unavailable.")
-                            .foregroundStyle(.secondary)
-                    }
-                case .text, .markdown, .json, .yaml:
-                    ScrollView {
-                        Text(workspaceState.previewText ?? "")
+                Group {
+                    switch workspaceState.previewMode {
+                    case .empty:
+                        Text("Select a file to preview.")
                             .font(HaneulchiTypography.body)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    case .image:
+                        if
+                            let path = workspaceState.selectedFilePath,
+                            let image = NSImage(contentsOfFile: path)
+                        {
+                            Image(nsImage: image)
+                                .resizable()
+                                .scaledToFit()
+                        } else {
+                            Text("Image preview unavailable.")
+                                .font(HaneulchiTypography.body)
+                                .foregroundStyle(HaneulchiChrome.Label.secondary)
+                        }
+                    case .text, .markdown, .json, .yaml:
+                        ScrollView {
+                            Text(workspaceState.previewText ?? "")
+                                .font(HaneulchiTypography.body)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
                     }
                 }
-            }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-            if workspaceState.previewMode != .image, workspaceState.selectedFilePath != nil {
-                Button("Quick Edit", action: onEdit)
-                    .buttonStyle(.bordered)
+                if workspaceState.previewMode != .image, workspaceState.selectedFilePath != nil {
+                    Button("Quick Edit", action: onEdit)
+                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                }
             }
+            .padding(HaneulchiMetrics.Padding.card)
         }
-        .padding(16)
-        .background(HaneulchiChrome.Colors.surfaceBase)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+        .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
 }

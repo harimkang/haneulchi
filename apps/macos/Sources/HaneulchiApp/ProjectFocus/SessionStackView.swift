@@ -17,6 +17,7 @@ struct SessionStackView: View {
     }
 
     let rows: [Row]
+    var columnWidth: CGFloat = HaneulchiMetrics.Panel.sessionStackWidth
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
@@ -29,8 +30,9 @@ struct SessionStackView: View {
                 }
             }
         }
-        .frame(width: HaneulchiMetrics.Panel.explorerMin, alignment: .topLeading)
+        .frame(width: columnWidth, alignment: .topLeading)
         .background(HaneulchiChrome.Surface.recess)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
 
     private func sessionRow(_ row: Row) -> some View {

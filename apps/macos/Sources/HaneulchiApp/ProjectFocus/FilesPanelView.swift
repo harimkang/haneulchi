@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FilesPanelView: View {
     @Binding var workspaceState: ProjectFocusWorkspaceState
+    var columnWidth: CGFloat = HaneulchiMetrics.Panel.explorerColumnWidth
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -39,11 +40,12 @@ struct FilesPanelView: View {
             }
         }
         .frame(
-            minWidth: HaneulchiMetrics.Panel.explorerMin,
-            maxWidth: HaneulchiMetrics.Panel.explorerMax,
+            minWidth: columnWidth,
+            maxWidth: columnWidth,
             maxHeight: .infinity,
             alignment: .topLeading,
         )
         .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
 }
