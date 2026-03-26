@@ -19,6 +19,26 @@ struct TaskBoardView: View {
     }
 
     var body: some View {
+        Group {
+            if presentationLayout.requiresVerticalOverflowScroll {
+                ScrollView {
+                    routeContent
+                }
+            } else {
+                routeContent
+            }
+        }
+        .background(HaneulchiChrome.Surface.foundation)
+        .task {
+            do {
+                try viewModel.reload()
+            } catch {
+                viewModel.present(error: error)
+            }
+        }
+    }
+
+    private var routeContent: some View {
         VStack(alignment: .leading, spacing: layout.sectionSpacing) {
             HaneulchiHeaderDeck(
                 title: "Task Board",
@@ -47,14 +67,7 @@ struct TaskBoardView: View {
         }
         .padding(.horizontal, layout.screenPadding)
         .padding(.vertical, layout.sectionSpacing)
-        .background(HaneulchiChrome.Surface.foundation)
-        .task {
-            do {
-                try viewModel.reload()
-            } catch {
-                viewModel.present(error: error)
-            }
-        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var projectFilterBar: some View {

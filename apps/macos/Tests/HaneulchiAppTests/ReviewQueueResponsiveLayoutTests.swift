@@ -50,3 +50,14 @@ func reviewEvidencePackLayoutAvoidsFixedWidthOverflowOnNarrowRoutes() {
     #expect(wide.metricTileColumnCount == 3)
     #expect(wide.allowsWrappedTouchedFiles == false)
 }
+
+@Test("review queue adds vertical overflow access when master-detail stacks")
+func reviewQueueAddsVerticalOverflowAccessOnStackedLayouts() {
+    let compact = ReviewQueueResponsiveLayout(viewportClass: .compact)
+    let medium = ReviewQueueResponsiveLayout(viewportClass: .medium)
+    let wide = ReviewQueueResponsiveLayout(viewportClass: .wide)
+
+    #expect(compact.requiresVerticalOverflowScroll == true)
+    #expect(medium.requiresVerticalOverflowScroll == true)
+    #expect(wide.requiresVerticalOverflowScroll == false)
+}

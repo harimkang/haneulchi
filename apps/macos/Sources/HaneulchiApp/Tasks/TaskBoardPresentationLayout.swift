@@ -45,4 +45,8 @@ struct TaskBoardPresentationLayout: Equatable, Sendable {
     var dropTargetColumns: [TaskBoardColumnID] {
         presentedColumns
     }
+
+    var requiresVerticalOverflowScroll: Bool {
+        mode != .fullBoard
+    }
 }

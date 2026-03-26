@@ -79,6 +79,36 @@ func welcomeRoutePolicyUsesSharedViewportClasses() {
     #expect(wide.usesSplitLauncher == true)
 }
 
+@Test("welcome readiness falls back to local width when shell viewport context is unavailable")
+func welcomeReadinessUsesLocalViewportFallback() {
+    let local = WelcomeReadinessView.resolvedViewportContext(
+        shellViewportContext: .init(width: 0),
+        localWidth: 1240,
+    )
+    let shell = WelcomeReadinessView.resolvedViewportContext(
+        shellViewportContext: .init(width: 959),
+        localWidth: 1520,
+    )
+
+    #expect(local.viewportClass == .wide)
+    #expect(shell.viewportClass == .compact)
+}
+
+@Test("worktree inventory falls back to local width when shell viewport context is unavailable")
+func worktreeInventoryUsesLocalViewportFallback() {
+    let local = WorktreeInventoryView.resolvedViewportContext(
+        shellViewportContext: .init(width: 0),
+        localWidth: 1520,
+    )
+    let shell = WorktreeInventoryView.resolvedViewportContext(
+        shellViewportContext: .init(width: 960),
+        localWidth: 480,
+    )
+
+    #expect(local.viewportClass == .expanded)
+    #expect(shell.viewportClass == .medium)
+}
+
 @Test("shared modal policy derives from shared modal tokens and clamps to them")
 func modalWidthPolicyUsesSharedTokensAndClamps() {
     let compact = HaneulchiViewportContext(width: 0).modalWidthPolicy

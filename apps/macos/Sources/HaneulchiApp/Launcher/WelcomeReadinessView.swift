@@ -14,6 +14,7 @@ struct WelcomeReadinessView: View {
     let openSettings: () -> Void
     let retry: () -> Void
     @Environment(\.viewportContext) private var viewportContext
+    @State private var localViewportWidth: CGFloat = 0
 
     private var viewModel: WelcomeReadinessViewModel {
         WelcomeReadinessViewModel(
@@ -27,7 +28,14 @@ struct WelcomeReadinessView: View {
     }
 
     private var responsiveLayout: WelcomeReadinessResponsiveLayout {
-        .init(viewportClass: viewportContext.viewportClass)
+        .init(viewportClass: resolvedViewportContext.viewportClass)
+    }
+
+    private var resolvedViewportContext: HaneulchiViewportContext {
+        Self.resolvedViewportContext(
+            shellViewportContext: viewportContext,
+            localWidth: localViewportWidth,
+        )
     }
 
     var body: some View {
@@ -48,7 +56,24 @@ struct WelcomeReadinessView: View {
         }
         .padding(HaneulchiChrome.Spacing.screenPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            localViewportWidth = width
+        }
         .background(HaneulchiChrome.Colors.appBackground)
+    }
+
+    nonisolated static func resolvedViewportContext(
+        shellViewportContext: HaneulchiViewportContext,
+        localWidth: CGFloat,
+    ) -> HaneulchiViewportContext {
+        if shellViewportContext.width > 0 {
+            return shellViewportContext
+        }
+
+        let fallbackWidth = max(localWidth, HaneulchiMetrics.Responsive.mediumWidth)
+        return .init(width: fallbackWidth)
     }
 
     private var recentProjectsPane: some View {

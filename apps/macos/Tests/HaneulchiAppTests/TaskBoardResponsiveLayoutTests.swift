@@ -39,3 +39,14 @@ func taskBoardPresentationPreservesDropTargetCoverage() {
         #expect(flattenedTargets == TaskBoardColumnID.allCases)
     }
 }
+
+@Test("task board requires vertical overflow access when compact and medium rows stack downward")
+func taskBoardPresentationRequiresVerticalOverflowAccessOnNarrowWidths() {
+    let compact = TaskBoardPresentationLayout(viewportClass: .compact)
+    let medium = TaskBoardPresentationLayout(viewportClass: .medium)
+    let wide = TaskBoardPresentationLayout(viewportClass: .wide)
+
+    #expect(compact.requiresVerticalOverflowScroll == true)
+    #expect(medium.requiresVerticalOverflowScroll == true)
+    #expect(wide.requiresVerticalOverflowScroll == false)
+}

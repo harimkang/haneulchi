@@ -5,9 +5,10 @@ struct WorktreeInventoryView: View {
     let onAction: (AppShellAction) -> Void
     let onClose: () -> Void
     @Environment(\.viewportContext) private var viewportContext
+    @State private var localViewportWidth: CGFloat = 0
 
     private var summaryCardColumns: [GridItem] {
-        let count = switch viewportContext.viewportClass {
+        let count = switch resolvedViewportContext.viewportClass {
         case .compact:
             1
         case .medium:
@@ -21,12 +22,24 @@ struct WorktreeInventoryView: View {
         return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
     }
 
+    private var resolvedViewportContext: HaneulchiViewportContext {
+        Self.resolvedViewportContext(
+            shellViewportContext: viewportContext,
+            localWidth: localViewportWidth,
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             header
             content
         }
         .frame(minHeight: 400)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            localViewportWidth = width
+        }
     }
 
     private var header: some View {
@@ -83,6 +96,18 @@ struct WorktreeInventoryView: View {
                 .foregroundStyle(.secondary)
         }
         .buttonStyle(.plain)
+    }
+
+    nonisolated static func resolvedViewportContext(
+        shellViewportContext: HaneulchiViewportContext,
+        localWidth: CGFloat,
+    ) -> HaneulchiViewportContext {
+        if shellViewportContext.width > 0 {
+            return shellViewportContext
+        }
+
+        let fallbackWidth = max(localWidth, HaneulchiMetrics.Responsive.mediumWidth)
+        return .init(width: fallbackWidth)
     }
 
     @ViewBuilder

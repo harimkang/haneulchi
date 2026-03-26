@@ -230,6 +230,10 @@ struct ReviewQueueResponsiveLayout: Equatable, Sendable {
     var showsFixedMasterColumn: Bool {
         masterColumnWidth != nil
     }
+
+    var requiresVerticalOverflowScroll: Bool {
+        mode == .stacked
+    }
 }
 
 enum ReviewEvidencePackFactRowStyle: Equatable, Sendable {

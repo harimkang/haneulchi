@@ -20,6 +20,22 @@ struct ReviewQueueView: View {
     }
 
     var body: some View {
+        Group {
+            if responsiveLayout.requiresVerticalOverflowScroll {
+                ScrollView {
+                    routeContent
+                }
+            } else {
+                routeContent
+            }
+        }
+        .background(HaneulchiChrome.Surface.foundation)
+        .task {
+            try? viewModel.reload()
+        }
+    }
+
+    private var routeContent: some View {
         VStack(alignment: .leading, spacing: layout.sectionSpacing) {
             HaneulchiHeaderDeck(
                 title: "Review Queue",
@@ -58,10 +74,6 @@ struct ReviewQueueView: View {
         .padding(.horizontal, layout.screenPadding)
         .padding(.vertical, layout.sectionSpacing)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(HaneulchiChrome.Surface.foundation)
-        .task {
-            try? viewModel.reload()
-        }
     }
 
     @ViewBuilder
