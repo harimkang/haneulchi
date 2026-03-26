@@ -17,6 +17,9 @@ struct HaneulchiOperationalLayoutMetrics: Equatable, Sendable {
         columnSpacing: HaneulchiMetrics.Workspace.columnGap,
         gridSpacing: HaneulchiMetrics.Workspace.columnGap,
         supportingRailWidth: HaneulchiMetrics.Panel.supportingColumnWidth,
-        decisionRailWidth: 216,
+        decisionRailWidth: HaneulchiMetrics.clamped(
+            HaneulchiMetrics.Panel.decisionRailWidth,
+            to: HaneulchiMetrics.Panel.decisionRailWidthRange,
+        ),
     )
 }

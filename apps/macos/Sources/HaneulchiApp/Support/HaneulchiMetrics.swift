@@ -1,6 +1,18 @@
 import SwiftUI
 
 enum HaneulchiMetrics {
+    // MARK: - Responsive Breakpoints
+
+    enum Responsive {
+        static let mediumWidth: CGFloat = 960
+        static let wideWidth: CGFloat = 1240
+        static let expandedWidth: CGFloat = 1520
+    }
+
+    static func clamped(_ value: CGFloat, to range: ClosedRange<CGFloat>) -> CGFloat {
+        min(max(value, range.lowerBound), range.upperBound)
+    }
+
     // MARK: - Spacing Scale (4pt grid)
 
     enum Spacing {
@@ -56,6 +68,8 @@ enum HaneulchiMetrics {
         static let sessionStackWidth: CGFloat = 248
         static let explorerColumnWidth: CGFloat = 272
         static let supportingColumnWidth: CGFloat = 352
+        static let decisionRailWidth: CGFloat = 216
+        static let decisionRailWidthRange: ClosedRange<CGFloat> = 200 ... 240
         static let explorerMin: CGFloat = 240
         static let explorerMax: CGFloat = 280
         static let inspectorMin: CGFloat = 320
