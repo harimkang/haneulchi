@@ -87,6 +87,24 @@ func metricTileUsesMonolithMetricModel() {
     #expect(String(describing: type(of: tile)).contains("HaneulchiMetricTile"))
 }
 
+@Test("shared surface layout stacks trailing actions on compact widths")
+func sharedSurfaceLayoutStacksTrailingActionsOnCompactWidths() {
+    let compactPolicy = HaneulchiViewportContext(width: 959).surfaceLayoutPolicy
+    let mediumPolicy = HaneulchiViewportContext(width: 960).surfaceLayoutPolicy
+
+    #expect(compactPolicy.trailingActionLayout == .stacked)
+    #expect(mediumPolicy.trailingActionLayout == .inline)
+}
+
+@Test("shared surface layout tightens padding when width is compact")
+func sharedSurfaceLayoutTightensPaddingWhenWidthIsCompact() {
+    let compactPolicy = HaneulchiViewportContext(width: 959).surfaceLayoutPolicy
+    let widePolicy = HaneulchiViewportContext(width: 1240).surfaceLayoutPolicy
+
+    #expect(compactPolicy.horizontalPadding == HaneulchiMetrics.Padding.compact)
+    #expect(widePolicy.horizontalPadding == HaneulchiMetrics.Padding.card)
+}
+
 @Test(
     "operational screens share screen padding, section spacing, column gap, and supporting rail width",
 )

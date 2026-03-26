@@ -110,49 +110,69 @@ struct HaneulchiHeaderDeck<Trailing: View>: View {
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text(title)
-                    .font(HaneulchiTypography.display)
-                    .tracking(HaneulchiTypography.Tracking.displayTight)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
+                titleBlock
 
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(HaneulchiTypography.deckSubtitle)
-                        .foregroundStyle(HaneulchiChrome.Label.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+                Spacer(minLength: HaneulchiMetrics.Spacing.lg)
+
+                trailing
+                    .fixedSize(horizontal: true, vertical: false)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-            Spacer(minLength: HaneulchiMetrics.Spacing.lg)
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                titleBlock
 
-            trailing
+                trailing
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, horizontalPadding)
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .background(HaneulchiChrome.Surface.foundation)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+            Text(title)
+                .font(HaneulchiTypography.display)
+                .tracking(HaneulchiTypography.Tracking.displayTight)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(HaneulchiTypography.deckSubtitle)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
 struct HaneulchiMonolithStrip<Trailing: View>: View {
     let metrics: [HaneulchiMonolithMetric]
     @ViewBuilder let trailing: Trailing
+    @Environment(\.viewportContext) private var viewportContext
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.md) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: HaneulchiMetrics.Spacing.lg) {
-                        ForEach(metrics) { metric in
-                            metricCell(metric)
-                        }
-                    }
-                    .padding(.vertical, 1)
-                }
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.md) {
+                    metricsStrip
 
-                trailing
-                    .fixedSize(horizontal: true, vertical: false)
+                    trailing
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                    metricsStrip
+
+                    trailing
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -161,11 +181,22 @@ struct HaneulchiMonolithStrip<Trailing: View>: View {
                     .overlay(HaneulchiChrome.Stroke.ghost)
             }
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(.horizontal, viewportContext.surfaceLayoutPolicy.horizontalPadding)
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .frame(minHeight: HaneulchiMetrics.Operations.opsStripMinHeight)
         .background(HaneulchiChrome.Surface.base)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    private var metricsStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HaneulchiMetrics.Spacing.lg) {
+                ForEach(metrics) { metric in
+                    metricCell(metric)
+                }
+            }
+            .padding(.vertical, 1)
+        }
     }
 
     private func metricCell(_ metric: HaneulchiMonolithMetric) -> some View {
@@ -188,6 +219,7 @@ struct HaneulchiOpsRailPanel<Content: View>: View {
     let title: String
     let count: Int?
     @ViewBuilder let content: Content
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         title: String,
@@ -201,25 +233,40 @@ struct HaneulchiOpsRailPanel<Content: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-            HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text(title)
-                    .font(HaneulchiTypography.sectionHeading)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
+                    panelTitle
 
-                if let count {
-                    Text("\(count)")
-                        .font(HaneulchiTypography.compactMeta)
-                        .tracking(HaneulchiTypography.Tracking.metaModerate)
-                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                    Spacer(minLength: 0)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Spacer()
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                    panelTitle
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
             content
         }
-        .padding(HaneulchiMetrics.Padding.card)
+        .padding(.horizontal, viewportContext.surfaceLayoutPolicy.horizontalPadding)
+        .padding(.vertical, HaneulchiMetrics.Padding.card)
         .background(HaneulchiChrome.Surface.base)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    private var panelTitle: some View {
+        HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
+            Text(title)
+                .font(HaneulchiTypography.sectionHeading)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
+
+            if let count {
+                Text("\(count)")
+                    .font(HaneulchiTypography.compactMeta)
+                    .tracking(HaneulchiTypography.Tracking.metaModerate)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+            }
+        }
     }
 }
 
