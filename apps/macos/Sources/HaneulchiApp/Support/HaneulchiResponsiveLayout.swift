@@ -149,6 +149,14 @@ struct HaneulchiViewportContext: Equatable, Sendable {
 struct HaneulchiRouteLayoutPolicy: Equatable, Sendable {
     let viewportClass: HaneulchiViewportClass
 
+    var showsSessionColumn: Bool {
+        viewportClass >= .medium
+    }
+
+    var showsCompactSessionContext: Bool {
+        viewportClass == .compact
+    }
+
     var showsExplorerColumn: Bool {
         viewportClass == .expanded
     }

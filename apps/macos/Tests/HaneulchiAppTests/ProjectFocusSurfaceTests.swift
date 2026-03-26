@@ -337,14 +337,17 @@ func taskDrawerUsesFocusedSessionBinding() async {
     "project focus explorer layout uses shared column widths, gutter, and supporting column alignment",
 )
 func projectFocusExplorerLayoutUsesSharedWorkspaceRhythm() {
-    let layout = ProjectFocusWorkspaceLayoutMetrics.forPreset(.explorerTerminalInspector)
+    let layout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.expandedWidth),
+    )
 
     #expect(layout.outerPadding == HaneulchiMetrics.Padding.card)
     #expect(layout.columnSpacing == HaneulchiMetrics.Spacing.md)
     #expect(layout.supportingColumnSpacing == HaneulchiMetrics.Spacing.md)
-    #expect(layout.sessionColumnWidth == 248)
-    #expect(layout.explorerColumnWidth == 272)
-    #expect(layout.supportingColumnWidth == 352)
+    #expect(layout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(layout.explorerColumnWidth == HaneulchiMetrics.Panel.explorerColumnWidth)
+    #expect(layout.supportingColumnWidth == HaneulchiMetrics.Panel.supportingColumnWidth)
     #expect(layout.stacksSupportingPanelsInSharedColumn == true)
 }
 
@@ -365,25 +368,44 @@ func projectFocusInspectorUsesCompactTabsWhenSectionCountIsHigh() {
     #expect(sparseLayout.inspectorControlStyle == .segmented)
 }
 
-@Test("project focus collapses non-terminal columns as the available width tightens")
-func projectFocusLayoutCollapsesSupportingColumnsOnNarrowWidths() {
-    let wideLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+@Test("project focus responsive layout follows the shared viewport classes")
+func projectFocusLayoutFollowsSharedViewportClasses() {
+    let compactLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
         .explorerTerminalInspector,
-        availableWidth: 1400,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.mediumWidth - 1),
     )
     let mediumLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
         .explorerTerminalInspector,
-        availableWidth: 1080,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.mediumWidth),
     )
-    let narrowLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+    let wideLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
         .explorerTerminalInspector,
-        availableWidth: 880,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.wideWidth),
+    )
+    let expandedLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.expandedWidth),
     )
 
-    #expect(wideLayout.showsExplorerColumn == true)
-    #expect(wideLayout.showsSupportingColumn == true)
+    #expect(compactLayout.sessionColumnWidth == 0)
+    #expect(compactLayout.showsSessionColumn == false)
+    #expect(compactLayout.showsCompactSessionAffordance == true)
+    #expect(compactLayout.showsExplorerColumn == false)
+    #expect(compactLayout.showsSupportingColumn == false)
+
+    #expect(mediumLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(mediumLayout.showsSessionColumn == true)
+    #expect(mediumLayout.showsCompactSessionAffordance == false)
     #expect(mediumLayout.showsExplorerColumn == false)
-    #expect(mediumLayout.showsSupportingColumn == true)
-    #expect(narrowLayout.showsExplorerColumn == false)
-    #expect(narrowLayout.showsSupportingColumn == false)
+    #expect(mediumLayout.showsSupportingColumn == false)
+
+    #expect(wideLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(wideLayout.showsSessionColumn == true)
+    #expect(wideLayout.showsExplorerColumn == false)
+    #expect(wideLayout.showsSupportingColumn == true)
+
+    #expect(expandedLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(expandedLayout.showsSessionColumn == true)
+    #expect(expandedLayout.showsExplorerColumn == true)
+    #expect(expandedLayout.showsSupportingColumn == true)
 }

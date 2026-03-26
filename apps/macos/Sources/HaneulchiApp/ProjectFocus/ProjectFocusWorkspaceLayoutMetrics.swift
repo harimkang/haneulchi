@@ -6,13 +6,22 @@ enum InspectorSectionControlStyle: Equatable, Sendable {
     case compactScroll
 }
 
-struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
-    private static let supportingColumnCollapseWidth: CGFloat = 980
-    private static let explorerColumnCollapseWidth: CGFloat = 1200
+enum ProjectFocusSessionContextStyle: Equatable, Sendable {
+    case hidden
+    case compactAffordance
+    case column
+}
 
+enum ProjectFocusSupportingPanelLayoutStyle: Equatable, Sendable {
+    case compact
+    case regular
+}
+
+struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
     let outerPadding: CGFloat
     let columnSpacing: CGFloat
     let supportingColumnSpacing: CGFloat
+    let sessionContextStyle: ProjectFocusSessionContextStyle
     let sessionColumnWidth: CGFloat
     let explorerColumnWidth: CGFloat
     let supportingColumnWidth: CGFloat
@@ -20,10 +29,21 @@ struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
     let showsSupportingColumn: Bool
     let stacksSupportingPanelsInSharedColumn: Bool
     let inspectorControlStyle: InspectorSectionControlStyle
+    let supportingPanelLayoutStyle: ProjectFocusSupportingPanelLayoutStyle
+
+    var showsSessionColumn: Bool {
+        sessionContextStyle == .column
+    }
+
+    var showsCompactSessionAffordance: Bool {
+        sessionContextStyle == .compactAffordance
+    }
 
     static func forPreset(
         _ preset: ProjectFocusLayoutPreset,
-        availableWidth: CGFloat = .greatestFiniteMagnitude,
+        viewportContext: HaneulchiViewportContext = .init(
+            width: HaneulchiMetrics.Responsive.expandedWidth,
+        ),
         inspectorSectionCount: Int = InspectorSection.allCases.count,
     ) -> Self {
         switch preset {
@@ -32,6 +52,7 @@ struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
                 outerPadding: HaneulchiMetrics.Workspace.outerPadding,
                 columnSpacing: HaneulchiMetrics.Workspace.columnGap,
                 supportingColumnSpacing: HaneulchiMetrics.Workspace.supportingSectionGap,
+                sessionContextStyle: .hidden,
                 sessionColumnWidth: 0,
                 explorerColumnWidth: 0,
                 supportingColumnWidth: 0,
@@ -39,12 +60,27 @@ struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
                 showsSupportingColumn: false,
                 stacksSupportingPanelsInSharedColumn: false,
                 inspectorControlStyle: .segmented,
+                supportingPanelLayoutStyle: .regular,
             )
         case .explorerTerminalInspector:
-            let showsSupportingColumn = availableWidth >= supportingColumnCollapseWidth
-            let showsExplorerColumn = availableWidth >= explorerColumnCollapseWidth
+            let routePolicy = viewportContext.routeLayoutPolicy
+            let sessionContextStyle: ProjectFocusSessionContextStyle = if routePolicy
+                .showsCompactSessionContext
+            {
+                .compactAffordance
+            } else if routePolicy.showsSessionColumn {
+                .column
+            } else {
+                .hidden
+            }
+            let supportingPanelLayoutStyle: ProjectFocusSupportingPanelLayoutStyle =
+                viewportContext.viewportClass == .expanded
+                    ? .regular
+                    : .compact
             let controlStyle: InspectorSectionControlStyle =
-                inspectorSectionCount > HaneulchiMetrics.Workspace.inspectorCompactSectionLimit
+                supportingPanelLayoutStyle == .compact
+                    || inspectorSectionCount > HaneulchiMetrics.Workspace
+                    .inspectorCompactSectionLimit
                     ? .compactScroll
                     : .segmented
 
@@ -52,17 +88,21 @@ struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
                 outerPadding: HaneulchiMetrics.Workspace.outerPadding,
                 columnSpacing: HaneulchiMetrics.Workspace.columnGap,
                 supportingColumnSpacing: HaneulchiMetrics.Workspace.supportingSectionGap,
-                sessionColumnWidth: HaneulchiMetrics.Panel.sessionStackWidth,
-                explorerColumnWidth: showsExplorerColumn
+                sessionContextStyle: sessionContextStyle,
+                sessionColumnWidth: routePolicy.showsSessionColumn
+                    ? HaneulchiMetrics.Panel.sessionStackWidth
+                    : 0,
+                explorerColumnWidth: routePolicy.showsExplorerColumn
                     ? HaneulchiMetrics.Panel.explorerColumnWidth
                     : 0,
-                supportingColumnWidth: showsSupportingColumn
+                supportingColumnWidth: routePolicy.showsSupportingColumn
                     ? HaneulchiMetrics.Panel.supportingColumnWidth
                     : 0,
-                showsExplorerColumn: showsExplorerColumn,
-                showsSupportingColumn: showsSupportingColumn,
-                stacksSupportingPanelsInSharedColumn: showsSupportingColumn,
+                showsExplorerColumn: routePolicy.showsExplorerColumn,
+                showsSupportingColumn: routePolicy.showsSupportingColumn,
+                stacksSupportingPanelsInSharedColumn: routePolicy.showsSupportingColumn,
                 inspectorControlStyle: controlStyle,
+                supportingPanelLayoutStyle: supportingPanelLayoutStyle,
             )
         }
     }

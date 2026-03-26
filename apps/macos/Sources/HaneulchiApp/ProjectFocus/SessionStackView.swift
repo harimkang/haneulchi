@@ -1,6 +1,11 @@
 import SwiftUI
 
 struct SessionStackView: View {
+    enum LayoutStyle: Equatable, Sendable {
+        case column
+        case compactAffordance
+    }
+
     struct Row: Equatable, Identifiable {
         let sessionID: String
         let title: String
@@ -18,9 +23,19 @@ struct SessionStackView: View {
 
     let rows: [Row]
     var columnWidth: CGFloat = HaneulchiMetrics.Panel.sessionStackWidth
+    var layoutStyle: LayoutStyle = .column
     let onAction: (AppShellAction) -> Void
 
     var body: some View {
+        switch layoutStyle {
+        case .column:
+            columnLayout
+        case .compactAffordance:
+            compactAffordanceLayout
+        }
+    }
+
+    private var columnLayout: some View {
         VStack(alignment: .leading, spacing: 0) {
             HaneulchiSectionHeader(title: "Sessions", count: rows.isEmpty ? nil : rows.count)
 
@@ -31,6 +46,99 @@ struct SessionStackView: View {
             }
         }
         .frame(width: columnWidth, alignment: .topLeading)
+        .background(HaneulchiChrome.Surface.recess)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+    }
+
+    private var compactAffordanceLayout: some View {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+                Text("Current Session")
+                    .font(HaneulchiTypography.sectionHeading)
+                    .foregroundStyle(HaneulchiChrome.Label.primary)
+
+                if !rows.isEmpty {
+                    Text("\(rows.count)")
+                        .font(HaneulchiTypography.compactMeta)
+                        .tracking(HaneulchiTypography.Tracking.metaModerate)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                        .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+                        .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+                        .background(HaneulchiChrome.Surface.foundation)
+                        .clipShape(
+                            RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.pill),
+                        )
+                }
+
+                Spacer()
+            }
+
+            if let primaryRow {
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                    HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.xs) {
+                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                            Text(primaryRow.title)
+                                .font(HaneulchiTypography.systemLabel)
+                                .tracking(HaneulchiTypography.Tracking.labelWide)
+                                .foregroundStyle(HaneulchiChrome.Label.primary)
+                                .lineLimit(2)
+
+                            Text(primaryRow.summary)
+                                .font(HaneulchiTypography.compactMeta)
+                                .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                .foregroundStyle(HaneulchiChrome.Label.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Spacer(minLength: HaneulchiMetrics.Spacing.sm)
+
+                        if let signal = primaryRow.signal {
+                            HaneulchiStatusBadge(
+                                state: signal.badgeState,
+                                label: signal.label,
+                            )
+                        }
+                    }
+
+                    HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
+                        if let branch = primaryRow.branch {
+                            Text(branch)
+                                .font(HaneulchiTypography.compactMeta)
+                                .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                .foregroundStyle(HaneulchiChrome.Label.muted)
+                                .lineLimit(1)
+                        }
+
+                        if primaryRow.unreadCount > 0 {
+                            Text("\(primaryRow.unreadCount) unread")
+                                .font(HaneulchiTypography.compactMeta)
+                                .tracking(HaneulchiTypography.Tracking.metaModerate)
+                                .foregroundStyle(HaneulchiChrome.State.warning)
+                        }
+
+                        Spacer()
+
+                        Button(primaryActionTitle(for: primaryRow)) {
+                            onAction(.jumpToSession(primaryRow.sessionID))
+                        }
+                        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                    }
+                }
+                .padding(HaneulchiMetrics.Padding.compact)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(HaneulchiChrome.Surface.base)
+                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+                .paneAttentionDecoration(
+                    hasAttention: primaryRow.signal?.tone == .strong,
+                    hasUnread: primaryRow.unreadCount > 0,
+                )
+            } else {
+                Text("No active sessions.")
+                    .font(HaneulchiTypography.bodySmall)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+            }
+        }
+        .padding(HaneulchiMetrics.Padding.compact)
         .background(HaneulchiChrome.Surface.recess)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
@@ -126,6 +234,14 @@ struct SessionStackView: View {
                 .padding(.bottom, HaneulchiMetrics.Spacing.xs)
             }
         }
+    }
+
+    private var primaryRow: Row? {
+        rows.first(where: \.isFocused) ?? rows.first
+    }
+
+    private func primaryActionTitle(for row: Row) -> String {
+        row.showsManualContinueCTA ? "Manual Continue" : "Open Session"
     }
 
     nonisolated static func rows(from snapshot: AppShellSnapshot) -> [Row] {

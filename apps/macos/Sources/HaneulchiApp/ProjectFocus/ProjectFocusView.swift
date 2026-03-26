@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProjectFocusView: View {
+    @Environment(\.viewportContext) private var viewportContext
+
     struct Model: Equatable, Sendable {
         let deck: TerminalDeckView.Model
         let projectRoot: String?
@@ -81,71 +83,59 @@ struct ProjectFocusView: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            let layoutMetrics = layoutMetrics(for: proxy.size.width)
+        let layoutMetrics = layoutMetrics
+        let sessionRows = sessionStackRows
 
-            VStack(spacing: layoutMetrics.columnSpacing) {
-                headerBar
+        VStack(spacing: layoutMetrics.columnSpacing) {
+            headerBar
 
-                HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
-                    if let snapshot, !snapshot.sessions.isEmpty {
-                        SessionStackView(
-                            rows: SessionStackView.rows(from: snapshot),
-                            columnWidth: layoutMetrics.sessionColumnWidth,
-                            onAction: onAction,
-                        )
-                    }
-
-                    if layoutMetrics.showsExplorerColumn {
-                        FilesPanelView(
-                            workspaceState: $workspaceState,
-                            columnWidth: layoutMetrics.explorerColumnWidth,
-                        )
-                    }
-
-                    TerminalDeckView(
-                        model: model.deck,
-                        signalPresentation: focusedSessionSignal,
-                        onQuickDispatch: {
-                            onAction(.presentQuickDispatch(.projectFocus))
-                        },
-                        onSessionReady: { sessionID in
-                            onAction(.terminalSessionReady(sessionID))
-                        },
-                    )
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .layoutPriority(1)
-
-                    if layoutMetrics.showsSupportingColumn {
-                        VStack(
-                            alignment: .leading,
-                            spacing: layoutMetrics.supportingColumnSpacing,
-                        ) {
-                            if workspaceState.isEditing {
-                                QuickEditView(workspaceState: $workspaceState)
-                                    .frame(maxWidth: .infinity, alignment: .topLeading)
-                            } else {
-                                QuickPreviewView(workspaceState: workspaceState) {
-                                    workspaceState.enterQuickEdit()
-                                }
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                            }
-
-                            InspectorPanelView(
-                                workspaceState: $workspaceState,
-                                snapshot: snapshot,
-                                onAction: onAction,
-                                controlStyle: layoutMetrics.inspectorControlStyle,
-                            )
-                        }
-                        .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
-                    }
-                }
+            if layoutMetrics.showsCompactSessionAffordance, !sessionRows.isEmpty {
+                SessionStackView(
+                    rows: sessionRows,
+                    layoutStyle: .compactAffordance,
+                    onAction: onAction,
+                )
                 .padding(.horizontal, layoutMetrics.outerPadding)
-                .padding(.bottom, layoutMetrics.outerPadding)
             }
-            .background(HaneulchiChrome.Surface.foundation)
+
+            HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
+                if layoutMetrics.showsSessionColumn, !sessionRows.isEmpty {
+                    SessionStackView(
+                        rows: sessionRows,
+                        columnWidth: layoutMetrics.sessionColumnWidth,
+                        layoutStyle: .column,
+                        onAction: onAction,
+                    )
+                }
+
+                if layoutMetrics.showsExplorerColumn {
+                    FilesPanelView(
+                        workspaceState: $workspaceState,
+                        columnWidth: layoutMetrics.explorerColumnWidth,
+                    )
+                }
+
+                TerminalDeckView(
+                    model: model.deck,
+                    signalPresentation: focusedSessionSignal,
+                    onQuickDispatch: {
+                        onAction(.presentQuickDispatch(.projectFocus))
+                    },
+                    onSessionReady: { sessionID in
+                        onAction(.terminalSessionReady(sessionID))
+                    },
+                )
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .layoutPriority(1)
+
+                if layoutMetrics.showsSupportingColumn {
+                    supportingColumn(layoutMetrics: layoutMetrics)
+                }
+            }
+            .padding(.horizontal, layoutMetrics.outerPadding)
+            .padding(.bottom, layoutMetrics.outerPadding)
         }
+        .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
             guard let projectRoot = model.projectRoot else {
                 return
@@ -163,11 +153,19 @@ struct ProjectFocusView: View {
         }
     }
 
-    private func layoutMetrics(for availableWidth: CGFloat) -> ProjectFocusWorkspaceLayoutMetrics {
+    private var layoutMetrics: ProjectFocusWorkspaceLayoutMetrics {
         .forPreset(
             workspaceState.layoutPreset,
-            availableWidth: availableWidth,
+            viewportContext: viewportContext,
         )
+    }
+
+    private var sessionStackRows: [SessionStackView.Row] {
+        guard let snapshot else {
+            return []
+        }
+
+        return SessionStackView.rows(from: snapshot)
     }
 
     private var headerBar: some View {
@@ -193,6 +191,37 @@ struct ProjectFocusView: View {
         .padding(.top, HaneulchiMetrics.Workspace.outerPadding)
         .frame(minHeight: HaneulchiMetrics.Target.compact)
         .background(HaneulchiChrome.Surface.foundation)
+    }
+
+    private func supportingColumn(
+        layoutMetrics: ProjectFocusWorkspaceLayoutMetrics,
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: layoutMetrics.supportingColumnSpacing,
+        ) {
+            if workspaceState.isEditing {
+                QuickEditView(workspaceState: $workspaceState)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            } else {
+                QuickPreviewView(
+                    workspaceState: workspaceState,
+                    layoutStyle: layoutMetrics.supportingPanelLayoutStyle,
+                ) {
+                    workspaceState.enterQuickEdit()
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+
+            InspectorPanelView(
+                workspaceState: $workspaceState,
+                snapshot: snapshot,
+                onAction: onAction,
+                controlStyle: layoutMetrics.inspectorControlStyle,
+                layoutStyle: layoutMetrics.supportingPanelLayoutStyle,
+            )
+        }
+        .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
     }
 
     private var focusedSessionSignal: SessionSignalPresentation? {

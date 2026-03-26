@@ -3,19 +3,20 @@ import SwiftUI
 
 struct QuickPreviewView: View {
     let workspaceState: ProjectFocusWorkspaceState
+    var layoutStyle: ProjectFocusSupportingPanelLayoutStyle = .regular
     let onEdit: () -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HaneulchiSectionHeader(title: "Quick Preview")
 
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            VStack(alignment: .leading, spacing: contentSpacing) {
                 if let selectedFilePath = workspaceState.selectedFilePath {
                     Text(selectedFilePath)
                         .font(HaneulchiTypography.compactMeta)
                         .tracking(HaneulchiTypography.Tracking.metaModerate)
                         .foregroundStyle(HaneulchiChrome.Label.muted)
-                        .lineLimit(1)
+                        .lineLimit(layoutStyle == .compact ? 2 : 1)
                 }
 
                 Group {
@@ -40,7 +41,7 @@ struct QuickPreviewView: View {
                     case .text, .markdown, .json, .yaml:
                         ScrollView {
                             Text(workspaceState.previewText ?? "")
-                                .font(HaneulchiTypography.body)
+                                .font(previewFont)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
@@ -50,12 +51,25 @@ struct QuickPreviewView: View {
                 if workspaceState.previewMode != .image, workspaceState.selectedFilePath != nil {
                     Button("Quick Edit", action: onEdit)
                         .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
-            .padding(HaneulchiMetrics.Padding.card)
+            .padding(contentPadding)
         }
         .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Surface.base)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
+    }
+
+    private var contentSpacing: CGFloat {
+        layoutStyle == .compact ? HaneulchiMetrics.Spacing.xs : HaneulchiMetrics.Spacing.sm
+    }
+
+    private var contentPadding: CGFloat {
+        layoutStyle == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+    }
+
+    private var previewFont: Font {
+        layoutStyle == .compact ? HaneulchiTypography.bodySmall : HaneulchiTypography.body
     }
 }

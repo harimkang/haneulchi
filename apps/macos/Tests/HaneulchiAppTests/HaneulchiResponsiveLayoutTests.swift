@@ -19,18 +19,26 @@ func routeLayoutPolicyFollowsViewportClass() {
     let wide = HaneulchiViewportContext(width: 1240).routeLayoutPolicy
     let expanded = HaneulchiViewportContext(width: 1520).routeLayoutPolicy
 
+    #expect(compact.showsSessionColumn == false)
+    #expect(compact.showsCompactSessionContext == true)
     #expect(compact.showsExplorerColumn == false)
     #expect(compact.showsSupportingColumn == false)
     #expect(compact.stacksSupportingPanels == true)
 
+    #expect(medium.showsSessionColumn == true)
+    #expect(medium.showsCompactSessionContext == false)
     #expect(medium.showsExplorerColumn == false)
     #expect(medium.showsSupportingColumn == false)
     #expect(medium.stacksSupportingPanels == true)
 
+    #expect(wide.showsSessionColumn == true)
+    #expect(wide.showsCompactSessionContext == false)
     #expect(wide.showsExplorerColumn == false)
     #expect(wide.showsSupportingColumn == true)
     #expect(wide.stacksSupportingPanels == false)
 
+    #expect(expanded.showsSessionColumn == true)
+    #expect(expanded.showsCompactSessionContext == false)
     #expect(expanded.showsExplorerColumn == true)
     #expect(expanded.showsSupportingColumn == true)
     #expect(expanded.stacksSupportingPanels == false)

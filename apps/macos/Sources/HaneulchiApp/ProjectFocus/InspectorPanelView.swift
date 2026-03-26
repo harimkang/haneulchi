@@ -5,6 +5,7 @@ struct InspectorPanelView: View {
     let snapshot: AppShellSnapshot?
     let onAction: (AppShellAction) -> Void
     let controlStyle: InspectorSectionControlStyle
+    var layoutStyle: ProjectFocusSupportingPanelLayoutStyle = .regular
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -15,13 +16,11 @@ struct InspectorPanelView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                     sectionContent
-                        .font(HaneulchiTypography.body)
+                        .font(contentFont)
                         .foregroundStyle(HaneulchiChrome.Label.secondary)
                 }
-                .padding(HaneulchiMetrics.Padding.compact)
+                .padding(contentPadding)
             }
-
-            Spacer()
         }
         .frame(
             maxWidth: .infinity,
@@ -134,7 +133,7 @@ struct InspectorPanelView: View {
                 }
             }
             .pickerStyle(.segmented)
-            .padding(HaneulchiMetrics.Padding.compact)
+            .padding(sectionPickerPadding)
         case .compactScroll:
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: HaneulchiMetrics.Spacing.xs) {
@@ -153,10 +152,22 @@ struct InspectorPanelView: View {
                         )
                     }
                 }
-                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+                .padding(.horizontal, contentPadding)
                 .padding(.vertical, HaneulchiMetrics.Spacing.xs)
             }
         }
+    }
+
+    private var contentPadding: CGFloat {
+        layoutStyle == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+    }
+
+    private var sectionPickerPadding: CGFloat {
+        layoutStyle == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+    }
+
+    private var contentFont: Font {
+        layoutStyle == .compact ? HaneulchiTypography.bodySmall : HaneulchiTypography.body
     }
 }
 
