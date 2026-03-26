@@ -150,9 +150,23 @@ struct ProjectFocusView: View {
 
             do {
                 let fileEntries = try await fileIndex.index(rootPath: projectRoot)
+                guard Self.shouldApplyFileIndexResult(
+                    for: projectRoot,
+                    currentProjectRoot: workspaceState.projectRoot,
+                    isTaskCancelled: Task.isCancelled,
+                ) else {
+                    return
+                }
                 workspaceState.fileEntries = fileEntries
                 fileIndexState = Self.resolvedFileIndexState(from: .success(fileEntries))
             } catch {
+                guard Self.shouldApplyFileIndexResult(
+                    for: projectRoot,
+                    currentProjectRoot: workspaceState.projectRoot,
+                    isTaskCancelled: Task.isCancelled,
+                ) else {
+                    return
+                }
                 workspaceState.fileEntries = []
                 fileIndexState = Self.resolvedFileIndexState(from: .failure(error))
             }
@@ -270,6 +284,14 @@ struct ProjectFocusView: View {
         case .failure:
             .indexingFailed
         }
+    }
+
+    nonisolated static func shouldApplyFileIndexResult(
+        for indexedProjectRoot: String,
+        currentProjectRoot: String?,
+        isTaskCancelled: Bool,
+    ) -> Bool {
+        isTaskCancelled == false && currentProjectRoot == indexedProjectRoot
     }
 
     nonisolated static func resetWorkspaceState(

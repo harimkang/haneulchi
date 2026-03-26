@@ -457,6 +457,31 @@ func projectFocusUsesFailureExplorerStateWhenIndexingFails() {
     #expect(state == .indexingFailed)
 }
 
+@Test(
+    "project focus ignores stale explorer indexing results when the project root changes mid-flight",
+)
+func projectFocusIgnoresStaleExplorerIndexResults() {
+    let freshResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo-new",
+        currentProjectRoot: "/tmp/demo-new",
+        isTaskCancelled: false,
+    )
+    let staleResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo-old",
+        currentProjectRoot: "/tmp/demo-new",
+        isTaskCancelled: false,
+    )
+    let cancelledResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo",
+        currentProjectRoot: "/tmp/demo",
+        isTaskCancelled: true,
+    )
+
+    #expect(freshResult == true)
+    #expect(staleResult == false)
+    #expect(cancelledResult == false)
+}
+
 @Test("project focus resets stale workspace state when the project root changes")
 func projectFocusResetsWorkspaceStateForNewProjectRoot() {
     var workspaceState = ProjectFocusWorkspaceState(projectRoot: "/tmp/old")
