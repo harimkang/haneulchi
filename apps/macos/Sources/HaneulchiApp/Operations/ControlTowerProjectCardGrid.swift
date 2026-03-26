@@ -74,19 +74,21 @@ struct ControlTowerProjectCardGrid: View {
         HStack(spacing: 4) {
             let total = strip.running + strip.waitingInput + strip.reviewReady + strip.blocked
             if total == 0 {
-                ForEach(0..<7, id: \.self) { _ in
+                ForEach(0 ..< 7, id: \.self) { _ in
                     RoundedRectangle(cornerRadius: 2)
                         .fill(HaneulchiChrome.Surface.recess)
                         .frame(height: 12)
                 }
             } else {
                 let baseColor = strip.blocked > 0 ? HaneulchiChrome.State.errorSolid :
-                    (strip.waitingInput > 0 || strip.reviewReady > 0) ? HaneulchiChrome.Gradient.primaryEnd :
+                    (strip.waitingInput > 0 || strip.reviewReady > 0) ? HaneulchiChrome.Gradient
+                    .primaryEnd :
                     HaneulchiChrome.State.successSolid
-                
-                let opacities: [Double] = [0.2, 0.4, 0.8, 0.6, 0.9, 0.3, 1.0] // Simulated active density
-                
-                ForEach(0..<opacities.count, id: \.self) { idx in
+
+                let opacities: [Double] = [0.2, 0.4, 0.8, 0.6, 0.9, 0.3,
+                                           1.0] // Simulated active density
+
+                ForEach(0 ..< opacities.count, id: \.self) { idx in
                     RoundedRectangle(cornerRadius: 2)
                         .fill(baseColor.opacity(opacities[idx]))
                         .frame(height: 12)

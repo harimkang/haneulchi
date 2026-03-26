@@ -47,14 +47,17 @@ struct RecentArtifactsTableView: View {
                                         .font(HaneulchiTypography.compactMeta)
                                         .foregroundStyle(HaneulchiChrome.Gradient.primaryEnd)
                                         .frame(width: 80, alignment: .leading)
-                                    
+
                                     Text(item.projectID)
                                         .font(HaneulchiTypography.systemLabel)
                                         .bold()
                                         .foregroundStyle(HaneulchiChrome.Label.primary)
                                         .frame(width: 100, alignment: .leading)
-                                    
-                                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xxs,
+                                    ) {
                                         Text(item.summary)
                                             .font(HaneulchiTypography.body)
                                             .foregroundStyle(HaneulchiChrome.Label.secondary)
@@ -67,7 +70,7 @@ struct RecentArtifactsTableView: View {
                                         }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
-                                    
+
                                     Text(item.targetRoute.title)
                                         .font(HaneulchiTypography.compactMeta)
                                         .foregroundStyle(HaneulchiChrome.Label.muted)

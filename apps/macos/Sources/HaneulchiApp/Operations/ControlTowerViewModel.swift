@@ -89,8 +89,10 @@ struct ControlTowerViewModel: Equatable, Sendable {
             let lowerName = project.name.lowercased()
             if lowerName.contains("auth") { iconName = "lock.shield" }
             else if lowerName.contains("api") { iconName = "network" }
-            else if lowerName.contains("ios") || lowerName.contains("mobile") { iconName = "iphone" }
-            else if lowerName.contains("infra") || lowerName.contains("k8s") { iconName = "server.rack" }
+            else if lowerName.contains("ios") || lowerName
+                .contains("mobile") { iconName = "iphone" }
+            else if lowerName.contains("infra") || lowerName
+                .contains("k8s") { iconName = "server.rack" }
             else { iconName = "folder" }
 
             return ProjectCard(
