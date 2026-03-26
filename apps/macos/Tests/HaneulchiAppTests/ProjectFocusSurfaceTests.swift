@@ -441,14 +441,53 @@ func sessionColumnUsesEmptyStatePresentation() {
     #expect(presentation.emptyStateMessage == "No active sessions.")
 }
 
-@Test("files panel shows an indexed-empty state before any files are loaded")
-func filesPanelUsesIndexedEmptyState() {
+@Test("project focus marks explorer state as no-project-selected when there is no project root")
+func projectFocusUsesNoProjectExplorerStateWithoutProjectRoot() {
+    #expect(ProjectFocusView.initialFileIndexState(for: nil) == .noProjectSelected)
+}
+
+@Test("project focus preserves explorer indexing failures instead of flattening them to empty")
+func projectFocusUsesFailureExplorerStateWhenIndexingFails() {
+    enum StubError: Error {
+        case failed
+    }
+
+    let state = ProjectFocusView.resolvedFileIndexState(from: .failure(StubError.failed))
+
+    #expect(state == .indexingFailed)
+}
+
+@Test("files panel shows a no-project-selected state")
+func filesPanelUsesNoProjectSelectedState() {
     let presentation = FilesPanelView.presentation(
-        workspaceState: .init(projectRoot: "/tmp/demo"),
+        workspaceState: .init(projectRoot: nil),
+        indexState: .noProjectSelected,
     )
 
     #expect(presentation.showsSearchField == false)
-    #expect(presentation.emptyStateMessage == "No indexed files yet.")
+    #expect(presentation.emptyStateMessage == "Select a project to browse files.")
+}
+
+@Test("files panel shows an indexing-failed state")
+func filesPanelUsesIndexingFailedState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: "/tmp/demo"),
+        indexState: .indexingFailed,
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "File indexing failed.")
+}
+
+@Test("files panel shows a loaded-empty state when indexing succeeds but the project has no files")
+func filesPanelUsesLoadedEmptyState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: "/tmp/demo"),
+        indexState: .loaded,
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "No files in this project.")
 }
 
 @Test("files panel shows a search-empty state when the query has no matches")
@@ -459,7 +498,10 @@ func filesPanelUsesSearchEmptyState() {
     ]
     workspaceState.searchQuery = "Preview"
 
-    let presentation = FilesPanelView.presentation(workspaceState: workspaceState)
+    let presentation = FilesPanelView.presentation(
+        workspaceState: workspaceState,
+        indexState: .loaded,
+    )
 
     #expect(presentation.showsSearchField == true)
     #expect(presentation.emptyStateMessage == #"No files match "Preview"."#)

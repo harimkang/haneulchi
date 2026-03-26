@@ -1,6 +1,13 @@
 import SwiftUI
 
 struct FilesPanelView: View {
+    enum IndexState: Equatable, Sendable {
+        case noProjectSelected
+        case loading
+        case indexingFailed
+        case loaded
+    }
+
     struct Presentation: Equatable, Sendable {
         let showsSearchField: Bool
         let entries: [ProjectFileIndex.Entry]
@@ -8,10 +15,14 @@ struct FilesPanelView: View {
     }
 
     @Binding var workspaceState: ProjectFocusWorkspaceState
+    var indexState: IndexState = .loaded
     var columnWidth: CGFloat = HaneulchiMetrics.Panel.explorerColumnWidth
 
     var body: some View {
-        let presentation = Self.presentation(workspaceState: workspaceState)
+        let presentation = Self.presentation(
+            workspaceState: workspaceState,
+            indexState: indexState,
+        )
 
         VStack(alignment: .leading, spacing: 0) {
             HaneulchiSectionHeader(title: "Files")
@@ -81,12 +92,36 @@ struct FilesPanelView: View {
 
     nonisolated static func presentation(
         workspaceState: ProjectFocusWorkspaceState,
+        indexState: IndexState,
     ) -> Presentation {
+        switch indexState {
+        case .noProjectSelected:
+            return Presentation(
+                showsSearchField: false,
+                entries: [],
+                emptyStateMessage: "Select a project to browse files.",
+            )
+        case .loading:
+            return Presentation(
+                showsSearchField: false,
+                entries: [],
+                emptyStateMessage: "Indexing project files…",
+            )
+        case .indexingFailed:
+            return Presentation(
+                showsSearchField: false,
+                entries: [],
+                emptyStateMessage: "File indexing failed.",
+            )
+        case .loaded:
+            break
+        }
+
         if workspaceState.fileEntries.isEmpty {
             return Presentation(
                 showsSearchField: false,
                 entries: [],
-                emptyStateMessage: "No indexed files yet.",
+                emptyStateMessage: "No files in this project.",
             )
         }
 

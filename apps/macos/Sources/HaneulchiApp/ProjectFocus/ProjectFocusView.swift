@@ -66,6 +66,7 @@ struct ProjectFocusView: View {
     let queuedFilePath: String?
     let onAction: (AppShellAction) -> Void
     @State private var workspaceState: ProjectFocusWorkspaceState
+    @State private var fileIndexState: FilesPanelView.IndexState
     private let fileIndex = ProjectFileIndex()
 
     init(
@@ -80,6 +81,7 @@ struct ProjectFocusView: View {
         self.onAction = onAction
         _workspaceState =
             State(initialValue: ProjectFocusWorkspaceState(projectRoot: model.projectRoot))
+        _fileIndexState = State(initialValue: Self.initialFileIndexState(for: model.projectRoot))
     }
 
     var body: some View {
@@ -111,6 +113,7 @@ struct ProjectFocusView: View {
                 if layoutMetrics.showsExplorerColumn {
                     FilesPanelView(
                         workspaceState: $workspaceState,
+                        indexState: fileIndexState,
                         columnWidth: layoutMetrics.explorerColumnWidth,
                     )
                 }
@@ -138,11 +141,21 @@ struct ProjectFocusView: View {
         .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
             guard let projectRoot = model.projectRoot else {
+                fileIndexState = .noProjectSelected
                 return
             }
 
             workspaceState.layoutPreset = .explorerTerminalInspector
-            workspaceState.fileEntries = await (try? fileIndex.index(rootPath: projectRoot)) ?? []
+            fileIndexState = .loading
+
+            do {
+                let fileEntries = try await fileIndex.index(rootPath: projectRoot)
+                workspaceState.fileEntries = fileEntries
+                fileIndexState = Self.resolvedFileIndexState(from: .success(fileEntries))
+            } catch {
+                workspaceState.fileEntries = []
+                fileIndexState = Self.resolvedFileIndexState(from: .failure(error))
+            }
         }
         .onChange(of: queuedFilePath) { _, queuedFilePath in
             guard let queuedFilePath else {
@@ -236,5 +249,22 @@ struct ProjectFocusView: View {
         }
 
         return SessionSignalPresentation.from(session: focusedSession, isFocused: true)
+    }
+
+    nonisolated static func initialFileIndexState(
+        for projectRoot: String?,
+    ) -> FilesPanelView.IndexState {
+        projectRoot == nil ? .noProjectSelected : .loading
+    }
+
+    nonisolated static func resolvedFileIndexState(
+        from result: Result<[ProjectFileIndex.Entry], Error>,
+    ) -> FilesPanelView.IndexState {
+        switch result {
+        case .success:
+            .loaded
+        case .failure:
+            .indexingFailed
+        }
     }
 }
