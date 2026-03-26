@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("bootstrap maps nil fixture to empty")

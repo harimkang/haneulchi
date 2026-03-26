@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 private final class SendableBox<T>: @unchecked Sendable {

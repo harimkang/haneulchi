@@ -1,4 +1,4 @@
-import HaneulchiApp
+import HaneulchiAppUI
 import SwiftUI
 
 @main

@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("readiness report keeps generic shell available when preset binaries are missing")

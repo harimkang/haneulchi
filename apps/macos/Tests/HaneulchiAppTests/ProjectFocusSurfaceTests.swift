@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("project focus demo boots with one hosted surface and split disabled")

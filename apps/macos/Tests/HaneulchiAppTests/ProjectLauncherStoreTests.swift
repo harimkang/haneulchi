@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("recent project store keeps the last-opened project first and deduplicates by root path")

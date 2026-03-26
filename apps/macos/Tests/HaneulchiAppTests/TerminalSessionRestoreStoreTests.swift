@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("restore store round-trips a persisted terminal restore bundle")

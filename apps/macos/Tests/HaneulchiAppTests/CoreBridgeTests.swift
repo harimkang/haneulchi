@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("spawn response can decode a session identifier before fetching a snapshot")

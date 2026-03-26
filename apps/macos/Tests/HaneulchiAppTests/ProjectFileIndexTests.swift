@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("project file index returns root-scoped file paths and skips ignored directories")

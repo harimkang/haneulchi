@@ -1,5 +1,5 @@
 import AppKit
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @MainActor

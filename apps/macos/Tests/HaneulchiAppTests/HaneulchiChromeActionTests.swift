@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("chrome actions expose consistent iconography and accessibility labels")

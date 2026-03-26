@@ -29,7 +29,7 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
-        .library(name: "HaneulchiAppUI", targets: ["HaneulchiApp"]),
+        .library(name: "HaneulchiAppUI", targets: ["HaneulchiAppUI"]),
         .executable(name: "HaneulchiApp", targets: ["HaneulchiAppExecutable"]),
     ],
     dependencies: [
@@ -46,7 +46,7 @@ let package = Package(
             publicHeadersPath: "include",
         ),
         .target(
-            name: "HaneulchiApp",
+            name: "HaneulchiAppUI",
             dependencies: [
                 "HCCoreFFI",
                 .product(name: "SwiftTerm", package: "SwiftTerm"),
@@ -60,13 +60,13 @@ let package = Package(
         .executableTarget(
             name: "HaneulchiAppExecutable",
             dependencies: [
-                "HaneulchiApp",
+                "HaneulchiAppUI",
             ],
             path: "Sources/HaneulchiAppExecutable",
         ),
         .testTarget(
             name: "HaneulchiAppTests",
-            dependencies: ["HaneulchiApp"],
+            dependencies: ["HaneulchiAppUI"],
             path: "Tests/HaneulchiAppTests",
             linkerSettings: hcFFILinkerSettings,
         ),

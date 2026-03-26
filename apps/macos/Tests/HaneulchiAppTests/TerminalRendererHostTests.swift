@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import SwiftTerm
 import Testing
 

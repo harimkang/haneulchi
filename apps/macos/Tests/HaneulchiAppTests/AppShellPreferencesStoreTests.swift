@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("preferences store persists the last active route and defaults to project focus")

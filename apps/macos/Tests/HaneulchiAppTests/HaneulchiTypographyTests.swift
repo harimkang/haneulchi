@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("typography families prefer SF variants for display, body, labels, and mono content")
