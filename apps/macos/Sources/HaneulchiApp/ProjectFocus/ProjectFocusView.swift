@@ -164,6 +164,10 @@ struct ProjectFocusView: View {
             workspaceState.layoutPreset = .explorerTerminalInspector
             workspaceState.openFile(queuedFilePath)
         }
+        .onChange(of: model.projectRoot) { _, projectRoot in
+            workspaceState = Self.resetWorkspaceState(workspaceState, for: projectRoot)
+            fileIndexState = Self.initialFileIndexState(for: projectRoot)
+        }
     }
 
     private var layoutMetrics: ProjectFocusWorkspaceLayoutMetrics {
@@ -266,5 +270,13 @@ struct ProjectFocusView: View {
         case .failure:
             .indexingFailed
         }
+    }
+
+    nonisolated static func resetWorkspaceState(
+        _ workspaceState: ProjectFocusWorkspaceState,
+        for projectRoot: String?,
+    ) -> ProjectFocusWorkspaceState {
+        _ = workspaceState
+        return ProjectFocusWorkspaceState(projectRoot: projectRoot)
     }
 }

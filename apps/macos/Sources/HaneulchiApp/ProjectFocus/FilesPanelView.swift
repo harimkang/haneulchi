@@ -12,6 +12,7 @@ struct FilesPanelView: View {
         let showsSearchField: Bool
         let entries: [ProjectFileIndex.Entry]
         let emptyStateMessage: String?
+        let emptyStateDetail: String?
     }
 
     @Binding var workspaceState: ProjectFocusWorkspaceState
@@ -41,8 +42,8 @@ struct FilesPanelView: View {
                         .font(HaneulchiTypography.bodySmall)
                         .foregroundStyle(HaneulchiChrome.Label.secondary)
 
-                    if workspaceState.projectRoot != nil, presentation.showsSearchField == false {
-                        Text("Indexing starts after the project workspace is loaded.")
+                    if let emptyStateDetail = presentation.emptyStateDetail {
+                        Text(emptyStateDetail)
                             .font(HaneulchiTypography.compactMeta)
                             .tracking(HaneulchiTypography.Tracking.metaModerate)
                             .foregroundStyle(HaneulchiChrome.Label.muted)
@@ -100,18 +101,21 @@ struct FilesPanelView: View {
                 showsSearchField: false,
                 entries: [],
                 emptyStateMessage: "Select a project to browse files.",
+                emptyStateDetail: "Choose a project to load the explorer.",
             )
         case .loading:
             return Presentation(
                 showsSearchField: false,
                 entries: [],
                 emptyStateMessage: "Indexing project files…",
+                emptyStateDetail: "The explorer will populate when indexing finishes.",
             )
         case .indexingFailed:
             return Presentation(
                 showsSearchField: false,
                 entries: [],
                 emptyStateMessage: "File indexing failed.",
+                emptyStateDetail: "Try reopening the project or retrying the explorer.",
             )
         case .loaded:
             break
@@ -122,6 +126,7 @@ struct FilesPanelView: View {
                 showsSearchField: false,
                 entries: [],
                 emptyStateMessage: "No files in this project.",
+                emptyStateDetail: "Add files to this project to populate the explorer.",
             )
         }
 
@@ -130,6 +135,7 @@ struct FilesPanelView: View {
                 showsSearchField: true,
                 entries: [],
                 emptyStateMessage: #"No files match "\#(workspaceState.searchQuery)"."#,
+                emptyStateDetail: "Clear or change the search query.",
             )
         }
 
@@ -137,6 +143,7 @@ struct FilesPanelView: View {
             showsSearchField: true,
             entries: workspaceState.filteredEntries,
             emptyStateMessage: nil,
+            emptyStateDetail: nil,
         )
     }
 }
