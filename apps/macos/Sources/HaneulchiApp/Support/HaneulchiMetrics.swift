@@ -79,6 +79,53 @@ enum HaneulchiMetrics {
         static let commandPaletteMax: CGFloat = 760
     }
 
+    // MARK: - Modal Widths
+
+    enum Modal {
+        struct WidthTokens: Equatable, Sendable {
+            let minimumWidth: CGFloat
+            let idealWidth: CGFloat
+            let maximumWidth: CGFloat
+        }
+
+        static let compact = WidthTokens(
+            minimumWidth: 520,
+            idealWidth: 600,
+            maximumWidth: 720,
+        )
+
+        static let medium = WidthTokens(
+            minimumWidth: 560,
+            idealWidth: 680,
+            maximumWidth: 720,
+        )
+
+        static let wide = WidthTokens(
+            minimumWidth: 640,
+            idealWidth: 720,
+            maximumWidth: 760,
+        )
+
+        static let expanded = WidthTokens(
+            minimumWidth: 640,
+            idealWidth: 760,
+            maximumWidth: 760,
+        )
+
+        static func tokens(for viewportClass: HaneulchiViewportClass) -> WidthTokens {
+            switch viewportClass {
+            case .compact:
+                compact
+            case .medium:
+                medium
+            case .wide:
+                wide
+            case .expanded:
+                expanded
+            }
+        }
+    }
+
     // MARK: - Corner Radii
 
     enum Radius {

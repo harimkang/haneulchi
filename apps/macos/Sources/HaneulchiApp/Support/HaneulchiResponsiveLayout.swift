@@ -60,39 +60,22 @@ struct HaneulchiRouteLayoutPolicy: Equatable, Sendable {
 }
 
 struct HaneulchiModalWidthPolicy: Equatable, Sendable {
-    let viewportClass: HaneulchiViewportClass
+    private let tokens: HaneulchiMetrics.Modal.WidthTokens
+
+    init(viewportClass: HaneulchiViewportClass) {
+        tokens = HaneulchiMetrics.Modal.tokens(for: viewportClass)
+    }
 
     var minimumWidth: CGFloat {
-        switch viewportClass {
-        case .compact:
-            520
-        case .medium:
-            560
-        case .wide, .expanded:
-            640
-        }
+        tokens.minimumWidth
     }
 
     var idealWidth: CGFloat {
-        switch viewportClass {
-        case .compact:
-            600
-        case .medium:
-            680
-        case .wide:
-            720
-        case .expanded:
-            760
-        }
+        tokens.idealWidth
     }
 
     var maximumWidth: CGFloat {
-        switch viewportClass {
-        case .compact, .medium:
-            720
-        case .wide, .expanded:
-            760
-        }
+        tokens.maximumWidth
     }
 
     func clampedWidth(_ width: CGFloat) -> CGFloat {
