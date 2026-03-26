@@ -387,25 +387,80 @@ func projectFocusLayoutFollowsSharedViewportClasses() {
         viewportContext: .init(width: HaneulchiMetrics.Responsive.expandedWidth),
     )
 
+    #expect(compactLayout.showsSessionSurface == true)
     #expect(compactLayout.sessionColumnWidth == 0)
+    #expect(compactLayout.sessionContextStyle == .compactAffordance)
     #expect(compactLayout.showsSessionColumn == false)
     #expect(compactLayout.showsCompactSessionAffordance == true)
     #expect(compactLayout.showsExplorerColumn == false)
     #expect(compactLayout.showsSupportingColumn == false)
 
+    #expect(mediumLayout.showsSessionSurface == true)
     #expect(mediumLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(mediumLayout.sessionContextStyle == .column)
     #expect(mediumLayout.showsSessionColumn == true)
     #expect(mediumLayout.showsCompactSessionAffordance == false)
     #expect(mediumLayout.showsExplorerColumn == false)
     #expect(mediumLayout.showsSupportingColumn == false)
 
+    #expect(wideLayout.showsSessionSurface == true)
     #expect(wideLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(wideLayout.sessionContextStyle == .column)
     #expect(wideLayout.showsSessionColumn == true)
     #expect(wideLayout.showsExplorerColumn == false)
     #expect(wideLayout.showsSupportingColumn == true)
 
+    #expect(expandedLayout.showsSessionSurface == true)
     #expect(expandedLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(expandedLayout.sessionContextStyle == .column)
     #expect(expandedLayout.showsSessionColumn == true)
     #expect(expandedLayout.showsExplorerColumn == true)
     #expect(expandedLayout.showsSupportingColumn == true)
+}
+
+@Test("compact session affordance exposes an empty-state presentation instead of disappearing")
+func compactSessionAffordanceUsesEmptyStatePresentation() {
+    let presentation = SessionStackView.presentation(
+        rows: [],
+        layoutStyle: .compactAffordance,
+    )
+
+    #expect(presentation.title == "Current Session")
+    #expect(presentation.emptyStateMessage == "No active sessions.")
+    #expect(presentation.primaryActionTitle == nil)
+}
+
+@Test("session column keeps the sessions surface visible with an empty-state presentation")
+func sessionColumnUsesEmptyStatePresentation() {
+    let presentation = SessionStackView.presentation(
+        rows: [],
+        layoutStyle: .column,
+    )
+
+    #expect(presentation.title == "Sessions")
+    #expect(presentation.emptyStateMessage == "No active sessions.")
+}
+
+@Test("files panel shows an indexed-empty state before any files are loaded")
+func filesPanelUsesIndexedEmptyState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: "/tmp/demo"),
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "No indexed files yet.")
+}
+
+@Test("files panel shows a search-empty state when the query has no matches")
+func filesPanelUsesSearchEmptyState() {
+    var workspaceState = ProjectFocusWorkspaceState(projectRoot: "/tmp/demo")
+    workspaceState.fileEntries = [
+        .init(relativePath: "Sources/App.swift", absolutePath: "/tmp/demo/Sources/App.swift"),
+    ]
+    workspaceState.searchQuery = "Preview"
+
+    let presentation = FilesPanelView.presentation(workspaceState: workspaceState)
+
+    #expect(presentation.showsSearchField == true)
+    #expect(presentation.emptyStateMessage == #"No files match "Preview"."#)
 }

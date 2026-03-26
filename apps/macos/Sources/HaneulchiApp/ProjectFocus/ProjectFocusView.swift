@@ -89,7 +89,7 @@ struct ProjectFocusView: View {
         VStack(spacing: layoutMetrics.columnSpacing) {
             headerBar
 
-            if layoutMetrics.showsCompactSessionAffordance, !sessionRows.isEmpty {
+            if layoutMetrics.showsCompactSessionAffordance {
                 SessionStackView(
                     rows: sessionRows,
                     layoutStyle: .compactAffordance,
@@ -99,7 +99,7 @@ struct ProjectFocusView: View {
             }
 
             HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
-                if layoutMetrics.showsSessionColumn, !sessionRows.isEmpty {
+                if layoutMetrics.showsSessionColumn {
                     SessionStackView(
                         rows: sessionRows,
                         columnWidth: layoutMetrics.sessionColumnWidth,

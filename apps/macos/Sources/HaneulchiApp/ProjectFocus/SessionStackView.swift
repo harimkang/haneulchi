@@ -6,6 +6,14 @@ struct SessionStackView: View {
         case compactAffordance
     }
 
+    struct Presentation: Equatable, Sendable {
+        let title: String
+        let count: Int?
+        let emptyStateMessage: String?
+        let primaryRow: Row?
+        let primaryActionTitle: String?
+    }
+
     struct Row: Equatable, Identifiable {
         let sessionID: String
         let title: String
@@ -36,12 +44,18 @@ struct SessionStackView: View {
     }
 
     private var columnLayout: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HaneulchiSectionHeader(title: "Sessions", count: rows.isEmpty ? nil : rows.count)
+        let presentation = Self.presentation(rows: rows, layoutStyle: layoutStyle)
 
-            VStack(alignment: .leading, spacing: 0) {
-                ForEach(rows) { row in
-                    sessionRow(row)
+        return VStack(alignment: .leading, spacing: 0) {
+            HaneulchiSectionHeader(title: presentation.title, count: presentation.count)
+
+            if rows.isEmpty {
+                emptyStateView(message: presentation.emptyStateMessage ?? "No active sessions.")
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(rows) { row in
+                        sessionRow(row)
+                    }
                 }
             }
         }
@@ -51,14 +65,16 @@ struct SessionStackView: View {
     }
 
     private var compactAffordanceLayout: some View {
-        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+        let presentation = Self.presentation(rows: rows, layoutStyle: layoutStyle)
+
+        return VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
             HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text("Current Session")
+                Text(presentation.title)
                     .font(HaneulchiTypography.sectionHeading)
                     .foregroundStyle(HaneulchiChrome.Label.primary)
 
-                if !rows.isEmpty {
-                    Text("\(rows.count)")
+                if let count = presentation.count {
+                    Text("\(count)")
                         .font(HaneulchiTypography.compactMeta)
                         .tracking(HaneulchiTypography.Tracking.metaModerate)
                         .foregroundStyle(HaneulchiChrome.Label.muted)
@@ -73,7 +89,7 @@ struct SessionStackView: View {
                 Spacer()
             }
 
-            if let primaryRow {
+            if let primaryRow = presentation.primaryRow {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
                     HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.xs) {
                         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
@@ -118,7 +134,7 @@ struct SessionStackView: View {
 
                         Spacer()
 
-                        Button(primaryActionTitle(for: primaryRow)) {
+                        Button(presentation.primaryActionTitle ?? "Open Session") {
                             onAction(.jumpToSession(primaryRow.sessionID))
                         }
                         .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
@@ -132,10 +148,8 @@ struct SessionStackView: View {
                     hasAttention: primaryRow.signal?.tone == .strong,
                     hasUnread: primaryRow.unreadCount > 0,
                 )
-            } else {
-                Text("No active sessions.")
-                    .font(HaneulchiTypography.bodySmall)
-                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+            } else if let emptyStateMessage = presentation.emptyStateMessage {
+                emptyStateView(message: emptyStateMessage)
             }
         }
         .padding(HaneulchiMetrics.Padding.compact)
@@ -236,12 +250,42 @@ struct SessionStackView: View {
         }
     }
 
-    private var primaryRow: Row? {
-        rows.first(where: \.isFocused) ?? rows.first
+    private func emptyStateView(message: String) -> some View {
+        Text(message)
+            .font(HaneulchiTypography.bodySmall)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(HaneulchiMetrics.Padding.compact)
     }
 
     private func primaryActionTitle(for row: Row) -> String {
         row.showsManualContinueCTA ? "Manual Continue" : "Open Session"
+    }
+
+    nonisolated static func presentation(
+        rows: [Row],
+        layoutStyle: LayoutStyle,
+    ) -> Presentation {
+        let title = switch layoutStyle {
+        case .column:
+            "Sessions"
+        case .compactAffordance:
+            "Current Session"
+        }
+        let primaryRow = rows.first(where: \.isFocused) ?? rows.first
+        let count: Int? = if rows.isEmpty { nil } else { rows.count }
+        let emptyStateMessage: String? = if rows.isEmpty { "No active sessions." } else { nil }
+        let primaryActionTitle = primaryRow.map { row in
+            row.showsManualContinueCTA ? "Manual Continue" : "Open Session"
+        }
+
+        return Presentation(
+            title: title,
+            count: count,
+            emptyStateMessage: emptyStateMessage,
+            primaryRow: primaryRow,
+            primaryActionTitle: primaryActionTitle,
+        )
     }
 
     nonisolated static func rows(from snapshot: AppShellSnapshot) -> [Row] {

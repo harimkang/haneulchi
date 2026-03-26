@@ -39,6 +39,10 @@ struct ProjectFocusWorkspaceLayoutMetrics: Equatable, Sendable {
         sessionContextStyle == .compactAffordance
     }
 
+    var showsSessionSurface: Bool {
+        sessionContextStyle != .hidden
+    }
+
     static func forPreset(
         _ preset: ProjectFocusLayoutPreset,
         viewportContext: HaneulchiViewportContext = .init(
