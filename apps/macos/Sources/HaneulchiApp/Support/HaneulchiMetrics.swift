@@ -23,6 +23,15 @@ enum HaneulchiMetrics {
         static let columnGap: CGFloat = 24 // gap between columns
     }
 
+    // MARK: - Operations Surface Metrics
+
+    enum Operations {
+        static let headerDeckMinHeight: CGFloat = 72
+        static let opsStripMinHeight: CGFloat = 52
+        static let opsRailWidth: CGFloat = 360
+        static let signalRowMinHeight: CGFloat = 68
+    }
+
     // MARK: - Shell Dimensions
 
     enum Shell {

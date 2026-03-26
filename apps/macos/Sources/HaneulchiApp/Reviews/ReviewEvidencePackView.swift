@@ -19,6 +19,7 @@ struct ReviewEvidencePackView: View {
             // Primary facts
             if !model.primaryFacts.isEmpty {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                    HaneulchiSectionHeader(title: "Primary Facts", count: model.primaryFacts.count)
                     ForEach(model.primaryFacts, id: \.label) { fact in
                         HaneulchiTableRow {
                             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
@@ -35,7 +36,7 @@ struct ReviewEvidencePackView: View {
                         }
                     }
                 }
-                .background(HaneulchiChrome.Surface.base)
+                .background(HaneulchiChrome.Surface.recess)
                 .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             }
 
@@ -58,7 +59,7 @@ struct ReviewEvidencePackView: View {
                         }
                     }
                 }
-                .background(HaneulchiChrome.Surface.base)
+                .background(HaneulchiChrome.Surface.recess)
                 .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             }
 

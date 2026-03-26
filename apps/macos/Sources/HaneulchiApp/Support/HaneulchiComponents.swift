@@ -321,19 +321,34 @@ struct HaneulchiTableRow<Content: View>: View {
 // MARK: - HaneulchiMetricTile
 
 struct HaneulchiMetricTile: View {
-    var label: String
-    var value: String
-    var state: HaneulchiStatusBadge.State = .idle
+    private let metric: HaneulchiMonolithMetric
+
+    init(metric: HaneulchiMonolithMetric) {
+        self.metric = metric
+    }
+
+    init(
+        label: String,
+        value: String,
+        state: HaneulchiStatusBadge.State = .idle,
+    ) {
+        metric = HaneulchiMonolithMetric(
+            id: label.lowercased().replacingOccurrences(of: " ", with: "_"),
+            label: label,
+            value: value,
+            accent: .from(state),
+        )
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-            Text(label)
+            Text(metric.label)
                 .font(HaneulchiTypography.compactMeta)
                 .tracking(HaneulchiTypography.Tracking.metaModerate)
                 .foregroundColor(HaneulchiChrome.Label.muted)
 
-            Text(value)
-                .font(HaneulchiTypography.systemLabel)
+            Text(metric.value)
+                .font(HaneulchiTypography.opsValue)
                 .tracking(HaneulchiTypography.Tracking.labelWide)
                 .foregroundColor(valueColor)
         }
@@ -344,25 +359,6 @@ struct HaneulchiMetricTile: View {
     }
 
     private var valueColor: Color {
-        switch state {
-        case .active:
-            HaneulchiChrome.State.success
-        case .reviewReady:
-            HaneulchiChrome.Gradient.primaryEnd
-        case .waitingInput:
-            HaneulchiChrome.State.warning
-        case .retryDue:
-            HaneulchiChrome.State.warning
-        case .manualTakeover:
-            HaneulchiChrome.Gradient.primaryStart
-        case .degraded:
-            HaneulchiChrome.State.warning
-        case .blocked:
-            HaneulchiChrome.State.error
-        case .idle:
-            HaneulchiChrome.Label.secondary
-        case .done:
-            HaneulchiChrome.Label.muted
-        }
+        metric.accent.tint
     }
 }

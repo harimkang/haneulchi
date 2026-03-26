@@ -24,11 +24,21 @@ enum HaneulchiTypography {
     /// Inter/SF Pro, 13pt
     static let bodySmall = Font.custom("Inter", size: 13, relativeTo: .body)
 
+    // MARK: - Deck Subtitle
+
+    /// Inter/SF Pro, 13pt
+    static let deckSubtitle = Font.custom("Inter", size: 13, relativeTo: .subheadline)
+
     // MARK: - System Label
 
     // Space Grotesk, 12pt, wide tracking (0.12em–0.16em uppercase)
     // Usage: route tabs, badges, metadata chips
     static let systemLabel = Font.custom("Space Grotesk", size: 12, relativeTo: .caption)
+
+    // MARK: - Ops Value
+
+    /// Space Grotesk, 11pt, compact ops-strip values
+    static let opsValue = Font.custom("Space Grotesk", size: 11, relativeTo: .caption)
 
     // MARK: - Compact Meta
 

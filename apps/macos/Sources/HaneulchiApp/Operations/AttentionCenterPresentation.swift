@@ -45,6 +45,19 @@ enum AttentionCenterPresentation {
                 "UNREAD"
             }
         }
+
+        var accent: HaneulchiSignalAccent {
+            switch self {
+            case .manualTakeover:
+                .manual
+            case .failed:
+                .error
+            case .degraded:
+                .warning
+            case .unread:
+                .warning
+            }
+        }
     }
 
     struct GroupedItems: Equatable {

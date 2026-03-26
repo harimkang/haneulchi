@@ -5,8 +5,11 @@ struct ControlTowerProjectCardGrid: View {
     let onOpenProject: (String) -> Void
 
     private let columns = [
-        GridItem(.flexible(minimum: 220), spacing: HaneulchiChrome.Spacing.itemGap),
-        GridItem(.flexible(minimum: 220), spacing: HaneulchiChrome.Spacing.itemGap),
+        GridItem(
+            .adaptive(minimum: 220, maximum: 280),
+            spacing: HaneulchiChrome.Spacing.itemGap,
+            alignment: .topLeading,
+        ),
     ]
 
     var body: some View {
@@ -16,40 +19,59 @@ struct ControlTowerProjectCardGrid: View {
                     onOpenProject(card.projectID)
                 } label: {
                     HaneulchiCard {
-                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                            HStack(alignment: .top) {
-                                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                                    Text(card.title)
-                                        .font(HaneulchiTypography.sectionHeading)
-                                        .foregroundStyle(HaneulchiChrome.Label.primary)
-                                    HaneulchiStatusBadge(
-                                        state: card.statusBadgeState,
-                                        label: card.statusLabel,
-                                    )
-                                }
-                                Spacer()
-                                Image(systemName: card.iconName)
-                                    .font(.system(size: HaneulchiMetrics.Icon.standard))
-                                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                            }
+                        HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
+                            RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.small)
+                                .fill(card.accent.line)
+                                .frame(width: 4)
 
-                            HStack(spacing: HaneulchiMetrics.Spacing.md) {
-                                metaItem("sessions", card.sessionCountLabel)
-                                metaItem("attention", card.attentionCountLabel)
-                            }
+                            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xxs,
+                                    ) {
+                                        HaneulchiStatusBadge(
+                                            state: card.statusBadgeState,
+                                            label: card.statusLabel.uppercased(),
+                                        )
+                                        Text(card.title)
+                                            .font(HaneulchiTypography.sectionHeading)
+                                            .foregroundStyle(HaneulchiChrome.Label.primary)
+                                    }
 
-                            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                                Text(card.latestSummary ?? "No recent summary")
-                                    .font(HaneulchiTypography.body)
-                                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                                if let commentary = card.latestCommentary {
-                                    Text(commentary)
-                                        .font(HaneulchiTypography.compactMeta)
+                                    Spacer()
+
+                                    Image(systemName: card.iconName)
+                                        .font(.system(size: HaneulchiMetrics.Icon.standard))
                                         .foregroundStyle(HaneulchiChrome.Label.muted)
                                 }
-                            }
 
-                            visualHeatmap(strip: card.heatStrip)
+                                HStack(spacing: HaneulchiMetrics.Spacing.md) {
+                                    ForEach(card.overviewMetrics, id: \.label) { metric in
+                                        overviewMetric(metric)
+                                    }
+                                    Spacer(minLength: HaneulchiMetrics.Spacing.sm)
+                                    if let spotlight = card.spotlightLabel {
+                                        metaPill(spotlight)
+                                    }
+                                }
+
+                                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                                    Text(card.latestSummary ?? "No recent summary")
+                                        .font(HaneulchiTypography.body)
+                                        .foregroundStyle(HaneulchiChrome.Label.primary)
+                                        .fixedSize(horizontal: false, vertical: true)
+
+                                    if let commentary = card.latestCommentary {
+                                        Text(commentary)
+                                            .font(HaneulchiTypography.compactMeta)
+                                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                                            .lineLimit(2)
+                                    }
+                                }
+
+                                visualHeatmap(strip: card.heatStrip, accent: card.accent)
+                            }
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
@@ -59,18 +81,35 @@ struct ControlTowerProjectCardGrid: View {
         }
     }
 
-    private func metaItem(_ label: String, _ value: String) -> some View {
+    private func overviewMetric(_ metric: ControlTowerViewModel.ProjectCard
+        .OverviewMetric) -> some View
+    {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-            Text(label)
+            Text(metric.label.uppercased())
                 .font(HaneulchiTypography.compactMeta)
+                .tracking(HaneulchiTypography.Tracking.labelWide)
                 .foregroundStyle(HaneulchiChrome.Label.muted)
-            Text(value)
-                .font(HaneulchiTypography.compactMeta)
-                .foregroundStyle(HaneulchiChrome.Label.muted)
+            Text(metric.value)
+                .font(HaneulchiTypography.bodySmall)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
         }
     }
 
-    private func visualHeatmap(strip: ControlTowerViewModel.HeatStrip) -> some View {
+    private func metaPill(_ value: String) -> some View {
+        Text(value)
+            .font(HaneulchiTypography.compactMeta)
+            .tracking(HaneulchiTypography.Tracking.metaModerate)
+            .foregroundStyle(HaneulchiChrome.Label.secondary)
+            .padding(.horizontal, HaneulchiMetrics.Spacing.xs)
+            .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+            .background(HaneulchiChrome.Surface.recess)
+            .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.pill))
+    }
+
+    private func visualHeatmap(
+        strip: ControlTowerViewModel.HeatStrip,
+        accent: HaneulchiSignalAccent,
+    ) -> some View {
         HStack(spacing: 4) {
             let total = strip.running + strip.waitingInput + strip.reviewReady + strip.blocked
             if total == 0 {
@@ -80,17 +119,11 @@ struct ControlTowerProjectCardGrid: View {
                         .frame(height: 12)
                 }
             } else {
-                let baseColor = strip.blocked > 0 ? HaneulchiChrome.State.errorSolid :
-                    (strip.waitingInput > 0 || strip.reviewReady > 0) ? HaneulchiChrome.Gradient
-                    .primaryEnd :
-                    HaneulchiChrome.State.successSolid
-
-                let opacities: [Double] = [0.2, 0.4, 0.8, 0.6, 0.9, 0.3,
-                                           1.0] // Simulated active density
+                let opacities: [Double] = [0.2, 0.4, 0.8, 0.6, 0.9, 0.3, 1.0]
 
                 ForEach(0 ..< opacities.count, id: \.self) { idx in
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(baseColor.opacity(opacities[idx]))
+                        .fill(accent.line.opacity(opacities[idx]))
                         .frame(height: 12)
                 }
             }

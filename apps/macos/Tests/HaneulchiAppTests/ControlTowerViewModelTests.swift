@@ -138,10 +138,20 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
     #expect(viewModel.projectCards.first?.statusLabel == "attention")
     #expect(viewModel.projectCards.first?.sessionCountLabel == "2 sessions")
     #expect(viewModel.projectCards.first?.attentionCountLabel == "2 items")
+    #expect(viewModel.projectCards.first?.overviewMetrics == [
+        .init(label: "Sessions", value: "2"),
+        .init(label: "Alerts", value: "2"),
+    ])
     #expect(viewModel.projectCards.first?.latestSummary == "Awaiting operator answer")
     #expect(viewModel.projectCards.first?.latestCommentary == "Need a schema confirmation.")
     #expect(viewModel.projectCards.first?.heatStrip.waitingInput == 1)
     #expect(viewModel.projectCards.first?.heatStrip.running == 1)
+    #expect(viewModel.projectCards.first?.primaryMeta == [
+        "2 sessions",
+        "2 items",
+        "1 waiting input",
+    ])
+    #expect(viewModel.projectCards.first?.accent == .warning)
 
     #expect(viewModel.attentionItems.count == 2)
     #expect(viewModel.attentionItems.first?.targetRoute == .projectFocus)
@@ -155,6 +165,30 @@ func controlTowerViewModelUsesProjectionDrivenSnapshot() {
     #expect(viewModel.opsModel.queueLabel == "3 retry · 1 claimed")
     #expect(viewModel.opsModel.workflowHealth == "invalid_kept_last_good")
     #expect(viewModel.opsModel.trackerHealth == "degraded")
+    #expect(viewModel.opsModel.stripMetrics.map(\.label) == [
+        "cadence",
+        "last tick",
+        "next tick",
+        "reconcile",
+        "slots",
+        "workflow",
+        "tracker",
+        "queue",
+        "paused",
+    ])
+    #expect(viewModel.opsModel.primaryStripMetrics.map(\.label) == [
+        "cadence",
+        "last tick",
+        "next tick",
+        "reconcile",
+        "slots",
+        "workflow",
+    ])
+    #expect(viewModel.opsModel.secondaryStripMetrics.map(\.label) == [
+        "tracker",
+        "queue",
+        "paused",
+    ])
 }
 
 @Test("project cards expose blocked styling for error status without attention")
@@ -184,4 +218,52 @@ func controlTowerProjectCardPreservesErrorStatus() {
 
     #expect(viewModel.projectCards.first?.statusLabel == "error")
     #expect(viewModel.projectCards.first?.statusBadgeState == .blocked)
+}
+
+@Test("project card accent escalates when blocked sessions exist even without project attention")
+func controlTowerProjectCardAccentEscalatesFromHeatStrip() {
+    let snapshot = AppShellSnapshot(
+        meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
+        ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
+        app: .init(activeRoute: .controlTower, focusedSessionID: nil, degradedFlags: []),
+        projects: [
+            .init(
+                projectID: "proj_blocked",
+                name: "api",
+                rootPath: "/tmp/api",
+                status: .active,
+                workflowState: .ok,
+                sessionCount: 1,
+                attentionCount: 0,
+            ),
+        ],
+        sessions: [
+            .init(
+                sessionID: "ses_blocked",
+                title: "Blocked",
+                currentDirectory: "/tmp/api",
+                mode: .structuredAdapter,
+                runtimeState: .blocked,
+                manualControlState: .none,
+                dispatchState: .notDispatchable,
+                unreadCount: 0,
+                projectID: "proj_blocked",
+                latestSummary: "Hook failed",
+                focusState: .background,
+            ),
+        ],
+        attention: [],
+        retryQueue: [],
+        warnings: [],
+    )
+
+    let viewModel = ControlTowerViewModel(snapshot: snapshot)
+
+    #expect(viewModel.projectCards.first?.statusLabel == "active")
+    #expect(viewModel.projectCards.first?.accent == .error)
+    #expect(viewModel.projectCards.first?.primaryMeta == [
+        "1 sessions",
+        "0 items",
+        "1 blocked",
+    ])
 }

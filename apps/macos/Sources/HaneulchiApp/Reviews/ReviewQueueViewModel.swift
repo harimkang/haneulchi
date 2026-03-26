@@ -96,6 +96,34 @@ struct ReviewQueueProjectionPayload: Decodable, Equatable, Sendable {
     }
 }
 
+extension ReviewQueueProjectionPayload.Item {
+    private var effectiveWarningCount: Int {
+        warnings.count + (hasHookWarning ? 1 : 0)
+    }
+
+    private var hasHookWarning: Bool {
+        guard let hookSummary else {
+            return false
+        }
+        return !hookSummary.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    var warningSummary: String {
+        switch effectiveWarningCount {
+        case 0:
+            "clear"
+        case 1:
+            "1 warning"
+        default:
+            "\(effectiveWarningCount) warnings"
+        }
+    }
+
+    var surfaceAccent: HaneulchiSignalAccent {
+        effectiveWarningCount == 0 ? .reviewReady : .error
+    }
+}
+
 @MainActor
 final class ReviewQueueViewModel: ObservableObject {
     @Published private(set) var items: [ReviewQueueProjectionPayload.Item] = []

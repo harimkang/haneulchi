@@ -9,10 +9,17 @@ struct ControlTowerViewModel: Equatable, Sendable {
     }
 
     struct ProjectCard: Equatable, Identifiable, Sendable {
+        struct OverviewMetric: Equatable, Sendable {
+            let label: String
+            let value: String
+        }
+
         let projectID: String
         let title: String
         let iconName: String
         let statusLabel: String
+        let sessionCount: Int
+        let attentionCount: Int
         let sessionCountLabel: String
         let attentionCountLabel: String
         let latestSummary: String?
@@ -40,6 +47,61 @@ struct ControlTowerViewModel: Equatable, Sendable {
             default:
                 .idle
             }
+        }
+
+        var primaryMeta: [String] {
+            [sessionCountLabel, attentionCountLabel] + spotlightMeta
+        }
+
+        var spotlightLabel: String? {
+            spotlightMeta.first
+        }
+
+        var overviewMetrics: [OverviewMetric] {
+            [
+                .init(label: "Sessions", value: "\(sessionCount)"),
+                .init(label: "Alerts", value: "\(attentionCount)"),
+            ]
+        }
+
+        var accent: HaneulchiSignalAccent {
+            if heatStrip.blocked > 0 {
+                return .error
+            }
+            if heatStrip.waitingInput > 0 {
+                return .warning
+            }
+            if heatStrip.reviewReady > 0 {
+                return .reviewReady
+            }
+            switch statusLabel.lowercased() {
+            case "attention", "waiting", "waiting_input", "degraded":
+                return .warning
+            case "error", "blocked":
+                return .error
+            case "running", "active":
+                return .success
+            case "review", "review_ready":
+                return .reviewReady
+            default:
+                return .neutral
+            }
+        }
+
+        private var spotlightMeta: [String] {
+            if heatStrip.reviewReady > 0 {
+                return ["\(heatStrip.reviewReady) review ready"]
+            }
+            if heatStrip.waitingInput > 0 {
+                return ["\(heatStrip.waitingInput) waiting input"]
+            }
+            if heatStrip.blocked > 0 {
+                return ["\(heatStrip.blocked) blocked"]
+            }
+            if heatStrip.running > 0 {
+                return ["\(heatStrip.running) running"]
+            }
+            return []
         }
     }
 
@@ -100,6 +162,8 @@ struct ControlTowerViewModel: Equatable, Sendable {
                 title: project.name,
                 iconName: iconName,
                 statusLabel: statusLabel,
+                sessionCount: project.sessionCount,
+                attentionCount: project.attentionCount,
                 sessionCountLabel: "\(project.sessionCount) sessions",
                 attentionCountLabel: "\(project.attentionCount) items",
                 latestSummary: latestSession?.latestSummary,

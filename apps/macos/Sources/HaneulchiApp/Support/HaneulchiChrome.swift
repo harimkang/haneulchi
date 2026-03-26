@@ -27,6 +27,11 @@ enum HaneulchiChrome {
             Color(red: 53 / 255, green: 52 / 255, blue: 55 / 255).opacity(opacity)
         }
 
+        /// Alias for route-level secondary decks and strip containers.
+        static let band = base
+        /// Alias for spotlighted rows and rail content.
+        static let spotlight = raised
+
         /// Scrim backdrop for modal overlays (command palette, sheets)
         static let scrim = Color.black.opacity(0.32)
     }

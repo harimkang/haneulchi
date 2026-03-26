@@ -141,5 +141,9 @@ func attentionPresentationUsesDistinctGroups() {
 
     #expect(groups.map(\.group) == [.manualTakeover, .failed, .degraded, .unread])
     #expect(groups[0].group.badgeState == .manualTakeover)
+    #expect(groups[0].group.accent == .manual)
+    #expect(groups[1].group.accent == .error)
     #expect(groups[2].group.badgeState == .degraded)
+    #expect(groups[2].group.accent == .warning)
+    #expect(groups[3].group.accent == .warning)
 }

@@ -29,6 +29,37 @@ func reviewQueueViewModelUsesReviewReadyProjection() throws {
     #expect(viewModel.selectedItem?.taskID == "task_review")
     #expect(viewModel.selectedItem?.touchedFiles.count == 2)
     #expect(viewModel.selectedItem?.warnings == ["snapshot drift"])
+    #expect(viewModel.selectedItem?.warningSummary == "1 warning")
+    #expect(viewModel.selectedItem?.surfaceAccent == .error)
+}
+
+@MainActor
+@Test("review queue severity helpers treat hook summaries as warnings")
+func reviewQueueViewModelTreatsHookSummaryAsWarningSignal() throws {
+    let projection = ReviewQueueProjectionPayload(
+        items: [
+            .init(
+                taskID: "task_hook_warning",
+                projectID: "proj_demo",
+                title: "Review workflow hook",
+                summary: "Ready for handoff",
+                touchedFiles: ["Sources/Workflow.swift"],
+                diffSummary: "+3 -1",
+                testsSummary: "4 passing",
+                commandSummary: "cargo test -p hc-workflow",
+                hookSummary: "before_run warning",
+                warnings: [],
+                evidenceManifestPath: "evidence/reviews/task_hook_warning/review_01/manifest.json",
+            ),
+        ],
+        degradedReason: nil,
+    )
+    let viewModel = ReviewQueueViewModel(loadProjection: { projection })
+
+    try viewModel.reload()
+
+    #expect(viewModel.selectedItem?.warningSummary == "1 warning")
+    #expect(viewModel.selectedItem?.surfaceAccent == .error)
 }
 
 @MainActor

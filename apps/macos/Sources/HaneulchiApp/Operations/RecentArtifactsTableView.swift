@@ -5,89 +5,85 @@ struct RecentArtifactsTableView: View {
     let onOpen: (ControlTowerViewModel.RecentArtifactItem) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Table header on recess band
-            HStack(spacing: HaneulchiMetrics.Spacing.sm) {
-                Text("SESSION ID")
-                    .font(HaneulchiTypography.systemLabel)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .frame(width: 80, alignment: .leading)
-                Text("ENTITY")
-                    .font(HaneulchiTypography.systemLabel)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .frame(width: 100, alignment: .leading)
-                Text("ARTIFACT SUMMARY")
-                    .font(HaneulchiTypography.systemLabel)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Text("ROUTE")
-                    .font(HaneulchiTypography.systemLabel)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .frame(width: 80, alignment: .trailing)
-            }
-            .padding(.horizontal, HaneulchiMetrics.Padding.card)
-            .padding(.vertical, HaneulchiMetrics.Spacing.xs)
-            .background(HaneulchiChrome.Surface.recess)
-
+        HaneulchiOpsRailPanel(title: "Recent Artifacts", count: items.isEmpty ? nil : items.count) {
             if items.isEmpty {
                 Text("No recent artifacts.")
                     .font(HaneulchiTypography.body)
                     .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .padding(.horizontal, HaneulchiMetrics.Padding.card)
-                    .padding(.vertical, HaneulchiMetrics.Spacing.md)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(items) { item in
-                        Button {
-                            onOpen(item)
-                        } label: {
-                            HaneulchiTableRow {
-                                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
-                                    Text(item.taskID)
-                                        .font(HaneulchiTypography.compactMeta)
-                                        .foregroundStyle(HaneulchiChrome.Gradient.primaryEnd)
-                                        .frame(width: 80, alignment: .leading)
+                VStack(alignment: .leading, spacing: 0) {
+                    headerRow
 
-                                    Text(item.projectID)
-                                        .font(HaneulchiTypography.systemLabel)
-                                        .bold()
-                                        .foregroundStyle(HaneulchiChrome.Label.primary)
-                                        .frame(width: 100, alignment: .leading)
+                    VStack(spacing: 0) {
+                        ForEach(items) { item in
+                            Button {
+                                onOpen(item)
+                            } label: {
+                                HaneulchiTableRow {
+                                    HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.sm) {
+                                        Text(item.taskID)
+                                            .font(HaneulchiTypography.compactMeta)
+                                            .foregroundStyle(HaneulchiChrome.Gradient.primaryEnd)
+                                            .frame(width: 96, alignment: .leading)
 
-                                    VStack(
-                                        alignment: .leading,
-                                        spacing: HaneulchiMetrics.Spacing.xxs,
-                                    ) {
-                                        Text(item.summary)
-                                            .font(HaneulchiTypography.body)
+                                        Text(item.projectID)
+                                            .font(HaneulchiTypography.compactMeta)
                                             .foregroundStyle(HaneulchiChrome.Label.secondary)
-                                            .lineLimit(2)
-                                        if let manifestPath = item.manifestPath {
-                                            Text(manifestPath)
-                                                .font(HaneulchiTypography.compactMeta)
-                                                .foregroundStyle(HaneulchiChrome.Label.muted)
-                                                .lineLimit(1)
-                                        }
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                            .frame(width: 92, alignment: .leading)
 
-                                    Text(item.targetRoute.title)
-                                        .font(HaneulchiTypography.compactMeta)
-                                        .foregroundStyle(HaneulchiChrome.Label.muted)
-                                        .frame(width: 80, alignment: .trailing)
+                                        Text(item.summary)
+                                            .font(HaneulchiTypography.bodySmall)
+                                            .foregroundStyle(HaneulchiChrome.Label.primary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                            .lineLimit(2)
+
+                                        Text(item.targetRoute.title)
+                                            .font(HaneulchiTypography.compactMeta)
+                                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                                            .frame(width: 88, alignment: .trailing)
+                                    }
                                 }
-                                .frame(maxWidth: .infinity, alignment: .leading)
                             }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
+                .background(HaneulchiChrome.Surface.recess)
+                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             }
         }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
+    }
+
+    private var headerRow: some View {
+        HStack(spacing: HaneulchiMetrics.Spacing.sm) {
+            Text("TASK ID")
+                .font(HaneulchiTypography.compactMeta)
+                .tracking(HaneulchiTypography.Tracking.labelWide)
+                .foregroundStyle(HaneulchiChrome.Label.muted)
+                .frame(width: 96, alignment: .leading)
+
+            Text("PROJECT")
+                .font(HaneulchiTypography.compactMeta)
+                .tracking(HaneulchiTypography.Tracking.labelWide)
+                .foregroundStyle(HaneulchiChrome.Label.muted)
+                .frame(width: 92, alignment: .leading)
+
+            Text("ARTIFACT SUMMARY")
+                .font(HaneulchiTypography.compactMeta)
+                .tracking(HaneulchiTypography.Tracking.labelWide)
+                .foregroundStyle(HaneulchiChrome.Label.muted)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Text("ROUTE")
+                .font(HaneulchiTypography.compactMeta)
+                .tracking(HaneulchiTypography.Tracking.labelWide)
+                .foregroundStyle(HaneulchiChrome.Label.muted)
+                .frame(width: 88, alignment: .trailing)
+        }
+        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(.vertical, HaneulchiMetrics.Spacing.xs)
         .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(
-            cornerRadius: HaneulchiMetrics.Radius.large,
-            style: .continuous,
-        ))
     }
 }

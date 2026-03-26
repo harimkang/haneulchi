@@ -15,81 +15,61 @@ struct ReviewQueueView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text("Review Queue")
-                    .font(HaneulchiTypography.display)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                Text(summary)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
+            HaneulchiHeaderDeck(
+                title: "Review Queue",
+                subtitle: summary,
+            ) {
+                EmptyView()
             }
 
             if viewModel.items.isEmpty {
-                Text(viewModel.emptyStateMessage)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
-                    .padding(HaneulchiMetrics.Padding.card)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(HaneulchiChrome.Surface.base)
-                    .clipShape(RoundedRectangle(
-                        cornerRadius: HaneulchiMetrics.Radius.large,
-                        style: .continuous,
-                    ))
+                HaneulchiOpsRailPanel(title: "Ready for Review") {
+                    Text(viewModel.emptyStateMessage)
+                        .font(HaneulchiTypography.body)
+                        .foregroundStyle(HaneulchiChrome.Label.muted)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
             } else {
                 HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
-                    // Left panel: queue list
-                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
-                        HaneulchiSectionHeader(
-                            title: "Ready for Review",
-                            count: viewModel.items.count,
-                        )
-                        ForEach(viewModel.items) { item in
-                            reviewReadyRow(item: item)
+                    HaneulchiOpsRailPanel(
+                        title: "Ready for Review",
+                        count: viewModel.items.count,
+                    ) {
+                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                            ForEach(viewModel.items) { item in
+                                reviewReadyRow(item: item)
+                            }
                         }
                     }
-                    .frame(width: 300)
+                    .frame(width: 320)
 
-                    // Center + Right: summary, evidence, decision rail
-                    ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
-                        do {
-                            try viewModel.apply(command)
-                        } catch {
-                            // The view model stores the operator-visible error state.
+                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                        if let degradedReason = viewModel.degradedReason {
+                            statusBanner(
+                                icon: "exclamationmark.triangle.fill",
+                                message: "Degraded: \(degradedReason)",
+                            )
+                        }
+                        if let actionError = viewModel.actionError {
+                            statusBanner(
+                                icon: "xmark.circle.fill",
+                                message: "Action failed: \(actionError)",
+                            )
+                        }
+
+                        ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
+                            do {
+                                try viewModel.apply(command)
+                            } catch {
+                                // The view model stores the operator-visible error state.
+                            }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
                 }
-            }
-
-            if let degradedReason = viewModel.degradedReason {
-                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.system(size: HaneulchiMetrics.Icon.small))
-                        .foregroundStyle(HaneulchiChrome.State.error)
-                    Text("Degraded: \(degradedReason)")
-                        .font(HaneulchiTypography.bodySmall)
-                        .foregroundStyle(HaneulchiChrome.State.error)
-                }
-                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
-                .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-                .background(HaneulchiChrome.State.errorSolid.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
-            }
-            if let actionError = viewModel.actionError {
-                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: HaneulchiMetrics.Icon.small))
-                        .foregroundStyle(HaneulchiChrome.State.error)
-                    Text("Action failed: \(actionError)")
-                        .font(HaneulchiTypography.bodySmall)
-                        .foregroundStyle(HaneulchiChrome.State.error)
-                }
-                .padding(.horizontal, HaneulchiMetrics.Padding.compact)
-                .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
-                .background(HaneulchiChrome.State.errorSolid.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             }
         }
-        .padding(HaneulchiChrome.Spacing.screenPadding)
+        .padding(HaneulchiMetrics.Padding.page)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Surface.foundation)
         .task {
@@ -104,45 +84,29 @@ struct ReviewQueueView: View {
         Button {
             viewModel.select(taskID: item.taskID)
         } label: {
-            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.xs) {
-                // review_ready accent stripe
-                RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.small)
-                    .fill(HaneulchiChrome.Gradient.primaryEnd)
-                    .frame(width: 3)
+            HaneulchiSignalRow(
+                accent: item.surfaceAccent,
+                eyebrow: "REVIEW READY",
+                title: item.title,
+                summary: item.summary,
+                meta: "\(item.projectID) · \(item.warningSummary)",
+            ) {
+                VStack(alignment: .trailing, spacing: HaneulchiMetrics.Spacing.xxs) {
+                    HaneulchiStatusBadge(
+                        state: item.warnings.isEmpty ? .reviewReady : .blocked,
+                        label: item.warningSummary.uppercased(),
+                    )
 
-                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                    HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.xs) {
-                        HaneulchiStatusBadge(state: .reviewReady, label: "REVIEW READY")
-                        Spacer()
-                    }
-                    Text(item.title)
-                        .font(HaneulchiTypography.sectionHeading)
-                        .foregroundStyle(HaneulchiChrome.Label.primary)
-                    Text(item.summary)
-                        .font(HaneulchiTypography.caption)
-                        .foregroundStyle(HaneulchiChrome.Label.muted)
-                        .lineLimit(2)
                     if let hookSummary = item.hookSummary {
-                        HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .font(.system(size: HaneulchiMetrics.Icon.small))
-                                .foregroundStyle(HaneulchiChrome.State.warning)
-                            Text(hookSummary)
-                                .font(HaneulchiTypography.caption)
-                                .foregroundStyle(HaneulchiChrome.State.warning)
-                        }
+                        Text(hookSummary)
+                            .font(HaneulchiTypography.compactMeta)
+                            .foregroundStyle(HaneulchiChrome.State.warning)
+                            .multilineTextAlignment(.trailing)
                     }
                 }
             }
-            .padding(HaneulchiMetrics.Padding.card)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isSelected ? HaneulchiChrome.Surface.raised : HaneulchiChrome.Surface.base)
-            .clipShape(RoundedRectangle(
-                cornerRadius: HaneulchiMetrics.Radius.large,
-                style: .continuous,
-            ))
             .overlay(
-                RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large)
+                RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium)
                     .strokeBorder(
                         isSelected ? HaneulchiChrome.Stroke.ghost : Color.clear,
                         lineWidth: 1,
@@ -154,5 +118,20 @@ struct ReviewQueueView: View {
             .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
             value: isSelected,
         )
+    }
+
+    private func statusBanner(icon: String, message: String) -> some View {
+        HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.system(size: HaneulchiMetrics.Icon.small))
+                .foregroundStyle(HaneulchiChrome.State.error)
+            Text(message)
+                .font(HaneulchiTypography.bodySmall)
+                .foregroundStyle(HaneulchiChrome.State.error)
+        }
+        .padding(.horizontal, HaneulchiMetrics.Padding.compact)
+        .padding(.vertical, HaneulchiMetrics.Spacing.xxs)
+        .background(HaneulchiChrome.State.errorSolid.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
 }
