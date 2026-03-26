@@ -30,6 +30,16 @@ enum HaneulchiShellChromeDensity: Equatable, Sendable {
     case regular
 }
 
+struct HaneulchiCompactTopBarChipPresentation: Equatable, Sendable {
+    let visibleChips: [AppShellChromeState.Chip]
+    let overflowChip: AppShellChromeState.Chip?
+}
+
+struct HaneulchiCompactBottomStripPresentation: Equatable, Sendable {
+    let items: [AppShellChromeState.StripItem]
+    let transientNotice: String?
+}
+
 struct HaneulchiViewportContext: Equatable, Sendable {
     let width: CGFloat
     let viewportClass: HaneulchiViewportClass
@@ -60,6 +70,79 @@ struct HaneulchiViewportContext: Equatable, Sendable {
 
     var shellChromeDensity: HaneulchiShellChromeDensity {
         viewportClass >= .wide ? .regular : .compact
+    }
+
+    func compactTopBarChipPresentation(
+        for chips: [AppShellChromeState.Chip],
+        visibleLimit: Int,
+    ) -> HaneulchiCompactTopBarChipPresentation {
+        let rankedChips = chips.enumerated()
+            .sorted { lhs, rhs in
+                let lhsPriority = Self.compactionPriority(for: lhs.element.tone)
+                let rhsPriority = Self.compactionPriority(for: rhs.element.tone)
+
+                if lhsPriority != rhsPriority {
+                    return lhsPriority > rhsPriority
+                }
+
+                return lhs.offset < rhs.offset
+            }
+            .map(\.element)
+
+        let visibleChipCount = max(0, visibleLimit)
+        let visibleChips = Array(rankedChips.prefix(visibleChipCount))
+        let hiddenChips = Array(rankedChips.dropFirst(visibleChips.count))
+
+        let overflowChip: AppShellChromeState.Chip? = hiddenChips.isEmpty
+            ? nil
+            : .init(
+                title: "+\(hiddenChips.count)",
+                tone: Self.strongestTone(from: hiddenChips),
+            )
+
+        return .init(
+            visibleChips: visibleChips,
+            overflowChip: overflowChip,
+        )
+    }
+
+    func compactBottomStripPresentation(
+        items: [AppShellChromeState.StripItem],
+        transientNotice: String?,
+    ) -> HaneulchiCompactBottomStripPresentation {
+        .init(
+            items: items,
+            transientNotice: transientNotice.map(Self.compactTransientNotice),
+        )
+    }
+
+    private static func compactionPriority(for tone: WarningFlag?) -> Int {
+        switch tone {
+        case .failed:
+            3
+        case .degraded:
+            2
+        case .unread:
+            1
+        case nil:
+            0
+        }
+    }
+
+    private static func strongestTone(from chips: [AppShellChromeState.Chip]) -> WarningFlag? {
+        chips.compactMap(\.tone).max { lhs, rhs in
+            compactionPriority(for: lhs) < compactionPriority(for: rhs)
+        }
+    }
+
+    private static func compactTransientNotice(_ notice: String) -> String {
+        let limit = 28
+
+        guard notice.count > limit else {
+            return notice
+        }
+
+        return String(notice.prefix(limit - 1)) + "…"
     }
 }
 

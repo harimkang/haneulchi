@@ -46,23 +46,33 @@ struct BottomStatusStripView: View {
                 }
             }
         case .compact:
-            HStack(spacing: HaneulchiMetrics.Spacing.sm) {
-                ForEach(items) { item in
-                    Text(compactLabel(for: item))
-                        .font(HaneulchiTypography.compactMeta)
-                        .foregroundStyle(HaneulchiChrome.Label.muted)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+            let presentation = viewportContext.compactBottomStripPresentation(
+                items: items,
+                transientNotice: transientNotice,
+            )
+
+            HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.sm) {
+                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                    ForEach(presentation.items) { item in
+                        Text(compactLabel(for: item))
+                            .font(HaneulchiTypography.compactMeta)
+                            .foregroundStyle(HaneulchiChrome.Label.muted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
                 }
+                .layoutPriority(1)
 
-                Spacer()
+                Spacer(minLength: HaneulchiMetrics.Spacing.sm)
 
-                if let transientNotice {
+                if let transientNotice = presentation.transientNotice {
                     Text(transientNotice)
                         .font(HaneulchiTypography.compactMeta)
                         .foregroundStyle(HaneulchiChrome.Label.muted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
+                        .truncationMode(.tail)
+                        .minimumScaleFactor(0.75)
+                        .layoutPriority(0)
                 }
             }
         }

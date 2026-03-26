@@ -82,3 +82,39 @@ func shellChromeDensityUsesSharedWidthRules() {
     #expect(compact.shellChromeDensity == .compact)
     #expect(regular.shellChromeDensity == .regular)
 }
+
+@Test("compact top-bar chip selection prefers stronger severities and exposes overflow tone")
+func compactTopBarChipSelectionPrefersSeverity() {
+    let chips: [AppShellChromeState.Chip] = [
+        .init(title: "workspace", tone: nil),
+        .init(title: "warning", tone: .degraded),
+        .init(title: "critical", tone: .failed),
+        .init(title: "noise", tone: .unread),
+    ]
+
+    let presentation = HaneulchiViewportContext(width: 0)
+        .compactTopBarChipPresentation(for: chips, visibleLimit: 2)
+
+    #expect(presentation.visibleChips.map(\.title) == ["critical", "warning"])
+    #expect(presentation.overflowChip?.title == "+2")
+    #expect(presentation.overflowChip?.tone == .unread)
+}
+
+@Test("compact bottom-strip presentation preserves metrics and degrades transient notice safely")
+func compactBottomStripPresentationPreservesMetricsFirst() {
+    let items: [AppShellChromeState.StripItem] = [
+        .init(title: "logs", detail: "clear"),
+        .init(title: "problems", detail: "none"),
+        .init(title: "terminal", detail: "4 sessions"),
+        .init(title: "runtime hint", detail: "ok"),
+    ]
+    let transientNotice = "Dispatch sent to session alpha and waiting for reconciliation"
+
+    let presentation = HaneulchiViewportContext(width: 0)
+        .compactBottomStripPresentation(items: items, transientNotice: transientNotice)
+
+    #expect(presentation.items == items)
+    #expect(presentation.transientNotice != transientNotice)
+    #expect((presentation.transientNotice?.count ?? 0) < transientNotice.count)
+    #expect((presentation.transientNotice?.count ?? 0) > 0)
+}

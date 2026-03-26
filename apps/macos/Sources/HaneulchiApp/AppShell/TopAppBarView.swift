@@ -51,23 +51,18 @@ struct TopAppBarView: View {
                 }
             }
         case .compact:
+            let presentation = viewportContext.compactTopBarChipPresentation(
+                for: chrome.topBarChips,
+                visibleLimit: 2,
+            )
+            let chips = presentation.visibleChips + [presentation.overflowChip].compactMap(\.self)
+
             HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-                ForEach(compactTopBarChips) { chip in
+                ForEach(chips) { chip in
                     chipPill(chip, compact: true)
                 }
             }
         }
-    }
-
-    private var compactTopBarChips: [AppShellChromeState.Chip] {
-        let visibleChips = Array(chrome.topBarChips.prefix(2))
-        let hiddenCount = chrome.topBarChips.count - visibleChips.count
-
-        guard hiddenCount > 0 else {
-            return visibleChips
-        }
-
-        return visibleChips + [.init(title: "+\(hiddenCount)", tone: nil)]
     }
 
     private func chipPill(
