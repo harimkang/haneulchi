@@ -234,6 +234,10 @@ struct ReviewQueueResponsiveLayout: Equatable, Sendable {
     var requiresVerticalOverflowScroll: Bool {
         mode == .stacked
     }
+
+    var usesIndependentPaneScrolling: Bool {
+        mode == .split
+    }
 }
 
 enum ReviewEvidencePackFactRowStyle: Equatable, Sendable {

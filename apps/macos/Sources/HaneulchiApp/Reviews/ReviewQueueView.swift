@@ -61,19 +61,38 @@ struct ReviewQueueView: View {
                     }
                 case .split:
                     HStack(alignment: .top, spacing: layout.columnSpacing) {
-                        reviewListPanel
-                            .frame(
-                                width: responsiveLayout.masterColumnWidth,
-                                alignment: .topLeading,
-                            )
-                        detailPanel
+                        splitScrollingPane {
+                            reviewListPanel
+                        }
+                        .frame(
+                            width: responsiveLayout.masterColumnWidth,
+                            alignment: .topLeading,
+                        )
+
+                        splitScrollingPane {
+                            detailPanel
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
         }
         .padding(.horizontal, layout.screenPadding)
         .padding(.vertical, layout.sectionSpacing)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    @ViewBuilder
+    private func splitScrollingPane(@ViewBuilder content: () -> some View) -> some View {
+        if responsiveLayout.usesIndependentPaneScrolling {
+            ScrollView {
+                content()
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else {
+            content()
+        }
     }
 
     @ViewBuilder

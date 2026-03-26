@@ -61,3 +61,13 @@ func reviewQueueAddsVerticalOverflowAccessOnStackedLayouts() {
     #expect(medium.requiresVerticalOverflowScroll == true)
     #expect(wide.requiresVerticalOverflowScroll == false)
 }
+
+@Test("review queue split mode uses independent pane scrolling for master and detail reachability")
+func reviewQueueSplitModeUsesIndependentPaneScrolling() {
+    let wide = ReviewQueueResponsiveLayout(viewportClass: .wide)
+    let expanded = ReviewQueueResponsiveLayout(viewportClass: .expanded)
+
+    #expect(wide.usesIndependentPaneScrolling == true)
+    #expect(expanded.usesIndependentPaneScrolling == true)
+    #expect(wide.showsFixedMasterColumn == true)
+}
