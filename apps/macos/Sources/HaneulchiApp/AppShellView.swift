@@ -332,6 +332,21 @@ struct AppShellView: View {
     }
 }
 
-#Preview {
-    AppShellView()
+#Preview("App Shell / Shell") {
+    AppShellView(
+        model: HaneulchiPreviewFixtures.shellModel(route: .projectFocus),
+        projectFolderPicker: HaneulchiPreviewFixtures.projectFolderPicker(),
+        demoWorkspaceScaffold: HaneulchiPreviewFixtures.demoWorkspaceScaffold(),
+    )
+}
+
+#Preview("App Shell / Welcome") {
+    AppShellView(
+        model: HaneulchiPreviewFixtures.shellModel(
+            route: .projectFocus,
+            entrySurface: .welcome(.firstRun),
+        ),
+        projectFolderPicker: HaneulchiPreviewFixtures.projectFolderPicker(),
+        demoWorkspaceScaffold: HaneulchiPreviewFixtures.demoWorkspaceScaffold(),
+    )
 }
