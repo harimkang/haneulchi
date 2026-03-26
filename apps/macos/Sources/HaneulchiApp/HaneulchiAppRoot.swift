@@ -1,10 +1,11 @@
 import SwiftUI
 
-@main
-struct HaneulchiApp: App {
+public struct HaneulchiAppRoot: App {
     @StateObject private var shellModel = AppShellModel.liveDefault(coreBridge: .live)
 
-    var body: some Scene {
+    public init() {}
+
+    public var body: some Scene {
         WindowGroup {
             AppShellView(model: shellModel)
                 .task {

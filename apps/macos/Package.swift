@@ -29,7 +29,8 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
-        .executable(name: "HaneulchiApp", targets: ["HaneulchiApp"]),
+        .library(name: "HaneulchiAppUI", targets: ["HaneulchiApp"]),
+        .executable(name: "HaneulchiApp", targets: ["HaneulchiAppExecutable"]),
     ],
     dependencies: [
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.12.0"),
@@ -44,7 +45,7 @@ let package = Package(
             path: "Vendor/HCCoreFFI",
             publicHeadersPath: "include",
         ),
-        .executableTarget(
+        .target(
             name: "HaneulchiApp",
             dependencies: [
                 "HCCoreFFI",
@@ -55,6 +56,13 @@ let package = Package(
             plugins: [
                 "HCCoreFFIBuildPlugin",
             ],
+        ),
+        .executableTarget(
+            name: "HaneulchiAppExecutable",
+            dependencies: [
+                "HaneulchiApp",
+            ],
+            path: "Sources/HaneulchiAppExecutable",
         ),
         .testTarget(
             name: "HaneulchiAppTests",
