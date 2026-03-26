@@ -197,6 +197,17 @@ func shellViewportContextDerivesContentWidthFromShellWidth() {
     #expect(context.viewportClass == .compact)
 }
 
+@Test("root transient viewport keeps full root width while shell viewport subtracts the rail")
+func rootTransientViewportPreservesFullRootWidth() {
+    let root = HaneulchiViewportContext(rootWidth: HaneulchiMetrics.Responsive.wideWidth)
+    let shell = HaneulchiViewportContext(shellWidth: HaneulchiMetrics.Responsive.wideWidth)
+
+    #expect(root.width == HaneulchiMetrics.Responsive.wideWidth)
+    #expect(root.viewportClass == .wide)
+    #expect(shell.width == HaneulchiMetrics.Responsive.wideWidth - HaneulchiMetrics.Shell.railWidth)
+    #expect(shell.viewportClass == .medium)
+}
+
 @Test("shell viewport context clamps content width before classifying it")
 func shellViewportContextClampsContentWidthBeforeClassifying() {
     let context = HaneulchiViewportContext(shellWidth: 24)

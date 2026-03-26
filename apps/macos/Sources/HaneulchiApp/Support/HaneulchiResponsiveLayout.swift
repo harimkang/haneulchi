@@ -49,6 +49,10 @@ struct HaneulchiViewportContext: Equatable, Sendable {
         viewportClass = .forWidth(width)
     }
 
+    init(rootWidth: CGFloat) {
+        self.init(width: rootWidth)
+    }
+
     init(shellWidth: CGFloat) {
         self.init(width: Self.contentWidth(forShellWidth: shellWidth))
     }

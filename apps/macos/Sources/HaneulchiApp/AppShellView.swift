@@ -5,7 +5,7 @@ struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
     @State private var launcherNotice: String?
-    @State private var viewportContext = HaneulchiViewportContext(width: 0)
+    @State private var rootViewportContext = HaneulchiViewportContext(rootWidth: 0)
     private let projectFolderPicker: ProjectFolderPicker
     private let demoWorkspaceScaffold: DemoWorkspaceScaffold
 
@@ -59,6 +59,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissCommandPalette)
                     }
                 }
+                .environment(\.viewportContext, rootViewportContext)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -77,6 +78,7 @@ struct AppShellView: View {
                         }
                     },
                 )
+                .environment(\.viewportContext, rootViewportContext)
                 .padding(.top, 64)
                 .padding(.trailing, HaneulchiChrome.Spacing.screenPadding)
             }
@@ -107,6 +109,7 @@ struct AppShellView: View {
                     )
                     .frame(width: quickDispatchWidth)
                     .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
+                    .environment(\.viewportContext, rootViewportContext)
                 }
             }
         }
@@ -126,6 +129,7 @@ struct AppShellView: View {
                         await shellModel.perform(.launchSession(descriptor))
                     }
                 }
+                .environment(\.viewportContext, rootViewportContext)
             }
         }
         .sheet(isPresented: Binding(
@@ -143,6 +147,7 @@ struct AppShellView: View {
                     await shellModel.perform(.reloadWorkflow)
                 }
             }
+            .environment(\.viewportContext, rootViewportContext)
         }
         .sheet(isPresented: Binding(
             get: { shellModel.isTaskContextDrawerPresented },
@@ -162,6 +167,7 @@ struct AppShellView: View {
                     }
                 },
             )
+            .environment(\.viewportContext, rootViewportContext)
         }
         .sheet(isPresented: Binding(
             get: { shellModel.isInventoryPresented },
@@ -189,13 +195,12 @@ struct AppShellView: View {
                 )
             }
         }
-        .environment(\.viewportContext, viewportContext)
         .onGeometryChange(for: CGFloat.self) { geometry in
             geometry.size.width
-        } action: { _, shellWidth in
-            let resolvedContext = HaneulchiViewportContext(shellWidth: shellWidth)
-            if resolvedContext != viewportContext {
-                viewportContext = resolvedContext
+        } action: { _, rootWidth in
+            let resolvedContext = HaneulchiViewportContext(rootWidth: rootWidth)
+            if resolvedContext != rootViewportContext {
+                rootViewportContext = resolvedContext
             }
         }
     }
@@ -334,11 +339,11 @@ struct AppShellView: View {
     }
 
     private var quickDispatchWidth: CGFloat {
-        viewportContext.modalWidthPolicy.resolvedWidth(
+        rootViewportContext.modalWidthPolicy.resolvedWidth(
             preferredWidth: 520,
             availableWidth: max(
                 0,
-                viewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+                rootViewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
             ),
         )
     }
