@@ -91,11 +91,41 @@ struct HaneulchiMonolithMetric: Identifiable, Equatable {
     }
 }
 
+enum HaneulchiSurfaceTrailingActionLayout: Equatable, Sendable {
+    case inline
+    case stacked
+}
+
+func haneulchiHeaderDeckTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+func haneulchiMonolithStripTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+func haneulchiOpsRailPanelTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+private func haneulchiSharedSurfaceHorizontalPadding(
+    for viewportClass: HaneulchiViewportClass,
+) -> CGFloat {
+    viewportClass == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+}
+
 struct HaneulchiHeaderDeck<Trailing: View>: View {
     let title: String
     let subtitle: String?
     let horizontalPadding: CGFloat
     @ViewBuilder let trailing: Trailing
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         title: String,
@@ -110,28 +140,42 @@ struct HaneulchiHeaderDeck<Trailing: View>: View {
     }
 
     var body: some View {
-        ViewThatFits(in: .horizontal) {
-            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
-                titleBlock
-
-                Spacer(minLength: HaneulchiMetrics.Spacing.lg)
-
-                trailing
-                    .fixedSize(horizontal: true, vertical: false)
-            }
+        headerDeckContent
             .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, HaneulchiMetrics.Spacing.sm)
+            .background(HaneulchiChrome.Surface.foundation)
+    }
 
+    @ViewBuilder
+    private var headerDeckContent: some View {
+        switch haneulchiHeaderDeckTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
+                    titleBlock
+
+                    Spacer(minLength: HaneulchiMetrics.Spacing.lg)
+
+                    trailing
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                    titleBlock
+
+                    trailing
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        case .stacked:
             VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                 titleBlock
 
                 trailing
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, horizontalPadding)
-        .padding(.vertical, HaneulchiMetrics.Spacing.sm)
-        .background(HaneulchiChrome.Surface.foundation)
     }
 
     private var titleBlock: some View {
@@ -158,6 +202,27 @@ struct HaneulchiMonolithStrip<Trailing: View>: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            monolithStripHeader
+
+            if metrics.count > 6 {
+                Divider()
+                    .overlay(HaneulchiChrome.Stroke.ghost)
+            }
+        }
+        .padding(
+            .horizontal,
+            haneulchiSharedSurfaceHorizontalPadding(for: viewportContext.viewportClass),
+        )
+        .padding(.vertical, HaneulchiMetrics.Spacing.sm)
+        .frame(minHeight: HaneulchiMetrics.Operations.opsStripMinHeight)
+        .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    @ViewBuilder
+    private var monolithStripHeader: some View {
+        switch haneulchiMonolithStripTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.md) {
                     metricsStrip
@@ -174,18 +239,14 @@ struct HaneulchiMonolithStrip<Trailing: View>: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                metricsStrip
 
-            if metrics.count > 6 {
-                Divider()
-                    .overlay(HaneulchiChrome.Stroke.ghost)
+                trailing
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, viewportContext.surfaceLayoutPolicy.horizontalPadding)
-        .padding(.vertical, HaneulchiMetrics.Spacing.sm)
-        .frame(minHeight: HaneulchiMetrics.Operations.opsStripMinHeight)
-        .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
     }
 
     private var metricsStrip: some View {
@@ -219,39 +280,64 @@ struct HaneulchiOpsRailPanel<Content: View>: View {
     let title: String
     let count: Int?
     @ViewBuilder let content: Content
+    let trailingActions: AnyView
     @Environment(\.viewportContext) private var viewportContext
 
     init(
         title: String,
         count: Int? = nil,
         @ViewBuilder content: () -> Content,
+        trailingActions: AnyView = AnyView(EmptyView()),
     ) {
         self.title = title
         self.count = count
         self.content = content()
+        self.trailingActions = trailingActions
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            panelHeader
+            content
+        }
+        .padding(
+            .horizontal,
+            haneulchiSharedSurfaceHorizontalPadding(for: viewportContext.viewportClass),
+        )
+        .padding(.vertical, HaneulchiMetrics.Padding.card)
+        .background(HaneulchiChrome.Surface.base)
+        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    @ViewBuilder
+    private var panelHeader: some View {
+        switch haneulchiOpsRailPanelTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
                     panelTitle
 
                     Spacer(minLength: 0)
+
+                    trailingActions
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
                     panelTitle
+
+                    trailingActions
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            content
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                panelTitle
+
+                trailingActions
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, viewportContext.surfaceLayoutPolicy.horizontalPadding)
-        .padding(.vertical, HaneulchiMetrics.Padding.card)
-        .background(HaneulchiChrome.Surface.base)
-        .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
     }
 
     private var panelTitle: some View {

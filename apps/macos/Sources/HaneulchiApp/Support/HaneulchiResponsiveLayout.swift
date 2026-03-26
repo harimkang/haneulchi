@@ -30,27 +30,6 @@ enum HaneulchiShellChromeDensity: Equatable, Sendable {
     case regular
 }
 
-enum HaneulchiSurfaceTrailingActionLayout: Equatable, Sendable {
-    case inline
-    case stacked
-}
-
-struct HaneulchiSurfaceLayoutPolicy: Equatable, Sendable {
-    let viewportClass: HaneulchiViewportClass
-
-    var trailingActionLayout: HaneulchiSurfaceTrailingActionLayout {
-        viewportClass == .compact ? .stacked : .inline
-    }
-
-    var horizontalPadding: CGFloat {
-        viewportClass == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
-    }
-
-    var buttonHorizontalPadding: CGFloat {
-        viewportClass == .compact ? HaneulchiMetrics.Spacing.sm : HaneulchiMetrics.Spacing.md
-    }
-}
-
 struct HaneulchiCompactTopBarChipPresentation: Equatable, Sendable {
     let visibleChips: [AppShellChromeState.Chip]
     let overflowChip: AppShellChromeState.Chip?
@@ -86,10 +65,6 @@ struct HaneulchiViewportContext: Equatable, Sendable {
     }
 
     var modalWidthPolicy: HaneulchiModalWidthPolicy {
-        .init(viewportClass: viewportClass)
-    }
-
-    var surfaceLayoutPolicy: HaneulchiSurfaceLayoutPolicy {
         .init(viewportClass: viewportClass)
     }
 
