@@ -48,6 +48,17 @@ private final class RecordingTerminalCommandTarget: TerminalCommandTarget {
     func handleKeyDown(_: NSEvent) {}
 }
 
+private final class FocusCallbackRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private(set) var count = 0
+
+    func record() {
+        lock.lock()
+        count += 1
+        lock.unlock()
+    }
+}
+
 private final class CapturingTerminalDelegate: TerminalViewDelegate, @unchecked Sendable {
     private let lock = NSLock()
     private(set) var sentPayloads: [Data] = []
@@ -150,6 +161,23 @@ func hostHandleForwardsActions() {
     #expect(target.focusCalls == 1)
     #expect(target.findCalls == 1)
     #expect(target.pasteCalls == 1)
+}
+
+@MainActor
+@Test("renderer host click requests pane focus in addition to first responder focus")
+func rendererHostClickRequestsPaneFocus() {
+    let recorder = FocusCallbackRecorder()
+    let coordinator = TerminalRendererHost.Coordinator()
+    coordinator.onFocusRequested = {
+        recorder.record()
+    }
+    let terminalView = TerminalView(frame: .zero)
+    let recognizer = NSClickGestureRecognizer()
+    terminalView.addGestureRecognizer(recognizer)
+
+    coordinator.focusTerminalFromClick(recognizer)
+
+    #expect(recorder.count == 1)
 }
 
 @MainActor

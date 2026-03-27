@@ -220,6 +220,7 @@ final class FocusingTerminalContainerView: NSView {
 
 struct TerminalRendererHost: NSViewRepresentable {
     typealias HostHandleReady = @MainActor (TerminalHostHandle) -> Void
+    typealias FocusRequested = @MainActor () -> Void
 
     enum RenderMode {
         case replay
@@ -261,20 +262,32 @@ struct TerminalRendererHost: NSViewRepresentable {
 
     private let source: Source
     private let onHostHandleReady: HostHandleReady?
+    private let onFocusRequested: FocusRequested?
 
-    init(transcript: String, onHostHandleReady: HostHandleReady? = nil) {
+    init(
+        transcript: String,
+        onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
+    ) {
         source = .replay(transcript)
         self.onHostHandleReady = onHostHandleReady
+        self.onFocusRequested = onFocusRequested
     }
 
-    private init(source: Source, onHostHandleReady: HostHandleReady? = nil) {
+    private init(
+        source: Source,
+        onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
+    ) {
         self.source = source
         self.onHostHandleReady = onHostHandleReady
+        self.onFocusRequested = onFocusRequested
     }
 
     static func live(
         controller: TerminalSessionController,
         onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
     ) -> Self {
         Self(
             source: .live(
@@ -295,6 +308,7 @@ struct TerminalRendererHost: NSViewRepresentable {
                 },
             ),
             onHostHandleReady: onHostHandleReady,
+            onFocusRequested: onFocusRequested,
         )
     }
 
@@ -312,6 +326,7 @@ struct TerminalRendererHost: NSViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         terminalView.nativeBackgroundColor = .textBackgroundColor
         terminalView.nativeForegroundColor = .textColor
+        context.coordinator.onFocusRequested = onFocusRequested
         let clickRecognizer = NSClickGestureRecognizer(
             target: context.coordinator,
             action: #selector(Coordinator.focusTerminalFromClick(_:)),
@@ -335,6 +350,7 @@ struct TerminalRendererHost: NSViewRepresentable {
         private let writeHandler: @Sendable (Data) -> Void
         private let resizeHandler: @Sendable (TerminalGridSize) -> Void
         private var renderedTranscript: String?
+        @MainActor var onFocusRequested: FocusRequested?
 
         init(
             writeHandler: @escaping @Sendable (Data) -> Void = { _ in },
@@ -438,6 +454,7 @@ struct TerminalRendererHost: NSViewRepresentable {
             }
 
             terminalView.window?.makeFirstResponder(terminalView)
+            onFocusRequested?()
         }
     }
 }

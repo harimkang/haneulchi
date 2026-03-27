@@ -102,11 +102,13 @@ struct TerminalSurfaceView: View {
                         TerminalRendererHost(
                             transcript: transcript,
                             onHostHandleReady: registerHostHandle,
+                            onFocusRequested: requestPaneFocus,
                         )
                     } else if liveBundle != nil, resolvedState.kind == .ready {
                         TerminalRendererHost.live(
                             controller: liveController,
                             onHostHandleReady: registerHostHandle,
+                            onFocusRequested: requestPaneFocus,
                         )
                         .task {
                             guard let liveBundle, liveController.status == .idle else {
@@ -130,6 +132,13 @@ struct TerminalSurfaceView: View {
                             else {
                                 return
                             }
+                            if Self.shouldRefocusOnLiveSessionReady(
+                                snapshot: snapshot,
+                                reportedSessionID: reportedSessionID,
+                                isFocused: isFocused,
+                            ) {
+                                requestPaneFocus()
+                            }
                             reportedSessionID = snapshot.sessionID
                             onSessionReady?(snapshot.sessionID)
                         }
@@ -152,6 +161,28 @@ struct TerminalSurfaceView: View {
 
             deckCoordinator?.focusPane(paneID)
         }
+    }
+
+    @MainActor
+    private func requestPaneFocus() {
+        guard let paneID else {
+            return
+        }
+
+        deckCoordinator?.updateFocusedPane(paneID)
+        deckCoordinator?.focusPane(paneID)
+    }
+
+    nonisolated static func shouldRefocusOnLiveSessionReady(
+        snapshot: TerminalSessionSnapshot?,
+        reportedSessionID: String?,
+        isFocused: Bool,
+    ) -> Bool {
+        guard isFocused, let snapshot, snapshot.running else {
+            return false
+        }
+
+        return reportedSessionID != snapshot.sessionID
     }
 
     private func statusView(for state: TerminalSurfaceState) -> some View {
