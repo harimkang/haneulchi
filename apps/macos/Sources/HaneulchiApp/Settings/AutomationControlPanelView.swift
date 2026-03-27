@@ -4,6 +4,12 @@ struct AutomationControlPanelView: View {
     let viewModel: AutomationControlPanelViewModel
     let onAction: (AppShellAction) -> Void
 
+    private var actionColumns: [GridItem] {
+        [
+            GridItem(.adaptive(minimum: 132, maximum: .infinity), spacing: 8),
+        ]
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("WF-17 Control Panel")
@@ -18,13 +24,15 @@ struct AutomationControlPanelView: View {
                 .font(HaneulchiTypography.caption)
             Text("tracker: \(viewModel.trackerSummary)")
                 .font(HaneulchiTypography.caption)
-            HStack {
+
+            LazyVGrid(columns: actionColumns, alignment: .leading, spacing: 8) {
                 ForEach(viewModel.actions, id: \.self) { title in
                     Button(title) {
                         onAction(action(for: title))
                     }
                     .buttonStyle(.bordered)
                     .font(HaneulchiTypography.label(11))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             }
         }

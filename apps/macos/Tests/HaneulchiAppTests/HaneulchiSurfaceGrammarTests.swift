@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import SwiftUI
 import Testing
 
@@ -85,4 +85,43 @@ func metricTileUsesMonolithMetricModel() {
     let tile = HaneulchiMetricTile(metric: metric)
 
     #expect(String(describing: type(of: tile)).contains("HaneulchiMetricTile"))
+}
+
+@Test("header deck and ops rail helper layouts stack trailing actions on compact widths")
+func headerDeckAndOpsRailHelpersStackTrailingActionsOnCompactWidths() {
+    #expect(haneulchiHeaderDeckTrailingActionLayout(for: .compact) == .stacked)
+    #expect(haneulchiHeaderDeckTrailingActionLayout(for: .medium) == .inline)
+    #expect(haneulchiOpsRailPanelTrailingActionLayout(for: .compact) == .stacked)
+    #expect(haneulchiOpsRailPanelTrailingActionLayout(for: .wide) == .inline)
+}
+
+@Test(
+    "operational screens share screen padding, section spacing, column gap, and supporting rail width",
+)
+func operationalScreenLayoutMetricsUseSharedRhythm() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.screenPadding == HaneulchiMetrics.Padding.pageCompact)
+    #expect(layout.sectionSpacing == HaneulchiMetrics.Spacing.lg)
+    #expect(layout.columnSpacing == HaneulchiMetrics.Workspace.columnGap)
+    #expect(layout.gridSpacing == HaneulchiMetrics.Workspace.columnGap)
+    #expect(layout.supportingRailWidth == HaneulchiMetrics.Panel.supportingColumnWidth)
+    #expect(layout.decisionRailWidth == 216)
+}
+
+@Test(
+    "review surfaces reuse the shared supporting rail and keep the decision rail narrower than detail content",
+)
+func reviewScreenLayoutKeepsDecisionRailSecondary() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.decisionRailWidth < layout.supportingRailWidth)
+}
+
+@Test("operational screen headers align to the same horizontal baseline as their body content")
+func operationalScreenHeaderUsesSharedBaseline() {
+    let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    #expect(layout.headerInnerPadding == 0)
+    #expect(layout.screenPadding == HaneulchiMetrics.Padding.pageCompact)
 }

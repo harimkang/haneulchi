@@ -3,6 +3,7 @@ import SwiftUI
 struct AttentionQueueSummaryView: View {
     let items: [ControlTowerViewModel.AttentionItem]
     let onOpen: (ControlTowerViewModel.AttentionItem) -> Void
+    @Environment(\.viewportContext) private var viewportContext
 
     var body: some View {
         HaneulchiOpsRailPanel(title: "Attention Queue", count: items.isEmpty ? nil : items.count) {
@@ -19,7 +20,10 @@ struct AttentionQueueSummaryView: View {
                 }
             }
         }
-        .frame(width: 320, alignment: .topLeading)
+        .frame(
+            maxWidth: viewportContext.viewportClass >= .wide ? 320 : .infinity,
+            alignment: .topLeading,
+        )
     }
 
     private func attentionCard(_ item: ControlTowerViewModel.AttentionItem) -> some View {

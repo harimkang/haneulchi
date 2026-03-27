@@ -15,12 +15,22 @@ struct WorktreeRecoverySection: View {
             } else {
                 ForEach(issues) { issue in
                     VStack(alignment: .leading, spacing: 4) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(issue.issueCode)
-                                .font(.headline)
-                            Text("degraded")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(HaneulchiChrome.Colors.warning)
+                        ViewThatFits(in: .horizontal) {
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(issue.issueCode)
+                                    .font(.headline)
+                                Text("degraded")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(HaneulchiChrome.Colors.warning)
+                            }
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(issue.issueCode)
+                                    .font(.headline)
+                                Text("degraded")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(HaneulchiChrome.Colors.warning)
+                            }
                         }
                         Text(issue.details)
                             .foregroundStyle(HaneulchiChrome.Colors.mutedText)
@@ -35,6 +45,7 @@ struct WorktreeRecoverySection: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .background(HaneulchiChrome.Colors.primaryPanel)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }

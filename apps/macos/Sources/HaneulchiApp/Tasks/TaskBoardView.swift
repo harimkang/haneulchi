@@ -3,6 +3,12 @@ import SwiftUI
 struct TaskBoardView: View {
     let summary: String
     @StateObject private var viewModel: TaskBoardViewModel
+    @Environment(\.viewportContext) private var viewportContext
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    private var presentationLayout: TaskBoardPresentationLayout {
+        .init(viewportClass: viewportContext.viewportClass)
+    }
 
     init(
         summary: String = "Task board projection is loaded from Rust-owned task data.",
@@ -13,14 +19,33 @@ struct TaskBoardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
-                Text("Task Board")
-                    .font(HaneulchiTypography.display)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
-                Text(summary)
-                    .font(HaneulchiTypography.body)
-                    .foregroundStyle(HaneulchiChrome.Label.muted)
+        Group {
+            if presentationLayout.requiresVerticalOverflowScroll {
+                ScrollView(showsIndicators: true) {
+                    routeContent
+                }
+            } else {
+                routeContent
+            }
+        }
+        .background(HaneulchiChrome.Surface.foundation)
+        .task {
+            do {
+                try viewModel.reload()
+            } catch {
+                viewModel.present(error: error)
+            }
+        }
+    }
+
+    private var routeContent: some View {
+        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
+            HaneulchiHeaderDeck(
+                title: "Task Board",
+                subtitle: summary,
+                horizontalPadding: layout.headerInnerPadding,
+            ) {
+                EmptyView()
             }
 
             projectFilterBar
@@ -38,28 +63,15 @@ struct TaskBoardView: View {
                     ))
             }
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
-                    ForEach(viewModel.columns) { column in
-                        columnView(column)
-                    }
-                }
-                .padding(.bottom, HaneulchiMetrics.Spacing.xs)
-            }
+            boardContent
         }
-        .padding(HaneulchiChrome.Spacing.screenPadding)
-        .background(HaneulchiChrome.Surface.foundation)
-        .task {
-            do {
-                try viewModel.reload()
-            } catch {
-                viewModel.present(error: error)
-            }
-        }
+        .padding(.horizontal, layout.screenPadding)
+        .padding(.vertical, layout.sectionSpacing)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private var projectFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal, showsIndicators: true) {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 filterButton(title: "All Projects", projectID: nil, taskCount: totalTaskCount)
                 ForEach(viewModel.projectOptions, id: \.projectID) { option in
@@ -106,6 +118,40 @@ struct TaskBoardView: View {
         .buttonStyle(.plain)
     }
 
+    @ViewBuilder
+    private var boardContent: some View {
+        switch presentationLayout.mode {
+        case .fullBoard:
+            ScrollView(.horizontal, showsIndicators: true) {
+                HStack(alignment: .top, spacing: layout.columnSpacing) {
+                    ForEach(presentationLayout.rows.first?.columns ?? [], id: \.self) { columnID in
+                        if let column = columnModel(for: columnID) {
+                            columnView(column)
+                        }
+                    }
+                }
+                .padding(.bottom, HaneulchiMetrics.Spacing.xs)
+            }
+        case .stacked, .twoLaneGrid:
+            VStack(alignment: .leading, spacing: layout.columnSpacing) {
+                ForEach(presentationLayout.rows) { row in
+                    boardRow(row)
+                }
+            }
+        }
+    }
+
+    private func boardRow(_ row: TaskBoardPresentationRow) -> some View {
+        HStack(alignment: .top, spacing: layout.columnSpacing) {
+            ForEach(row.columns, id: \.self) { columnID in
+                if let column = columnModel(for: columnID) {
+                    columnView(column)
+                        .frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+        }
+    }
+
     private func columnView(_ column: TaskBoardViewModel.ColumnModel) -> some View {
         let isDone = column.column == .done
 
@@ -138,7 +184,12 @@ struct TaskBoardView: View {
             }
         }
         .padding(HaneulchiMetrics.Spacing.md)
-        .frame(minWidth: HaneulchiMetrics.Panel.boardColumnMin, alignment: .topLeading)
+        .frame(
+            minWidth: presentationLayout.mode == .fullBoard
+                ? HaneulchiMetrics.Panel.boardColumnMin
+                : nil,
+            alignment: .topLeading,
+        )
         .frame(maxHeight: .infinity, alignment: .topLeading)
         .background(columnBackground(for: column.column))
         .clipShape(RoundedRectangle(
@@ -190,5 +241,9 @@ struct TaskBoardView: View {
 
     private var totalTaskCount: Int {
         viewModel.columns.reduce(0) { $0 + $1.taskCount }
+    }
+
+    private func columnModel(for columnID: TaskBoardColumnID) -> TaskBoardViewModel.ColumnModel? {
+        viewModel.columns.first { $0.column == columnID }
     }
 }

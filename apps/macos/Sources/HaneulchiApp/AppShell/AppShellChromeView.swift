@@ -5,6 +5,7 @@ struct AppShellChromeView<Content: View>: View {
     let destination: Route
     let onAction: (AppShellAction) -> Void
     @ViewBuilder let content: Content
+    @State private var viewportContext = HaneulchiViewportContext(width: 0)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,6 +28,15 @@ struct AppShellChromeView<Content: View>: View {
                 transientNotice: chrome.transientNotice,
                 onAction: onAction,
             )
+        }
+        .environment(\.viewportContext, viewportContext)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, shellWidth in
+            let resolvedContext = HaneulchiViewportContext(shellWidth: shellWidth)
+            if resolvedContext != viewportContext {
+                viewportContext = resolvedContext
+            }
         }
         .background(HaneulchiChrome.Colors.appBackground)
     }

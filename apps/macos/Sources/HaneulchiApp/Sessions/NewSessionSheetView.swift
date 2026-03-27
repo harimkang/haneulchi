@@ -1,6 +1,12 @@
 import SwiftUI
 
+enum NewSessionSheetActionLayout: Equatable {
+    case inline
+    case stacked
+}
+
 struct NewSessionSheetView: View {
+    @Environment(\.viewportContext) private var viewportContext
     @ObservedObject var viewModel: NewSessionSheetViewModel
     let onLaunch: (SessionLaunchDescriptor) -> Void
 
@@ -21,30 +27,69 @@ struct NewSessionSheetView: View {
                 }
             }
 
-            HStack {
-                Button("Generic Shell") {
-                    if let descriptor = try? viewModel.makeGenericDescriptor() {
-                        onLaunch(descriptor)
-                    }
+            switch Self.actionLayout(for: measuredModalWidth) {
+            case .inline:
+                HStack {
+                    genericShellButton
+                    presetButton
+                    isolatedButton
                 }
-                .buttonStyle(.borderedProminent)
-
-                Button("Preset") {
-                    if let descriptor = try? viewModel.makePresetDescriptor() {
-                        onLaunch(descriptor)
-                    }
+            case .stacked:
+                VStack(alignment: .leading, spacing: 12) {
+                    genericShellButton
+                    presetButton
+                    isolatedButton
                 }
-                .buttonStyle(.bordered)
-
-                Button("Isolated") {
-                    if let descriptor = try? viewModel.makeIsolatedDescriptor() {
-                        onLaunch(descriptor)
-                    }
-                }
-                .buttonStyle(.bordered)
             }
         }
         .padding(24)
-        .frame(minWidth: 520)
+        .frame(
+            width: viewportContext.modalWidthPolicy.resolvedWidth(
+                preferredWidth: 520,
+                availableWidth: measuredModalWidth,
+            ),
+            alignment: .leading,
+        )
+    }
+
+    nonisolated static func actionLayout(
+        for availableWidth: CGFloat?,
+    ) -> NewSessionSheetActionLayout {
+        guard let availableWidth else {
+            return .inline
+        }
+
+        return availableWidth < 440 ? .stacked : .inline
+    }
+
+    private var measuredModalWidth: CGFloat? {
+        viewportContext.width > 0 ? viewportContext.width : nil
+    }
+
+    private var genericShellButton: some View {
+        Button("Generic Shell") {
+            if let descriptor = try? viewModel.makeGenericDescriptor() {
+                onLaunch(descriptor)
+            }
+        }
+        .buttonStyle(.borderedProminent)
+    }
+
+    private var presetButton: some View {
+        Button("Preset") {
+            if let descriptor = try? viewModel.makePresetDescriptor() {
+                onLaunch(descriptor)
+            }
+        }
+        .buttonStyle(.bordered)
+    }
+
+    private var isolatedButton: some View {
+        Button("Isolated") {
+            if let descriptor = try? viewModel.makeIsolatedDescriptor() {
+                onLaunch(descriptor)
+            }
+        }
+        .buttonStyle(.bordered)
     }
 }

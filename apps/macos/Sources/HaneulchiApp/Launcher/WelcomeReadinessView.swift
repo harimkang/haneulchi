@@ -13,6 +13,8 @@ struct WelcomeReadinessView: View {
     let continueWithGenericShell: () -> Void
     let openSettings: () -> Void
     let retry: () -> Void
+    @Environment(\.viewportContext) private var viewportContext
+    @State private var localViewportWidth: CGFloat = 0
 
     private var viewModel: WelcomeReadinessViewModel {
         WelcomeReadinessViewModel(
@@ -25,14 +27,56 @@ struct WelcomeReadinessView: View {
         )
     }
 
+    private var responsiveLayout: WelcomeReadinessResponsiveLayout {
+        .init(viewportClass: resolvedViewportContext.viewportClass)
+    }
+
+    private var resolvedViewportContext: HaneulchiViewportContext {
+        Self.resolvedViewportContext(
+            shellViewportContext: viewportContext,
+            localWidth: localViewportWidth,
+        )
+    }
+
     var body: some View {
-        HStack(alignment: .top, spacing: HaneulchiChrome.Spacing.panelGap) {
-            recentProjectsPane
-            readinessPane
+        Group {
+            if responsiveLayout.usesSplitLauncher {
+                HStack(alignment: .top, spacing: HaneulchiChrome.Spacing.panelGap) {
+                    recentProjectsPane
+                    readinessPane
+                }
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
+                        recentProjectsPane
+                        readinessPane
+                    }
+                }
+            }
         }
         .padding(HaneulchiChrome.Spacing.screenPadding)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            localViewportWidth = width
+        }
         .background(HaneulchiChrome.Colors.appBackground)
+    }
+
+    nonisolated static func resolvedViewportContext(
+        shellViewportContext: HaneulchiViewportContext,
+        localWidth: CGFloat,
+    ) -> HaneulchiViewportContext {
+        if shellViewportContext.width > 0 {
+            return shellViewportContext
+        }
+
+        if localWidth > 0 {
+            return .init(width: localWidth)
+        }
+
+        return .init(width: HaneulchiMetrics.Responsive.mediumWidth)
     }
 
     private var recentProjectsPane: some View {
@@ -94,7 +138,10 @@ struct WelcomeReadinessView: View {
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
-        .frame(maxWidth: 320, alignment: .topLeading)
+        .frame(
+            maxWidth: responsiveLayout.usesSplitLauncher ? 320 : .infinity,
+            alignment: .topLeading,
+        )
         .background(HaneulchiChrome.Colors.secondaryPanel)
         .clipShape(RoundedRectangle(cornerRadius: 18))
     }
@@ -117,15 +164,18 @@ struct WelcomeReadinessView: View {
                 }
             }
 
-            HStack(spacing: 12) {
-                Button(viewModel.primaryActionTitle, action: continueWithGenericShell)
-                    .buttonStyle(.borderedProminent)
-                    .disabled(!viewModel.canContinue)
-                Button("Open Settings", action: openSettings)
-                    .buttonStyle(.bordered)
-                Button("Retry", action: retry)
-                    .buttonStyle(.borderless)
-                    .disabled(!viewModel.canRetry)
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    primaryActionButton
+                    settingsActionButton
+                    retryActionButton
+                }
+
+                VStack(alignment: .leading, spacing: 12) {
+                    primaryActionButton
+                    settingsActionButton
+                    retryActionButton
+                }
             }
         }
         .padding(HaneulchiChrome.Spacing.panelPadding)
@@ -153,6 +203,23 @@ struct WelcomeReadinessView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    private var primaryActionButton: some View {
+        Button(viewModel.primaryActionTitle, action: continueWithGenericShell)
+            .buttonStyle(.borderedProminent)
+            .disabled(!viewModel.canContinue)
+    }
+
+    private var settingsActionButton: some View {
+        Button("Open Settings", action: openSettings)
+            .buttonStyle(.bordered)
+    }
+
+    private var retryActionButton: some View {
+        Button("Retry", action: retry)
+            .buttonStyle(.borderless)
+            .disabled(!viewModel.canRetry)
     }
 
     private func statusLabel(_ status: ReadinessCheckStatus) -> String {

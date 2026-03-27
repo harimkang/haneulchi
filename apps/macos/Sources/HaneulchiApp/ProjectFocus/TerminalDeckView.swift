@@ -24,24 +24,26 @@ struct TerminalDeckView: View {
     }
 
     let model: Model
+    let focusRequestToken: Int
     let signalPresentation: SessionSignalPresentation?
     let onQuickDispatch: (() -> Void)?
     let onSessionReady: ((String) -> Void)?
     @State private var layout: TerminalDeckLayout
     @StateObject private var deckCoordinator = TerminalDeckCoordinator()
-    @State private var keyMonitor: Any?
 
     // `WF-02` reserves seams for Session Stack and Inspector outside the central deck.
-    private let reservedSessionStackWidth: CGFloat = 220
-    private let reservedInspectorWidth: CGFloat = 320
+    private let reservedSessionStackWidth: CGFloat = HaneulchiMetrics.Panel.sessionStackWidth
+    private let reservedInspectorWidth: CGFloat = HaneulchiMetrics.Panel.supportingColumnWidth
 
     init(
         model: Model,
+        focusRequestToken: Int = 0,
         signalPresentation: SessionSignalPresentation? = nil,
         onQuickDispatch: (() -> Void)? = nil,
         onSessionReady: ((String) -> Void)? = nil,
     ) {
         self.model = model
+        self.focusRequestToken = focusRequestToken
         self.signalPresentation = signalPresentation
         self.onQuickDispatch = onQuickDispatch
         self.onSessionReady = onSessionReady
@@ -55,21 +57,10 @@ struct TerminalDeckView: View {
         .padding(HaneulchiMetrics.Padding.compact)
         .background(HaneulchiChrome.Surface.recess)
         .onAppear {
-            deckCoordinator.updateFocusedPane(layout.focusedPaneID)
-
-            guard keyMonitor == nil else {
-                return
-            }
-
-            keyMonitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown]) { event in
-                deckCoordinator.handleKeyDown(event) ? nil : event
-            }
+            deckCoordinator.focusPane(layout.focusedPaneID)
         }
-        .onDisappear {
-            if let keyMonitor {
-                NSEvent.removeMonitor(keyMonitor)
-                self.keyMonitor = nil
-            }
+        .onChange(of: focusRequestToken) { _, _ in
+            deckCoordinator.focusPane(layout.focusedPaneID)
         }
     }
 
@@ -125,9 +116,7 @@ struct TerminalDeckView: View {
             )
             .contentShape(Rectangle())
             .onTapGesture {
-                layout.focusPane(pane.id)
-                deckCoordinator.updateFocusedPane(pane.id)
-                deckCoordinator.focusPane(pane.id)
+                requestPaneFocus(pane.id)
             }
 
             // Terminal content area — recess/foundation tone only, no chrome styling on glyphs
@@ -136,6 +125,7 @@ struct TerminalDeckView: View {
                 paneID: pane.id,
                 deckCoordinator: deckCoordinator,
                 isFocused: isFocused,
+                onPaneFocusRequested: requestPaneFocus,
                 onSessionReady: onSessionReady,
             )
             .background(HaneulchiChrome.Surface.recess)
@@ -169,7 +159,7 @@ struct TerminalDeckView: View {
         if isFocused, pane.surface.isLive {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 HaneulchiIconButton(action: .focusPane, tone: .tertiary, size: 28) {
-                    deckCoordinator.focusPane(pane.id)
+                    requestPaneFocus(pane.id)
                 }
                 HaneulchiIconButton(action: .find, tone: .tertiary, size: 28) {
                     deckCoordinator.showFind(in: pane.id)
@@ -190,6 +180,12 @@ struct TerminalDeckView: View {
                 }
             }
         }
+    }
+
+    private func requestPaneFocus(_ paneID: String) {
+        layout.focusPane(paneID)
+        deckCoordinator.updateFocusedPane(paneID)
+        deckCoordinator.focusPane(paneID)
     }
 
     private func splitFocusedPane(axis: TerminalDeckAxis) {

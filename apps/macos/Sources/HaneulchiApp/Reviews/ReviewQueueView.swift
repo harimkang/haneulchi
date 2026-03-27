@@ -3,6 +3,12 @@ import SwiftUI
 struct ReviewQueueView: View {
     let summary: String
     @StateObject private var viewModel: ReviewQueueViewModel
+    @Environment(\.viewportContext) private var viewportContext
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    private var responsiveLayout: ReviewQueueResponsiveLayout {
+        .init(viewportClass: viewportContext.viewportClass)
+    }
 
     init(
         summary: String =
@@ -14,10 +20,27 @@ struct ReviewQueueView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: HaneulchiChrome.Spacing.panelGap) {
+        Group {
+            if responsiveLayout.requiresVerticalOverflowScroll {
+                ScrollView {
+                    routeContent
+                }
+            } else {
+                routeContent
+            }
+        }
+        .background(HaneulchiChrome.Surface.foundation)
+        .task {
+            try? viewModel.reload()
+        }
+    }
+
+    private var routeContent: some View {
+        VStack(alignment: .leading, spacing: layout.sectionSpacing) {
             HaneulchiHeaderDeck(
                 title: "Review Queue",
                 subtitle: summary,
+                horizontalPadding: layout.headerInnerPadding,
             ) {
                 EmptyView()
             }
@@ -30,50 +53,45 @@ struct ReviewQueueView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else {
-                HStack(alignment: .top, spacing: HaneulchiMetrics.Padding.columnGap) {
-                    HaneulchiOpsRailPanel(
-                        title: "Ready for Review",
-                        count: viewModel.items.count,
-                    ) {
-                        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                            ForEach(viewModel.items) { item in
-                                reviewReadyRow(item: item)
-                            }
+                switch responsiveLayout.mode {
+                case .stacked:
+                    VStack(alignment: .leading, spacing: layout.columnSpacing) {
+                        reviewListPanel
+                        detailPanel
+                    }
+                case .split:
+                    HStack(alignment: .top, spacing: layout.columnSpacing) {
+                        splitScrollingPane {
+                            reviewListPanel
+                        }
+                        .frame(
+                            width: responsiveLayout.masterColumnWidth,
+                            alignment: .topLeading,
+                        )
+
+                        splitScrollingPane {
+                            detailPanel
                         }
                     }
-                    .frame(width: 320)
-
-                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                        if let degradedReason = viewModel.degradedReason {
-                            statusBanner(
-                                icon: "exclamationmark.triangle.fill",
-                                message: "Degraded: \(degradedReason)",
-                            )
-                        }
-                        if let actionError = viewModel.actionError {
-                            statusBanner(
-                                icon: "xmark.circle.fill",
-                                message: "Action failed: \(actionError)",
-                            )
-                        }
-
-                        ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
-                            do {
-                                try viewModel.apply(command)
-                            } catch {
-                                // The view model stores the operator-visible error state.
-                            }
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .topLeading)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 }
             }
         }
-        .padding(HaneulchiMetrics.Padding.page)
+        .padding(.horizontal, layout.screenPadding)
+        .padding(.vertical, layout.sectionSpacing)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(HaneulchiChrome.Surface.foundation)
-        .task {
-            try? viewModel.reload()
+    }
+
+    @ViewBuilder
+    private func splitScrollingPane(@ViewBuilder content: () -> some View) -> some View {
+        if responsiveLayout.usesIndependentPaneScrolling {
+            ScrollView {
+                content()
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+        } else {
+            content()
         }
     }
 
@@ -118,6 +136,45 @@ struct ReviewQueueView: View {
             .easeInOut(duration: HaneulchiMetrics.Motion.pressedSelection),
             value: isSelected,
         )
+    }
+
+    private var reviewListPanel: some View {
+        HaneulchiOpsRailPanel(
+            title: "Ready for Review",
+            count: viewModel.items.count,
+        ) {
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                ForEach(viewModel.items) { item in
+                    reviewReadyRow(item: item)
+                }
+            }
+        }
+    }
+
+    private var detailPanel: some View {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+            if let degradedReason = viewModel.degradedReason {
+                statusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: "Degraded: \(degradedReason)",
+                )
+            }
+            if let actionError = viewModel.actionError {
+                statusBanner(
+                    icon: "xmark.circle.fill",
+                    message: "Action failed: \(actionError)",
+                )
+            }
+
+            ReviewSummaryPanelView(item: viewModel.selectedItem) { command in
+                do {
+                    try viewModel.apply(command)
+                } catch {
+                    // The view model stores the operator-visible error state.
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .topLeading)
     }
 
     private func statusBanner(icon: String, message: String) -> some View {

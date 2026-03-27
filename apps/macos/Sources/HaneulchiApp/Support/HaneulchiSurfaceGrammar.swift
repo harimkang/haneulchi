@@ -91,78 +91,173 @@ struct HaneulchiMonolithMetric: Identifiable, Equatable {
     }
 }
 
+enum HaneulchiSurfaceTrailingActionLayout: Equatable, Sendable {
+    case inline
+    case stacked
+}
+
+func haneulchiHeaderDeckTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+func haneulchiMonolithStripTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+func haneulchiOpsRailPanelTrailingActionLayout(
+    for viewportClass: HaneulchiViewportClass,
+) -> HaneulchiSurfaceTrailingActionLayout {
+    viewportClass == .compact ? .stacked : .inline
+}
+
+private func haneulchiSharedSurfaceHorizontalPadding(
+    for viewportClass: HaneulchiViewportClass,
+) -> CGFloat {
+    viewportClass == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+}
+
 struct HaneulchiHeaderDeck<Trailing: View>: View {
     let title: String
     let subtitle: String?
+    let horizontalPadding: CGFloat
     @ViewBuilder let trailing: Trailing
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         title: String,
         subtitle: String? = nil,
+        horizontalPadding: CGFloat = HaneulchiMetrics.Padding.card,
         @ViewBuilder trailing: () -> Trailing,
     ) {
         self.title = title
         self.subtitle = subtitle
+        self.horizontalPadding = horizontalPadding
         self.trailing = trailing()
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
-            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text(title)
-                    .font(HaneulchiTypography.display)
-                    .tracking(HaneulchiTypography.Tracking.displayTight)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
+        headerDeckContent
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, HaneulchiMetrics.Spacing.sm)
+            .background(HaneulchiChrome.Surface.foundation)
+    }
 
-                if let subtitle, !subtitle.isEmpty {
-                    Text(subtitle)
-                        .font(HaneulchiTypography.deckSubtitle)
-                        .foregroundStyle(HaneulchiChrome.Label.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+    @ViewBuilder
+    private var headerDeckContent: some View {
+        switch haneulchiHeaderDeckTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.lg) {
+                    titleBlock
+
+                    Spacer(minLength: HaneulchiMetrics.Spacing.lg)
+
+                    trailing
+                        .fixedSize(horizontal: true, vertical: false)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                    titleBlock
+
+                    trailing
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                titleBlock
 
-            Spacer(minLength: HaneulchiMetrics.Spacing.lg)
-
-            trailing
+                trailing
+            }
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
-        .padding(.vertical, HaneulchiMetrics.Spacing.sm)
-        .background(HaneulchiChrome.Surface.foundation)
+    }
+
+    private var titleBlock: some View {
+        VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+            Text(title)
+                .font(HaneulchiTypography.display)
+                .tracking(HaneulchiTypography.Tracking.displayTight)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
+
+            if let subtitle, !subtitle.isEmpty {
+                Text(subtitle)
+                    .font(HaneulchiTypography.deckSubtitle)
+                    .foregroundStyle(HaneulchiChrome.Label.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
     }
 }
 
 struct HaneulchiMonolithStrip<Trailing: View>: View {
     let metrics: [HaneulchiMonolithMetric]
     @ViewBuilder let trailing: Trailing
+    @Environment(\.viewportContext) private var viewportContext
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-            HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.md) {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: HaneulchiMetrics.Spacing.lg) {
-                        ForEach(metrics) { metric in
-                            metricCell(metric)
-                        }
-                    }
-                    .padding(.vertical, 1)
-                }
-
-                trailing
-                    .fixedSize(horizontal: true, vertical: false)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            monolithStripHeader
 
             if metrics.count > 6 {
                 Divider()
                     .overlay(HaneulchiChrome.Stroke.ghost)
             }
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(
+            .horizontal,
+            haneulchiSharedSurfaceHorizontalPadding(for: viewportContext.viewportClass),
+        )
         .padding(.vertical, HaneulchiMetrics.Spacing.sm)
         .frame(minHeight: HaneulchiMetrics.Operations.opsStripMinHeight)
         .background(HaneulchiChrome.Surface.base)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    @ViewBuilder
+    private var monolithStripHeader: some View {
+        switch haneulchiMonolithStripTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: HaneulchiMetrics.Spacing.md) {
+                    metricsStrip
+
+                    trailing
+                        .fixedSize(horizontal: true, vertical: false)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                    metricsStrip
+
+                    trailing
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
+                metricsStrip
+
+                trailing
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var metricsStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HaneulchiMetrics.Spacing.lg) {
+                ForEach(metrics) { metric in
+                    metricCell(metric)
+                }
+            }
+            .padding(.vertical, 1)
+        }
     }
 
     private func metricCell(_ metric: HaneulchiMonolithMetric) -> some View {
@@ -185,38 +280,79 @@ struct HaneulchiOpsRailPanel<Content: View>: View {
     let title: String
     let count: Int?
     @ViewBuilder let content: Content
+    let trailingActions: AnyView
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         title: String,
         count: Int? = nil,
         @ViewBuilder content: () -> Content,
+        trailingActions: AnyView = AnyView(EmptyView()),
     ) {
         self.title = title
         self.count = count
         self.content = content()
+        self.trailingActions = trailingActions
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-            HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
-                Text(title)
-                    .font(HaneulchiTypography.sectionHeading)
-                    .foregroundStyle(HaneulchiChrome.Label.primary)
-
-                if let count {
-                    Text("\(count)")
-                        .font(HaneulchiTypography.compactMeta)
-                        .tracking(HaneulchiTypography.Tracking.metaModerate)
-                        .foregroundStyle(HaneulchiChrome.Label.muted)
-                }
-
-                Spacer()
-            }
+            panelHeader
             content
         }
-        .padding(HaneulchiMetrics.Padding.card)
+        .padding(
+            .horizontal,
+            haneulchiSharedSurfaceHorizontalPadding(for: viewportContext.viewportClass),
+        )
+        .padding(.vertical, HaneulchiMetrics.Padding.card)
         .background(HaneulchiChrome.Surface.base)
         .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.large))
+    }
+
+    @ViewBuilder
+    private var panelHeader: some View {
+        switch haneulchiOpsRailPanelTrailingActionLayout(for: viewportContext.viewportClass) {
+        case .inline:
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
+                    panelTitle
+
+                    Spacer(minLength: 0)
+
+                    trailingActions
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                    panelTitle
+
+                    trailingActions
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        case .stacked:
+            VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xxs) {
+                panelTitle
+
+                trailingActions
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    private var panelTitle: some View {
+        HStack(alignment: .firstTextBaseline, spacing: HaneulchiMetrics.Spacing.xs) {
+            Text(title)
+                .font(HaneulchiTypography.sectionHeading)
+                .foregroundStyle(HaneulchiChrome.Label.primary)
+
+            if let count {
+                Text("\(count)")
+                    .font(HaneulchiTypography.compactMeta)
+                    .tracking(HaneulchiTypography.Tracking.metaModerate)
+                    .foregroundStyle(HaneulchiChrome.Label.muted)
+            }
+        }
     }
 }
 

@@ -1,6 +1,18 @@
 import SwiftUI
 
 enum HaneulchiMetrics {
+    // MARK: - Responsive Breakpoints
+
+    enum Responsive {
+        static let mediumWidth: CGFloat = 960
+        static let wideWidth: CGFloat = 1240
+        static let expandedWidth: CGFloat = 1520
+    }
+
+    static func clamped(_ value: CGFloat, to range: ClosedRange<CGFloat>) -> CGFloat {
+        min(max(value, range.lowerBound), range.upperBound)
+    }
+
     // MARK: - Spacing Scale (4pt grid)
 
     enum Spacing {
@@ -23,6 +35,16 @@ enum HaneulchiMetrics {
         static let columnGap: CGFloat = 24 // gap between columns
     }
 
+    // MARK: - Shared Workspace Layout
+
+    enum Workspace {
+        static let outerPadding: CGFloat = Padding.card
+        static let columnGap: CGFloat = Spacing.md
+        static let supportingColumnGap: CGFloat = Spacing.md
+        static let supportingSectionGap: CGFloat = Spacing.md
+        static let inspectorCompactSectionLimit = 4
+    }
+
     // MARK: - Operations Surface Metrics
 
     enum Operations {
@@ -43,6 +65,11 @@ enum HaneulchiMetrics {
     // MARK: - Column / Panel Widths
 
     enum Panel {
+        static let sessionStackWidth: CGFloat = 248
+        static let explorerColumnWidth: CGFloat = 272
+        static let supportingColumnWidth: CGFloat = 352
+        static let decisionRailWidth: CGFloat = 216
+        static let decisionRailWidthRange: ClosedRange<CGFloat> = 200 ... 240
         static let explorerMin: CGFloat = 240
         static let explorerMax: CGFloat = 280
         static let inspectorMin: CGFloat = 320
@@ -50,6 +77,53 @@ enum HaneulchiMetrics {
         static let boardColumnMin: CGFloat = 280
         static let commandPaletteMin: CGFloat = 640
         static let commandPaletteMax: CGFloat = 760
+    }
+
+    // MARK: - Modal Widths
+
+    enum Modal {
+        struct WidthTokens: Equatable, Sendable {
+            let minimumWidth: CGFloat
+            let idealWidth: CGFloat
+            let maximumWidth: CGFloat
+        }
+
+        static let compact = WidthTokens(
+            minimumWidth: 520,
+            idealWidth: 600,
+            maximumWidth: 720,
+        )
+
+        static let medium = WidthTokens(
+            minimumWidth: 560,
+            idealWidth: 680,
+            maximumWidth: 720,
+        )
+
+        static let wide = WidthTokens(
+            minimumWidth: 640,
+            idealWidth: 720,
+            maximumWidth: 760,
+        )
+
+        static let expanded = WidthTokens(
+            minimumWidth: 640,
+            idealWidth: 760,
+            maximumWidth: 760,
+        )
+
+        static func tokens(for viewportClass: HaneulchiViewportClass) -> WidthTokens {
+            switch viewportClass {
+            case .compact:
+                compact
+            case .medium:
+                medium
+            case .wide:
+                wide
+            case .expanded:
+                expanded
+            }
+        }
     }
 
     // MARK: - Corner Radii

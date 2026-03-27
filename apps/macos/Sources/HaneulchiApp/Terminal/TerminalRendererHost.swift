@@ -10,6 +10,7 @@ protocol TerminalCommandTarget: AnyObject {
     func copySelection()
     func selectAllText()
     func handleKeyDown(_ event: NSEvent)
+    func isTerminalFirstResponder() -> Bool
 }
 
 @MainActor
@@ -42,6 +43,10 @@ final class SwiftTermTerminalHostHandle: TerminalHostHandle {
 
     func handleKeyDown(_ event: NSEvent) {
         commandTarget.handleKeyDown(event)
+    }
+
+    func isTerminalFirstResponder() -> Bool {
+        commandTarget.isTerminalFirstResponder()
     }
 }
 
@@ -171,6 +176,14 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
         }
     }
 
+    func isTerminalFirstResponder() -> Bool {
+        guard let terminalView else {
+            return false
+        }
+
+        return terminalView.window?.firstResponder === terminalView
+    }
+
     private func attemptFocus() {
         guard let terminalView else {
             return
@@ -196,8 +209,11 @@ final class SwiftTermTerminalCommandTarget: TerminalCommandTarget {
     }
 }
 
+@MainActor
 final class FocusingTerminalContainerView: NSView {
     let terminalView: TerminalView
+    var onFocusRequested: (() -> Void)?
+    private var mouseMonitor: Any?
 
     init(frame frameRect: NSRect, terminalView: TerminalView) {
         self.terminalView = terminalView
@@ -212,14 +228,58 @@ final class FocusingTerminalContainerView: NSView {
         fatalError("init(coder:) has not been implemented")
     }
 
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+
+        if window == nil, let mouseMonitor {
+            NSEvent.removeMonitor(mouseMonitor)
+            self.mouseMonitor = nil
+            return
+        }
+
+        guard mouseMonitor == nil else {
+            return
+        }
+
+        mouseMonitor = NSEvent
+            .addLocalMonitorForEvents(matching: [.leftMouseDown]) { [weak self] event in
+                guard let self else {
+                    return event
+                }
+
+                return handlePotentialMouseDown(event)
+            }
+    }
+
+    override func acceptsFirstMouse(for _: NSEvent?) -> Bool {
+        true
+    }
+
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(terminalView)
+        onFocusRequested?()
         terminalView.mouseDown(with: event)
+    }
+
+    func handlePotentialMouseDown(_ event: NSEvent) -> NSEvent {
+        guard let window, event.window === window else {
+            return event
+        }
+
+        let point = terminalView.convert(event.locationInWindow, from: nil)
+        guard terminalView.bounds.contains(point) else {
+            return event
+        }
+
+        window.makeFirstResponder(terminalView)
+        onFocusRequested?()
+        return event
     }
 }
 
 struct TerminalRendererHost: NSViewRepresentable {
     typealias HostHandleReady = @MainActor (TerminalHostHandle) -> Void
+    typealias FocusRequested = @MainActor () -> Void
 
     enum RenderMode {
         case replay
@@ -261,20 +321,32 @@ struct TerminalRendererHost: NSViewRepresentable {
 
     private let source: Source
     private let onHostHandleReady: HostHandleReady?
+    private let onFocusRequested: FocusRequested?
 
-    init(transcript: String, onHostHandleReady: HostHandleReady? = nil) {
+    init(
+        transcript: String,
+        onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
+    ) {
         source = .replay(transcript)
         self.onHostHandleReady = onHostHandleReady
+        self.onFocusRequested = onFocusRequested
     }
 
-    private init(source: Source, onHostHandleReady: HostHandleReady? = nil) {
+    private init(
+        source: Source,
+        onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
+    ) {
         self.source = source
         self.onHostHandleReady = onHostHandleReady
+        self.onFocusRequested = onFocusRequested
     }
 
     static func live(
         controller: TerminalSessionController,
         onHostHandleReady: HostHandleReady? = nil,
+        onFocusRequested: FocusRequested? = nil,
     ) -> Self {
         Self(
             source: .live(
@@ -295,6 +367,7 @@ struct TerminalRendererHost: NSViewRepresentable {
                 },
             ),
             onHostHandleReady: onHostHandleReady,
+            onFocusRequested: onFocusRequested,
         )
     }
 
@@ -312,22 +385,19 @@ struct TerminalRendererHost: NSViewRepresentable {
         terminalView.terminalDelegate = context.coordinator
         terminalView.nativeBackgroundColor = .textBackgroundColor
         terminalView.nativeForegroundColor = .textColor
-        let clickRecognizer = NSClickGestureRecognizer(
-            target: context.coordinator,
-            action: #selector(Coordinator.focusTerminalFromClick(_:)),
-        )
-        clickRecognizer.buttonMask = 0x1
-        terminalView.addGestureRecognizer(clickRecognizer)
         onHostHandleReady?(
             SwiftTermTerminalHostHandle(
                 commandTarget: SwiftTermTerminalCommandTarget(terminalView: terminalView),
             ),
         )
         context.coordinator.render(text: source.text, mode: source.mode, into: terminalView)
-        return FocusingTerminalContainerView(frame: .zero, terminalView: terminalView)
+        let container = FocusingTerminalContainerView(frame: .zero, terminalView: terminalView)
+        container.onFocusRequested = onFocusRequested
+        return container
     }
 
     func updateNSView(_ nsView: FocusingTerminalContainerView, context: Context) {
+        nsView.onFocusRequested = onFocusRequested
         context.coordinator.render(text: source.text, mode: source.mode, into: nsView.terminalView)
     }
 
@@ -428,16 +498,6 @@ struct TerminalRendererHost: NSViewRepresentable {
             }
 
             return rendered.contains(marker)
-        }
-
-        @MainActor
-        @objc
-        func focusTerminalFromClick(_ recognizer: NSClickGestureRecognizer) {
-            guard let terminalView = recognizer.view as? TerminalView else {
-                return
-            }
-
-            terminalView.window?.makeFirstResponder(terminalView)
         }
     }
 }

@@ -1,6 +1,8 @@
 import SwiftUI
 
 struct ProjectFocusView: View {
+    @Environment(\.viewportContext) private var viewportContext
+
     struct Model: Equatable, Sendable {
         let deck: TerminalDeckView.Model
         let projectRoot: String?
@@ -60,44 +62,68 @@ struct ProjectFocusView: View {
     }
 
     let model: Model
+    let focusRequestToken: Int
     let snapshot: AppShellSnapshot?
     let queuedFilePath: String?
     let onAction: (AppShellAction) -> Void
     @State private var workspaceState: ProjectFocusWorkspaceState
+    @State private var fileIndexState: FilesPanelView.IndexState
     private let fileIndex = ProjectFileIndex()
 
     init(
         model: Model,
+        focusRequestToken: Int = 0,
         snapshot: AppShellSnapshot? = nil,
         queuedFilePath: String? = nil,
         onAction: @escaping (AppShellAction) -> Void = { _ in },
     ) {
         self.model = model
+        self.focusRequestToken = focusRequestToken
         self.snapshot = snapshot
         self.queuedFilePath = queuedFilePath
         self.onAction = onAction
         _workspaceState =
             State(initialValue: ProjectFocusWorkspaceState(projectRoot: model.projectRoot))
+        _fileIndexState = State(initialValue: Self.initialFileIndexState(for: model.projectRoot))
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        let layoutMetrics = layoutMetrics
+        let sessionRows = sessionStackRows
+
+        VStack(spacing: layoutMetrics.columnSpacing) {
             headerBar
 
-            HStack(spacing: 0) {
-                if let snapshot, !snapshot.sessions.isEmpty {
+            if layoutMetrics.showsCompactSessionAffordance {
+                SessionStackView(
+                    rows: sessionRows,
+                    layoutStyle: .compactAffordance,
+                    onAction: onAction,
+                )
+                .padding(.horizontal, layoutMetrics.outerPadding)
+            }
+
+            HStack(alignment: .top, spacing: layoutMetrics.columnSpacing) {
+                if layoutMetrics.showsSessionColumn {
                     SessionStackView(
-                        rows: SessionStackView.rows(from: snapshot),
+                        rows: sessionRows,
+                        columnWidth: layoutMetrics.sessionColumnWidth,
+                        layoutStyle: .column,
                         onAction: onAction,
                     )
                 }
 
-                if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    FilesPanelView(workspaceState: $workspaceState)
+                if layoutMetrics.showsExplorerColumn {
+                    FilesPanelView(
+                        workspaceState: $workspaceState,
+                        indexState: fileIndexState,
+                        columnWidth: layoutMetrics.explorerColumnWidth,
+                    )
                 }
 
                 TerminalDeckView(
                     model: model.deck,
+                    focusRequestToken: focusRequestToken,
                     signalPresentation: focusedSessionSignal,
                     onQuickDispatch: {
                         onAction(.presentQuickDispatch(.projectFocus))
@@ -107,36 +133,47 @@ struct ProjectFocusView: View {
                     },
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .layoutPriority(1)
 
-                if workspaceState.layoutPreset == .explorerTerminalInspector {
-                    VStack(spacing: 0) {
-                        if workspaceState.isEditing {
-                            QuickEditView(workspaceState: $workspaceState)
-                                .frame(maxWidth: .infinity, alignment: .topLeading)
-                        } else {
-                            QuickPreviewView(workspaceState: workspaceState) {
-                                workspaceState.enterQuickEdit()
-                            }
-                            .frame(maxWidth: .infinity, alignment: .topLeading)
-                        }
-
-                        InspectorPanelView(
-                            workspaceState: $workspaceState,
-                            snapshot: snapshot,
-                            onAction: onAction,
-                        )
-                    }
+                if layoutMetrics.showsSupportingColumn {
+                    supportingColumn(layoutMetrics: layoutMetrics)
                 }
             }
+            .padding(.horizontal, layoutMetrics.outerPadding)
+            .padding(.bottom, layoutMetrics.outerPadding)
         }
         .background(HaneulchiChrome.Surface.foundation)
         .task(id: model.projectRoot) {
             guard let projectRoot = model.projectRoot else {
+                fileIndexState = .noProjectSelected
                 return
             }
 
             workspaceState.layoutPreset = .explorerTerminalInspector
-            workspaceState.fileEntries = await (try? fileIndex.index(rootPath: projectRoot)) ?? []
+            fileIndexState = .loading
+
+            do {
+                let fileEntries = try await fileIndex.index(rootPath: projectRoot)
+                guard Self.shouldApplyFileIndexResult(
+                    for: projectRoot,
+                    currentProjectRoot: workspaceState.projectRoot,
+                    isTaskCancelled: Task.isCancelled,
+                ) else {
+                    return
+                }
+                workspaceState.fileEntries = fileEntries
+                fileIndexState = Self.resolvedFileIndexState(from: .success(fileEntries))
+            } catch {
+                guard Self.shouldApplyFileIndexResult(
+                    for: projectRoot,
+                    currentProjectRoot: workspaceState.projectRoot,
+                    isTaskCancelled: Task.isCancelled,
+                ) else {
+                    return
+                }
+                workspaceState.fileEntries = []
+                fileIndexState = Self.resolvedFileIndexState(from: .failure(error))
+            }
         }
         .onChange(of: queuedFilePath) { _, queuedFilePath in
             guard let queuedFilePath else {
@@ -145,6 +182,25 @@ struct ProjectFocusView: View {
             workspaceState.layoutPreset = .explorerTerminalInspector
             workspaceState.openFile(queuedFilePath)
         }
+        .onChange(of: model.projectRoot) { _, projectRoot in
+            workspaceState = Self.resetWorkspaceState(workspaceState, for: projectRoot)
+            fileIndexState = Self.initialFileIndexState(for: projectRoot)
+        }
+    }
+
+    private var layoutMetrics: ProjectFocusWorkspaceLayoutMetrics {
+        .forPreset(
+            workspaceState.layoutPreset,
+            viewportContext: viewportContext,
+        )
+    }
+
+    private var sessionStackRows: [SessionStackView.Row] {
+        guard let snapshot else {
+            return []
+        }
+
+        return SessionStackView.rows(from: snapshot)
     }
 
     private var headerBar: some View {
@@ -153,18 +209,54 @@ struct ProjectFocusView: View {
                 .font(HaneulchiTypography.sectionHeading)
                 .foregroundStyle(HaneulchiChrome.Label.primary)
             Spacer()
-            Button("Full Terminal") {
+            Button {
                 workspaceState.layoutPreset = .fullTerminal
+            } label: {
+                Label("Full Terminal", systemImage: "rectangle")
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
-            Button("Explorer + Inspector") {
+            Button {
                 workspaceState.layoutPreset = .explorerTerminalInspector
+            } label: {
+                Label("Explorer + Inspector", systemImage: "sidebar.right")
             }
             .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         }
-        .padding(.horizontal, HaneulchiMetrics.Padding.card)
+        .padding(.horizontal, HaneulchiMetrics.Workspace.outerPadding)
+        .padding(.top, HaneulchiMetrics.Workspace.outerPadding)
         .frame(minHeight: HaneulchiMetrics.Target.compact)
         .background(HaneulchiChrome.Surface.foundation)
+    }
+
+    private func supportingColumn(
+        layoutMetrics: ProjectFocusWorkspaceLayoutMetrics,
+    ) -> some View {
+        VStack(
+            alignment: .leading,
+            spacing: layoutMetrics.supportingColumnSpacing,
+        ) {
+            if workspaceState.isEditing {
+                QuickEditView(workspaceState: $workspaceState)
+                    .frame(maxWidth: .infinity, alignment: .topLeading)
+            } else {
+                QuickPreviewView(
+                    workspaceState: workspaceState,
+                    layoutStyle: layoutMetrics.supportingPanelLayoutStyle,
+                ) {
+                    workspaceState.enterQuickEdit()
+                }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
+            }
+
+            InspectorPanelView(
+                workspaceState: $workspaceState,
+                snapshot: snapshot,
+                onAction: onAction,
+                controlStyle: layoutMetrics.inspectorControlStyle,
+                layoutStyle: layoutMetrics.supportingPanelLayoutStyle,
+            )
+        }
+        .frame(width: layoutMetrics.supportingColumnWidth, alignment: .topLeading)
     }
 
     private var focusedSessionSignal: SessionSignalPresentation? {
@@ -179,5 +271,38 @@ struct ProjectFocusView: View {
         }
 
         return SessionSignalPresentation.from(session: focusedSession, isFocused: true)
+    }
+
+    nonisolated static func initialFileIndexState(
+        for projectRoot: String?,
+    ) -> FilesPanelView.IndexState {
+        projectRoot == nil ? .noProjectSelected : .loading
+    }
+
+    nonisolated static func resolvedFileIndexState(
+        from result: Result<[ProjectFileIndex.Entry], Error>,
+    ) -> FilesPanelView.IndexState {
+        switch result {
+        case .success:
+            .loaded
+        case .failure:
+            .indexingFailed
+        }
+    }
+
+    nonisolated static func shouldApplyFileIndexResult(
+        for indexedProjectRoot: String,
+        currentProjectRoot: String?,
+        isTaskCancelled: Bool,
+    ) -> Bool {
+        isTaskCancelled == false && currentProjectRoot == indexedProjectRoot
+    }
+
+    nonisolated static func resetWorkspaceState(
+        _ workspaceState: ProjectFocusWorkspaceState,
+        for projectRoot: String?,
+    ) -> ProjectFocusWorkspaceState {
+        _ = workspaceState
+        return ProjectFocusWorkspaceState(projectRoot: projectRoot)
     }
 }

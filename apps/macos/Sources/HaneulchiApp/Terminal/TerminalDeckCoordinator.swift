@@ -52,7 +52,8 @@ final class TerminalDeckCoordinator: ObservableObject {
         guard
             !event.modifierFlags.contains(.command),
             let focusedPaneID,
-            let handle = handles[focusedPaneID]
+            let handle = handles[focusedPaneID],
+            !handle.isTerminalFirstResponder()
         else {
             return false
         }

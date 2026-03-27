@@ -5,6 +5,7 @@ struct AppShellView: View {
     @StateObject private var shellModel: AppShellModel
     @State private var projectFocusModel = AppShellView.bootstrapProjectFocusModel()
     @State private var launcherNotice: String?
+    @State private var rootViewportContext = HaneulchiViewportContext(rootWidth: 0)
     private let projectFolderPicker: ProjectFolderPicker
     private let demoWorkspaceScaffold: DemoWorkspaceScaffold
 
@@ -58,6 +59,7 @@ struct AppShellView: View {
                         await shellModel.perform(.dismissCommandPalette)
                     }
                 }
+                .environment(\.viewportContext, rootViewportContext)
             }
         }
         .overlay(alignment: .topTrailing) {
@@ -76,6 +78,7 @@ struct AppShellView: View {
                         }
                     },
                 )
+                .environment(\.viewportContext, rootViewportContext)
                 .padding(.top, 64)
                 .padding(.trailing, HaneulchiChrome.Spacing.screenPadding)
             }
@@ -104,7 +107,9 @@ struct AppShellView: View {
                             performAction(.dismissQuickDispatch)
                         },
                     )
-                    .frame(maxWidth: 520)
+                    .frame(width: quickDispatchWidth)
+                    .padding(.horizontal, HaneulchiChrome.Spacing.screenPadding)
+                    .environment(\.viewportContext, rootViewportContext)
                 }
             }
         }
@@ -124,6 +129,7 @@ struct AppShellView: View {
                         await shellModel.perform(.launchSession(descriptor))
                     }
                 }
+                .environment(\.viewportContext, rootViewportContext)
             }
         }
         .sheet(isPresented: Binding(
@@ -141,6 +147,7 @@ struct AppShellView: View {
                     await shellModel.perform(.reloadWorkflow)
                 }
             }
+            .environment(\.viewportContext, rootViewportContext)
         }
         .sheet(isPresented: Binding(
             get: { shellModel.isTaskContextDrawerPresented },
@@ -160,6 +167,7 @@ struct AppShellView: View {
                     }
                 },
             )
+            .environment(\.viewportContext, rootViewportContext)
         }
         .sheet(isPresented: Binding(
             get: { shellModel.isInventoryPresented },
@@ -187,6 +195,14 @@ struct AppShellView: View {
                 )
             }
         }
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, rootWidth in
+            let resolvedContext = HaneulchiViewportContext(rootWidth: rootWidth)
+            if resolvedContext != rootViewportContext {
+                rootViewportContext = resolvedContext
+            }
+        }
     }
 
     private var shellLayout: some View {
@@ -209,6 +225,7 @@ struct AppShellView: View {
                 route: shellModel.selectedRoute,
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
+                projectFocusTerminalFocusToken: shellModel.projectFocusTerminalFocusToken,
                 settingsStatusViewModel: shellModel.settingsStatusViewModel ?? .empty,
                 queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
                 onAction: performAction,
@@ -322,6 +339,18 @@ struct AppShellView: View {
         }
     }
 
+    private var quickDispatchWidth: CGFloat {
+        rootViewportContext.modalWidthPolicy.resolvedWidth(
+            preferredWidth: 520,
+            availableWidth: rootViewportContext.width > 0
+                ? max(
+                    0,
+                    rootViewportContext.width - (HaneulchiChrome.Spacing.screenPadding * 2),
+                )
+                : nil,
+        )
+    }
+
     private var launcherEntryReason: AppShellModel.LauncherEntryReason {
         switch shellModel.entrySurface {
         case let .welcome(reason):
@@ -332,6 +361,21 @@ struct AppShellView: View {
     }
 }
 
-#Preview {
-    AppShellView()
+#Preview("App Shell / Shell") {
+    AppShellView(
+        model: HaneulchiPreviewFixtures.shellModel(route: .projectFocus),
+        projectFolderPicker: HaneulchiPreviewFixtures.projectFolderPicker(),
+        demoWorkspaceScaffold: HaneulchiPreviewFixtures.demoWorkspaceScaffold(),
+    )
+}
+
+#Preview("App Shell / Welcome") {
+    AppShellView(
+        model: HaneulchiPreviewFixtures.shellModel(
+            route: .projectFocus,
+            entrySurface: .welcome(.firstRun),
+        ),
+        projectFolderPicker: HaneulchiPreviewFixtures.projectFolderPicker(),
+        demoWorkspaceScaffold: HaneulchiPreviewFixtures.demoWorkspaceScaffold(),
+    )
 }

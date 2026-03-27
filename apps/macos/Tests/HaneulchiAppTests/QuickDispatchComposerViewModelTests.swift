@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("quick dispatch composer groups adapter watch targets and disables send for stale sessions")

@@ -1,6 +1,6 @@
 import AppKit
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import SwiftTerm
 import Testing
 
@@ -46,6 +46,21 @@ private final class RecordingTerminalCommandTarget: TerminalCommandTarget {
     }
 
     func handleKeyDown(_: NSEvent) {}
+
+    func isTerminalFirstResponder() -> Bool {
+        false
+    }
+}
+
+private final class FocusCallbackRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private(set) var count = 0
+
+    func record() {
+        lock.lock()
+        count += 1
+        lock.unlock()
+    }
 }
 
 private final class CapturingTerminalDelegate: TerminalViewDelegate, @unchecked Sendable {
@@ -150,6 +165,35 @@ func hostHandleForwardsActions() {
     #expect(target.focusCalls == 1)
     #expect(target.findCalls == 1)
     #expect(target.pasteCalls == 1)
+}
+
+@MainActor
+@Test("focusing terminal container requests pane focus in addition to first responder focus")
+func focusingTerminalContainerRequestsPaneFocus() throws {
+    let recorder = FocusCallbackRecorder()
+    let terminalView = TerminalView(frame: .zero)
+    let view = FocusingTerminalContainerView(frame: .zero, terminalView: terminalView)
+    view.onFocusRequested = {
+        recorder.record()
+    }
+
+    let event = try #require(
+        NSEvent.mouseEvent(
+            with: .leftMouseDown,
+            location: NSPoint(x: 10, y: 10),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            eventNumber: 1,
+            clickCount: 1,
+            pressure: 1,
+        ),
+    )
+
+    view.mouseDown(with: event)
+
+    #expect(recorder.count == 1)
 }
 
 @MainActor
@@ -281,4 +325,49 @@ func focusingTerminalContainerTakesFirstResponderOnMouseDown() throws {
     view.mouseDown(with: event)
 
     #expect(window.firstResponder === terminalView)
+}
+
+@MainActor
+@Test(
+    "focusing terminal container monitor requests pane focus when the click lands in the terminal view",
+)
+func focusingTerminalContainerMonitorRequestsPaneFocus() throws {
+    let window = NSWindow(
+        contentRect: NSRect(x: 0, y: 0, width: 400, height: 300),
+        styleMask: [.titled, .closable, .resizable],
+        backing: .buffered,
+        defer: false,
+    )
+    let recorder = FocusCallbackRecorder()
+    let terminalView = TerminalView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+    let view = FocusingTerminalContainerView(
+        frame: NSRect(x: 0, y: 0, width: 300, height: 200),
+        terminalView: terminalView,
+    )
+    view.onFocusRequested = {
+        recorder.record()
+    }
+    let container = try NSView(frame: #require(window.contentView?.bounds))
+    container.addSubview(view)
+    window.contentView = container
+    window.makeKeyAndOrderFront(nil)
+
+    let event = try #require(
+        NSEvent.mouseEvent(
+            with: .leftMouseDown,
+            location: NSPoint(x: 10, y: 10),
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: window.windowNumber,
+            context: nil,
+            eventNumber: 1,
+            clickCount: 1,
+            pressure: 1,
+        ),
+    )
+
+    _ = view.handlePotentialMouseDown(event)
+
+    #expect(window.firstResponder === terminalView)
+    #expect(recorder.count == 1)
 }

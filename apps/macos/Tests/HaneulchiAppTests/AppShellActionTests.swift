@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 private final class SendableBox<T>: @unchecked Sendable {
@@ -61,6 +61,65 @@ func toggleCommandPaletteOwnsPresentationState() async {
 
     await model.perform(.dismissCommandPalette)
     #expect(model.isCommandPalettePresented == false)
+}
+
+@MainActor
+@Test("dismissing project focus overlays requests hosted terminal refocus")
+func dismissingProjectFocusOverlaysRequestsTerminalRefocus() async {
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .projectFocus,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+    )
+
+    #expect(model.projectFocusTerminalFocusToken == 0)
+
+    await model.perform(.toggleCommandPalette)
+    #expect(model.projectFocusTerminalFocusToken == 0)
+
+    await model.perform(.dismissCommandPalette)
+    #expect(model.projectFocusTerminalFocusToken == 1)
+
+    await model.perform(.presentNewSessionSheet)
+    #expect(model.projectFocusTerminalFocusToken == 1)
+
+    await model.perform(.dismissNewSessionSheet)
+    #expect(model.projectFocusTerminalFocusToken == 2)
+
+    await model.perform(.toggleNotificationDrawer)
+    #expect(model.projectFocusTerminalFocusToken == 2)
+
+    await model.perform(.dismissNotificationDrawer)
+    #expect(model.projectFocusTerminalFocusToken == 3)
+}
+
+@MainActor
+@Test("dismissing non-project-focus overlays does not request terminal refocus")
+func dismissingNonProjectFocusOverlaysDoesNotRequestTerminalRefocus() async {
+    let model = AppShellModel(
+        entrySurface: .shell,
+        selectedRoute: .controlTower,
+        selectedProject: nil,
+        recentProjects: [],
+        readinessReport: nil,
+        projectStore: .inMemory,
+        restoreStore: .inMemory,
+        preferencesStore: .inMemory,
+    )
+
+    await model.perform(.toggleCommandPalette)
+    await model.perform(.dismissCommandPalette)
+    await model.perform(.presentNewSessionSheet)
+    await model.perform(.dismissNewSessionSheet)
+    await model.perform(.toggleNotificationDrawer)
+    await model.perform(.dismissNotificationDrawer)
+
+    #expect(model.projectFocusTerminalFocusToken == 0)
 }
 
 @MainActor

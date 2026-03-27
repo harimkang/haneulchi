@@ -3,17 +3,31 @@ import SwiftUI
 struct ControlTowerProjectCardGrid: View {
     let cards: [ControlTowerViewModel.ProjectCard]
     let onOpenProject: (String) -> Void
+    @Environment(\.viewportContext) private var viewportContext
+    @State private var availableWidth: CGFloat = 0
+    private let layout = HaneulchiOperationalLayoutMetrics.standard
 
-    private let columns = [
-        GridItem(
-            .adaptive(minimum: 220, maximum: 280),
-            spacing: HaneulchiChrome.Spacing.itemGap,
-            alignment: .topLeading,
-        ),
-    ]
+    private var gridLayout: ControlTowerProjectGridLayout {
+        ControlTowerResponsiveLayout(viewportClass: viewportContext.viewportClass)
+            .projectGridLayout(
+                availableWidth: availableWidth,
+                spacing: layout.gridSpacing,
+            )
+    }
+
+    private var columns: [GridItem] {
+        Array(
+            repeating: GridItem(
+                .fixed(gridLayout.cardWidth),
+                spacing: layout.gridSpacing,
+                alignment: .topLeading,
+            ),
+            count: gridLayout.columnCount,
+        )
+    }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: HaneulchiChrome.Spacing.itemGap) {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: layout.gridSpacing) {
             ForEach(cards) { card in
                 Button {
                     onOpenProject(card.projectID)
@@ -46,13 +60,30 @@ struct ControlTowerProjectCardGrid: View {
                                         .foregroundStyle(HaneulchiChrome.Label.muted)
                                 }
 
-                                HStack(spacing: HaneulchiMetrics.Spacing.md) {
-                                    ForEach(card.overviewMetrics, id: \.label) { metric in
-                                        overviewMetric(metric)
+                                ViewThatFits(in: .horizontal) {
+                                    HStack(spacing: HaneulchiMetrics.Spacing.md) {
+                                        ForEach(card.overviewMetrics, id: \.label) { metric in
+                                            overviewMetric(metric)
+                                        }
+                                        Spacer(minLength: HaneulchiMetrics.Spacing.sm)
+                                        if let spotlight = card.spotlightLabel {
+                                            metaPill(spotlight)
+                                        }
                                     }
-                                    Spacer(minLength: HaneulchiMetrics.Spacing.sm)
-                                    if let spotlight = card.spotlightLabel {
-                                        metaPill(spotlight)
+
+                                    VStack(
+                                        alignment: .leading,
+                                        spacing: HaneulchiMetrics.Spacing.xs,
+                                    ) {
+                                        HStack(spacing: HaneulchiMetrics.Spacing.md) {
+                                            ForEach(card.overviewMetrics, id: \.label) { metric in
+                                                overviewMetric(metric)
+                                            }
+                                        }
+
+                                        if let spotlight = card.spotlightLabel {
+                                            metaPill(spotlight)
+                                        }
                                     }
                                 }
 
@@ -78,6 +109,12 @@ struct ControlTowerProjectCardGrid: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            availableWidth = width
         }
     }
 

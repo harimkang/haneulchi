@@ -1,4 +1,4 @@
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("project focus demo boots with one hosted surface and split disabled")
@@ -331,4 +331,247 @@ func taskDrawerUsesFocusedSessionBinding() async {
     #expect(model.taskContextDrawerModel?.taskID == "task_ready")
     #expect(model.taskContextDrawerModel?.sessionID == "ses_02")
     #expect(model.taskContextDrawerModel?.workflowName == "Review Workflow")
+}
+
+@Test(
+    "project focus explorer layout uses shared column widths, gutter, and supporting column alignment",
+)
+func projectFocusExplorerLayoutUsesSharedWorkspaceRhythm() {
+    let layout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.expandedWidth),
+    )
+
+    #expect(layout.outerPadding == HaneulchiMetrics.Padding.card)
+    #expect(layout.columnSpacing == HaneulchiMetrics.Spacing.md)
+    #expect(layout.supportingColumnSpacing == HaneulchiMetrics.Spacing.md)
+    #expect(layout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(layout.explorerColumnWidth == HaneulchiMetrics.Panel.explorerColumnWidth)
+    #expect(layout.supportingColumnWidth == HaneulchiMetrics.Panel.supportingColumnWidth)
+    #expect(layout.stacksSupportingPanelsInSharedColumn == true)
+}
+
+@Test(
+    "project focus inspector switches to compact tabs when sections would overflow a segmented control",
+)
+func projectFocusInspectorUsesCompactTabsWhenSectionCountIsHigh() {
+    let denseLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        inspectorSectionCount: InspectorSection.allCases.count,
+    )
+    let sparseLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        inspectorSectionCount: 3,
+    )
+
+    #expect(denseLayout.inspectorControlStyle == .compactScroll)
+    #expect(sparseLayout.inspectorControlStyle == .segmented)
+}
+
+@Test("project focus responsive layout follows the shared viewport classes")
+func projectFocusLayoutFollowsSharedViewportClasses() {
+    let compactLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.mediumWidth - 1),
+    )
+    let mediumLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.mediumWidth),
+    )
+    let wideLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.wideWidth),
+    )
+    let expandedLayout = ProjectFocusWorkspaceLayoutMetrics.forPreset(
+        .explorerTerminalInspector,
+        viewportContext: .init(width: HaneulchiMetrics.Responsive.expandedWidth),
+    )
+
+    #expect(compactLayout.showsSessionSurface == true)
+    #expect(compactLayout.sessionColumnWidth == 0)
+    #expect(compactLayout.sessionContextStyle == .compactAffordance)
+    #expect(compactLayout.showsSessionColumn == false)
+    #expect(compactLayout.showsCompactSessionAffordance == true)
+    #expect(compactLayout.showsExplorerColumn == false)
+    #expect(compactLayout.showsSupportingColumn == false)
+
+    #expect(mediumLayout.showsSessionSurface == true)
+    #expect(mediumLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(mediumLayout.sessionContextStyle == .column)
+    #expect(mediumLayout.showsSessionColumn == true)
+    #expect(mediumLayout.showsCompactSessionAffordance == false)
+    #expect(mediumLayout.showsExplorerColumn == false)
+    #expect(mediumLayout.showsSupportingColumn == false)
+
+    #expect(wideLayout.showsSessionSurface == true)
+    #expect(wideLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(wideLayout.sessionContextStyle == .column)
+    #expect(wideLayout.showsSessionColumn == true)
+    #expect(wideLayout.showsExplorerColumn == false)
+    #expect(wideLayout.showsSupportingColumn == true)
+
+    #expect(expandedLayout.showsSessionSurface == true)
+    #expect(expandedLayout.sessionColumnWidth == HaneulchiMetrics.Panel.sessionStackWidth)
+    #expect(expandedLayout.sessionContextStyle == .column)
+    #expect(expandedLayout.showsSessionColumn == true)
+    #expect(expandedLayout.showsExplorerColumn == true)
+    #expect(expandedLayout.showsSupportingColumn == true)
+}
+
+@Test("compact session affordance exposes an empty-state presentation instead of disappearing")
+func compactSessionAffordanceUsesEmptyStatePresentation() {
+    let presentation = SessionStackView.presentation(
+        rows: [],
+        layoutStyle: .compactAffordance,
+    )
+
+    #expect(presentation.title == "Current Session")
+    #expect(presentation.emptyStateMessage == "No active sessions.")
+    #expect(presentation.primaryActionTitle == nil)
+}
+
+@Test("session column keeps the sessions surface visible with an empty-state presentation")
+func sessionColumnUsesEmptyStatePresentation() {
+    let presentation = SessionStackView.presentation(
+        rows: [],
+        layoutStyle: .column,
+    )
+
+    #expect(presentation.title == "Sessions")
+    #expect(presentation.emptyStateMessage == "No active sessions.")
+}
+
+@Test("project focus marks explorer state as no-project-selected when there is no project root")
+func projectFocusUsesNoProjectExplorerStateWithoutProjectRoot() {
+    #expect(ProjectFocusView.initialFileIndexState(for: nil) == .noProjectSelected)
+}
+
+@Test("project focus preserves explorer indexing failures instead of flattening them to empty")
+func projectFocusUsesFailureExplorerStateWhenIndexingFails() {
+    enum StubError: Error {
+        case failed
+    }
+
+    let state = ProjectFocusView.resolvedFileIndexState(from: .failure(StubError.failed))
+
+    #expect(state == .indexingFailed)
+}
+
+@Test("standalone project focus preview uses an expanded desktop viewport context")
+func projectFocusPreviewUsesExpandedDesktopViewport() {
+    let viewportClass = HaneulchiPreviewGalleryContexts.projectFocusDesktopViewportContext
+        .viewportClass
+
+    #expect(viewportClass == .expanded)
+}
+
+@Test(
+    "project focus ignores stale explorer indexing results when the project root changes mid-flight",
+)
+func projectFocusIgnoresStaleExplorerIndexResults() {
+    let freshResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo-new",
+        currentProjectRoot: "/tmp/demo-new",
+        isTaskCancelled: false,
+    )
+    let staleResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo-old",
+        currentProjectRoot: "/tmp/demo-new",
+        isTaskCancelled: false,
+    )
+    let cancelledResult = ProjectFocusView.shouldApplyFileIndexResult(
+        for: "/tmp/demo",
+        currentProjectRoot: "/tmp/demo",
+        isTaskCancelled: true,
+    )
+
+    #expect(freshResult == true)
+    #expect(staleResult == false)
+    #expect(cancelledResult == false)
+}
+
+@Test("project focus resets stale workspace state when the project root changes")
+func projectFocusResetsWorkspaceStateForNewProjectRoot() {
+    var workspaceState = ProjectFocusWorkspaceState(projectRoot: "/tmp/old")
+    workspaceState.layoutPreset = .explorerTerminalInspector
+    workspaceState.fileEntries = [
+        .init(relativePath: "Sources/Old.swift", absolutePath: "/tmp/old/Sources/Old.swift"),
+    ]
+    workspaceState.searchQuery = "Old"
+    workspaceState.selectedFilePath = "/tmp/old/Sources/Old.swift"
+    workspaceState.previewMode = .markdown
+    workspaceState.previewText = "# Old"
+    workspaceState.isEditing = true
+    workspaceState.editingText = "# Edited"
+    workspaceState.activeInspectorSection = .git
+
+    let refreshed = ProjectFocusView.resetWorkspaceState(
+        workspaceState,
+        for: "/tmp/new",
+    )
+
+    #expect(refreshed.projectRoot == "/tmp/new")
+    #expect(refreshed.layoutPreset == .fullTerminal)
+    #expect(refreshed.fileEntries.isEmpty)
+    #expect(refreshed.searchQuery.isEmpty)
+    #expect(refreshed.selectedFilePath == nil)
+    #expect(refreshed.previewMode == .empty)
+    #expect(refreshed.previewText == nil)
+    #expect(refreshed.isEditing == false)
+    #expect(refreshed.editingText.isEmpty)
+    #expect(refreshed.activeInspectorSection == .commentary)
+}
+
+@Test("files panel shows a no-project-selected state")
+func filesPanelUsesNoProjectSelectedState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: nil),
+        indexState: .noProjectSelected,
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "Select a project to browse files.")
+    #expect(presentation.emptyStateDetail == "Choose a project to load the explorer.")
+}
+
+@Test("files panel shows an indexing-failed state")
+func filesPanelUsesIndexingFailedState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: "/tmp/demo"),
+        indexState: .indexingFailed,
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "File indexing failed.")
+    #expect(presentation.emptyStateDetail == "Try reopening the project or retrying the explorer.")
+}
+
+@Test("files panel shows a loaded-empty state when indexing succeeds but the project has no files")
+func filesPanelUsesLoadedEmptyState() {
+    let presentation = FilesPanelView.presentation(
+        workspaceState: .init(projectRoot: "/tmp/demo"),
+        indexState: .loaded,
+    )
+
+    #expect(presentation.showsSearchField == false)
+    #expect(presentation.emptyStateMessage == "No files in this project.")
+    #expect(presentation.emptyStateDetail == "Add files to this project to populate the explorer.")
+}
+
+@Test("files panel shows a search-empty state when the query has no matches")
+func filesPanelUsesSearchEmptyState() {
+    var workspaceState = ProjectFocusWorkspaceState(projectRoot: "/tmp/demo")
+    workspaceState.fileEntries = [
+        .init(relativePath: "Sources/App.swift", absolutePath: "/tmp/demo/Sources/App.swift"),
+    ]
+    workspaceState.searchQuery = "Preview"
+
+    let presentation = FilesPanelView.presentation(
+        workspaceState: workspaceState,
+        indexState: .loaded,
+    )
+
+    #expect(presentation.showsSearchField == true)
+    #expect(presentation.emptyStateMessage == #"No files match "Preview"."#)
+    #expect(presentation.emptyStateDetail == "Clear or change the search query.")
 }

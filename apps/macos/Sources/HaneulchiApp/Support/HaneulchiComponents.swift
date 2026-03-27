@@ -1,5 +1,17 @@
 import SwiftUI
 
+private func haneulchiSharedSurfaceHorizontalPadding(
+    for viewportClass: HaneulchiViewportClass,
+) -> CGFloat {
+    viewportClass == .compact ? HaneulchiMetrics.Padding.compact : HaneulchiMetrics.Padding.card
+}
+
+private func haneulchiSharedButtonHorizontalPadding(
+    for viewportClass: HaneulchiViewportClass,
+) -> CGFloat {
+    viewportClass == .compact ? HaneulchiMetrics.Spacing.sm : HaneulchiMetrics.Spacing.md
+}
+
 // MARK: - HaneulchiButtonStyle
 
 struct HaneulchiButtonStyle: ButtonStyle {
@@ -21,6 +33,7 @@ private struct HaneulchiButtonBody: View {
     let configuration: ButtonStyleConfiguration
     let variant: HaneulchiButtonStyle.Variant
 
+    @Environment(\.viewportContext) private var viewportContext
     @State private var isHovered = false
 
     var body: some View {
@@ -28,7 +41,12 @@ private struct HaneulchiButtonBody: View {
             .font(HaneulchiTypography.systemLabel)
             .tracking(HaneulchiTypography.Tracking.labelWide)
             .foregroundColor(labelColor)
-            .padding(.horizontal, HaneulchiMetrics.Spacing.md)
+            .padding(
+                .horizontal,
+                haneulchiSharedButtonHorizontalPadding(
+                    for: viewportContext.viewportClass,
+                ),
+            )
             .padding(.vertical, HaneulchiMetrics.Spacing.xs)
             .frame(minHeight: HaneulchiMetrics.Target.compact)
             .background(backgroundView)
@@ -200,10 +218,17 @@ struct HaneulchiStatusBadge: View {
 
 struct HaneulchiPanel<Content: View>: View {
     @ViewBuilder var content: Content
+    @Environment(\.viewportContext) private var viewportContext
 
     var body: some View {
         content
-            .padding(HaneulchiMetrics.Padding.card)
+            .padding(
+                .horizontal,
+                haneulchiSharedSurfaceHorizontalPadding(
+                    for: viewportContext.viewportClass,
+                ),
+            )
+            .padding(.vertical, HaneulchiMetrics.Padding.card)
             .background(HaneulchiChrome.Surface.base)
             .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
     }
@@ -215,11 +240,18 @@ struct HaneulchiCard<Content: View>: View {
     var isSelected: Bool = false
     @ViewBuilder var content: Content
 
+    @Environment(\.viewportContext) private var viewportContext
     @State private var isHovered = false
 
     var body: some View {
         content
-            .padding(HaneulchiMetrics.Padding.card)
+            .padding(
+                .horizontal,
+                haneulchiSharedSurfaceHorizontalPadding(
+                    for: viewportContext.viewportClass,
+                ),
+            )
+            .padding(.vertical, HaneulchiMetrics.Padding.card)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: HaneulchiMetrics.Radius.medium))
             .overlay(

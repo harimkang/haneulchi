@@ -5,6 +5,7 @@ struct ControlTowerOpsStripView: View {
     let onRefresh: (() -> Void)?
     let onReconcile: (() -> Void)?
     let onReload: (() -> Void)?
+    @Environment(\.viewportContext) private var viewportContext
 
     init(
         model: AutomationPanelViewModel,
@@ -21,27 +22,63 @@ struct ControlTowerOpsStripView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
             HaneulchiMonolithStrip(metrics: model.primaryStripMetrics) {
-                HStack(spacing: HaneulchiMetrics.Spacing.xs) {
-                    actionButton("Refresh", action: onRefresh)
-                    actionButton("Reconcile", action: onReconcile)
-                    actionButton("Reload", action: onReload)
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: HaneulchiMetrics.Spacing.xs) {
+                        actionButton(.refresh, action: onRefresh)
+                        actionButton(.reconcile, action: onReconcile)
+                        actionButton(.reload, action: onReload)
+                    }
+
+                    VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.xs) {
+                        actionButton(.refresh, action: onRefresh)
+                        actionButton(.reconcile, action: onReconcile)
+                        actionButton(.reload, action: onReload)
+                    }
                 }
             }
 
-            HStack(spacing: HaneulchiMetrics.Spacing.lg) {
-                ForEach(model.secondaryStripMetrics) { metric in
-                    HaneulchiMetricTile(metric: metric)
+            HaneulchiOpsRailPanel(
+                title: "Diagnostics",
+                count: model.secondaryStripMetrics.isEmpty ? nil : model.secondaryStripMetrics
+                    .count,
+            ) {
+                LazyVGrid(
+                    columns: secondaryMetricColumns,
+                    alignment: .leading,
+                    spacing: HaneulchiMetrics.Spacing.sm,
+                ) {
+                    ForEach(model.secondaryStripMetrics) { metric in
+                        HaneulchiMetricTile(metric: metric)
+                    }
                 }
             }
-            .padding(.horizontal, HaneulchiMetrics.Padding.card)
         }
     }
 
-    private func actionButton(_ title: String, action: (() -> Void)?) -> some View {
-        Button(title) {
+    private var secondaryMetricColumns: [GridItem] {
+        let count = switch viewportContext.viewportClass {
+        case .compact:
+            1
+        case .medium:
+            2
+        case .wide:
+            3
+        case .expanded:
+            4
+        }
+
+        return Array(
+            repeating: GridItem(.flexible(minimum: 120), spacing: HaneulchiMetrics.Spacing.sm),
+            count: count,
+        )
+    }
+
+    private func actionButton(_ chromeAction: HaneulchiChromeAction, action: (() -> Void)?)
+        -> some View
+    {
+        HaneulchiIconButton(action: chromeAction, tone: .secondary) {
             action?()
         }
-        .buttonStyle(HaneulchiButtonStyle(variant: .secondary))
         .disabled(action == nil)
     }
 }

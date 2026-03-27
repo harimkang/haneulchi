@@ -4,27 +4,59 @@ struct WorktreeInventoryView: View {
     let viewModel: WorktreeInventoryViewModel
     let onAction: (AppShellAction) -> Void
     let onClose: () -> Void
+    @Environment(\.viewportContext) private var viewportContext
+    @State private var localViewportWidth: CGFloat = 0
+
+    private var summaryCardColumns: [GridItem] {
+        let count = switch resolvedViewportContext.viewportClass {
+        case .compact:
+            1
+        case .medium:
+            2
+        case .wide:
+            3
+        case .expanded:
+            5
+        }
+
+        return Array(repeating: GridItem(.flexible(), spacing: 12), count: count)
+    }
+
+    private var resolvedViewportContext: HaneulchiViewportContext {
+        Self.resolvedViewportContext(
+            shellViewportContext: viewportContext,
+            localWidth: localViewportWidth,
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             header
             content
         }
-        .frame(minWidth: 560, minHeight: 400)
+        .environment(\.viewportContext, resolvedViewportContext)
+        .frame(minHeight: 400)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            localViewportWidth = width
+        }
     }
 
     private var header: some View {
-        HStack {
-            Text("Worktree Inventory")
-                .font(.title2.weight(.semibold))
-            Spacer()
-            Button {
-                onClose()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.secondary)
+        ViewThatFits(in: .horizontal) {
+            HStack {
+                Text("Worktree Inventory")
+                    .font(.title2.weight(.semibold))
+                Spacer()
+                closeButton
             }
-            .buttonStyle(.plain)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Worktree Inventory")
+                    .font(.title2.weight(.semibold))
+                closeButton
+            }
         }
         .padding()
     }
@@ -40,7 +72,7 @@ struct WorktreeInventoryView: View {
     }
 
     private var summaryCards: some View {
-        HStack(spacing: 12) {
+        LazyVGrid(columns: summaryCardColumns, spacing: 12) {
             SummaryCardView(label: "Total", count: viewModel.summaryCard.total, color: .primary)
             SummaryCardView(label: "In Use", count: viewModel.summaryCard.inUse, color: .blue)
             SummaryCardView(
@@ -55,6 +87,31 @@ struct WorktreeInventoryView: View {
             )
             SummaryCardView(label: "Stale", count: viewModel.summaryCard.stale, color: .secondary)
         }
+    }
+
+    private var closeButton: some View {
+        Button {
+            onClose()
+        } label: {
+            Image(systemName: "xmark.circle.fill")
+                .foregroundStyle(.secondary)
+        }
+        .buttonStyle(.plain)
+    }
+
+    nonisolated static func resolvedViewportContext(
+        shellViewportContext: HaneulchiViewportContext,
+        localWidth: CGFloat,
+    ) -> HaneulchiViewportContext {
+        if shellViewportContext.width > 0 {
+            return shellViewportContext
+        }
+
+        if localWidth > 0 {
+            return .init(width: localWidth)
+        }
+
+        return .init(width: HaneulchiMetrics.Responsive.mediumWidth)
     }
 
     @ViewBuilder

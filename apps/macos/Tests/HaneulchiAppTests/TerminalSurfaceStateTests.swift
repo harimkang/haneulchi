@@ -1,5 +1,5 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @Test("bootstrap maps nil fixture to empty")
@@ -71,4 +71,51 @@ func liveSurfaceRestoreFailureIsVisible() {
 
     #expect(state.kind == .failed)
     #expect(state.message == "Hosted terminal could not start.")
+}
+
+@Test("live session ready requests pane refocus only for a newly running focused session")
+func liveSessionReadyRequestsPaneRefocusOnlyWhenAppropriate() {
+    let runningSnapshot = TerminalSessionSnapshot(
+        sessionID: "session-live",
+        launch: .defaultShell,
+        geometry: .defaultShell,
+        running: true,
+        exitCode: nil,
+    )
+    let stoppedSnapshot = TerminalSessionSnapshot(
+        sessionID: "session-live",
+        launch: .defaultShell,
+        geometry: .defaultShell,
+        running: false,
+        exitCode: 0,
+    )
+
+    #expect(
+        TerminalSurfaceView.shouldRefocusOnLiveSessionReady(
+            snapshot: runningSnapshot,
+            reportedSessionID: nil,
+            isFocused: true,
+        ),
+    )
+    #expect(
+        !TerminalSurfaceView.shouldRefocusOnLiveSessionReady(
+            snapshot: runningSnapshot,
+            reportedSessionID: "session-live",
+            isFocused: true,
+        ),
+    )
+    #expect(
+        !TerminalSurfaceView.shouldRefocusOnLiveSessionReady(
+            snapshot: stoppedSnapshot,
+            reportedSessionID: nil,
+            isFocused: true,
+        ),
+    )
+    #expect(
+        !TerminalSurfaceView.shouldRefocusOnLiveSessionReady(
+            snapshot: runningSnapshot,
+            reportedSessionID: nil,
+            isFocused: false,
+        ),
+    )
 }

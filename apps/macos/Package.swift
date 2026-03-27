@@ -15,12 +15,18 @@ let pluginLibraryDirectory = packageDirectory
         isDirectory: true,
     )
     .path
+let hcFFIArchivePath = packageDirectory
+    .appendingPathComponent(
+        ".build/plugins/outputs/macos/HaneulchiApp/destination/HCCoreFFIBuildPlugin/hc-ffi-build/libhc_ffi.a",
+        isDirectory: false,
+    )
+    .path
 let hcFFILinkerSettings: [LinkerSetting] = [
     .unsafeFlags([
-        "-L", pluginLibraryDirectory,
         "-L", vendorLibraryDirectory,
+        "-Xlinker", "-force_load",
+        "-Xlinker", hcFFIArchivePath,
     ]),
-    .linkedLibrary("hc_ffi"),
 ]
 
 let package = Package(
@@ -29,7 +35,8 @@ let package = Package(
         .macOS(.v15),
     ],
     products: [
-        .executable(name: "HaneulchiApp", targets: ["HaneulchiApp"]),
+        .library(name: "HaneulchiAppUI", targets: ["HaneulchiAppUI"]),
+        .executable(name: "HaneulchiApp", targets: ["HaneulchiAppExecutable"]),
     ],
     dependencies: [
         .package(url: "https://github.com/migueldeicaza/SwiftTerm.git", exact: "1.12.0"),
@@ -44,8 +51,8 @@ let package = Package(
             path: "Vendor/HCCoreFFI",
             publicHeadersPath: "include",
         ),
-        .executableTarget(
-            name: "HaneulchiApp",
+        .target(
+            name: "HaneulchiAppUI",
             dependencies: [
                 "HCCoreFFI",
                 .product(name: "SwiftTerm", package: "SwiftTerm"),
@@ -56,9 +63,16 @@ let package = Package(
                 "HCCoreFFIBuildPlugin",
             ],
         ),
+        .executableTarget(
+            name: "HaneulchiAppExecutable",
+            dependencies: [
+                "HaneulchiAppUI",
+            ],
+            path: "Sources/HaneulchiAppExecutable",
+        ),
         .testTarget(
             name: "HaneulchiAppTests",
-            dependencies: ["HaneulchiApp"],
+            dependencies: ["HaneulchiAppUI"],
             path: "Tests/HaneulchiAppTests",
             linkerSettings: hcFFILinkerSettings,
         ),

@@ -3,6 +3,9 @@ import Foundation
 enum HaneulchiChromeAction: Equatable {
     case commandPalette
     case notifications
+    case refresh
+    case reconcile
+    case reload
     case focusPane
     case find
     case paste
@@ -19,6 +22,12 @@ enum HaneulchiChromeAction: Equatable {
             "magnifyingglass"
         case .notifications:
             "bell"
+        case .refresh:
+            "arrow.clockwise"
+        case .reconcile:
+            "arrow.triangle.2.circlepath"
+        case .reload:
+            "arrow.clockwise.circle"
         case .focusPane:
             "scope"
         case .find:
@@ -46,6 +55,12 @@ enum HaneulchiChromeAction: Equatable {
             "Open Command Palette"
         case .notifications:
             "Open Notifications"
+        case .refresh:
+            "Refresh Snapshot"
+        case .reconcile:
+            "Reconcile Automation"
+        case .reload:
+            "Reload Workflow"
         case .focusPane:
             "Focus Terminal Pane"
         case .find:

@@ -1,10 +1,10 @@
 import Foundation
-@testable import HaneulchiApp
+@testable import HaneulchiAppUI
 import Testing
 
 @MainActor
 @Test("attention center view model maps open, resolve, dismiss, and snooze actions")
-func attentionCenterViewModelMapsActions() {
+func attentionCenterViewModelMapsActions() throws {
     let snapshot = AppShellSnapshot(
         meta: .init(snapshotRev: 1, runtimeRev: 1, projectionRev: 1, snapshotAt: .now),
         ops: .init(runningSlots: 1, maxSlots: 2, retryQueueCount: 0, workflowHealth: .ok),
@@ -58,6 +58,15 @@ func attentionCenterViewModelMapsActions() {
                 taskID: "task_review",
                 summary: "Evidence pack available.",
             ),
+            .init(
+                attentionID: "att_workflow",
+                headline: "Workflow invalid",
+                severity: .degraded,
+                targetRoute: .attentionCenter,
+                targetSessionID: nil,
+                summary: "Last known good kept.",
+                actionHint: "reload_workflow",
+            ),
         ],
         retryQueue: [],
         warnings: [],
@@ -80,18 +89,29 @@ func attentionCenterViewModelMapsActions() {
         "ses_takeover",
         "ses_failed",
         "att_review",
+        "att_workflow",
         "att_waiting",
     ])
     #expect(viewModel.items[0].stateLabel == "manual takeover")
     #expect(viewModel.items[1].stateLabel == "dispatch_failed")
+    #expect(viewModel.items[0].attentionActionID == nil)
+    #expect(viewModel.items[1].attentionActionID == "attention-dispatch-ses_failed")
+    #expect(viewModel.items[3].attentionActionID == "att_workflow")
 
-    viewModel.open(viewModel.items[3])
-    viewModel.resolve(viewModel.items[2])
-    viewModel.dismiss(viewModel.items[2])
-    viewModel.snooze(viewModel.items[3])
+    let workflowItem = try #require(viewModel.items.first(where: { $0.id == "att_workflow" }))
+    let reviewItem = try #require(viewModel.items.first(where: { $0.id == "att_review" }))
+    let waitingItem = try #require(viewModel.items.first(where: { $0.id == "att_waiting" }))
+    let dispatchFailedItem = try #require(viewModel.items.first(where: { $0.id == "ses_failed" }))
 
-    #expect(opened == [.jumpToSession("ses_waiting")])
-    #expect(resolved == ["att_review"])
+    viewModel.open(workflowItem)
+    viewModel.open(waitingItem)
+    viewModel.resolve(dispatchFailedItem)
+    viewModel.resolve(reviewItem)
+    viewModel.dismiss(reviewItem)
+    viewModel.snooze(waitingItem)
+
+    #expect(opened == [.presentWorkflowDrawer, .jumpToSession("ses_waiting")])
+    #expect(resolved == ["attention-dispatch-ses_failed", "att_review"])
     #expect(dismissed == ["att_review"])
     #expect(snoozed == ["att_waiting"])
 }
@@ -105,8 +125,9 @@ func attentionPresentationUsesDistinctGroups() {
             stateLabel: "manual takeover",
             summary: "Operator reviewing latest result.",
             severity: .failed,
-            targetRoute: .projectFocus,
-            targetSessionID: "ses_takeover",
+            targetRouteTitle: Route.projectFocus.title,
+            openAction: .jumpToSession("ses_takeover"),
+            attentionActionID: nil,
         ),
         .init(
             id: "ses_failed",
@@ -114,8 +135,9 @@ func attentionPresentationUsesDistinctGroups() {
             stateLabel: "dispatch_failed",
             summary: "Target stale.",
             severity: .failed,
-            targetRoute: .projectFocus,
-            targetSessionID: "ses_failed",
+            targetRouteTitle: Route.projectFocus.title,
+            openAction: .jumpToSession("ses_failed"),
+            attentionActionID: "attention-dispatch-ses_failed",
         ),
         .init(
             id: "att_review",
@@ -123,8 +145,9 @@ func attentionPresentationUsesDistinctGroups() {
             stateLabel: "degraded",
             summary: "Evidence pack available.",
             severity: .degraded,
-            targetRoute: .reviewQueue,
-            targetSessionID: nil,
+            targetRouteTitle: Route.reviewQueue.title,
+            openAction: .selectRoute(.reviewQueue),
+            attentionActionID: "att_review",
         ),
         .init(
             id: "att_waiting",
@@ -132,8 +155,9 @@ func attentionPresentationUsesDistinctGroups() {
             stateLabel: "unread",
             summary: "Operator answer required.",
             severity: .unread,
-            targetRoute: .projectFocus,
-            targetSessionID: "ses_waiting",
+            targetRouteTitle: Route.projectFocus.title,
+            openAction: .jumpToSession("ses_waiting"),
+            attentionActionID: "att_waiting",
         ),
     ]
 
