@@ -60,6 +60,7 @@ struct TerminalSurfaceView: View {
     private let paneID: String?
     private let deckCoordinator: TerminalDeckCoordinator?
     private let isFocused: Bool
+    private let onPaneFocusRequested: ((String) -> Void)?
     private let onSessionReady: ((String) -> Void)?
     @State private var reportedSessionID: String?
 
@@ -72,6 +73,7 @@ struct TerminalSurfaceView: View {
         paneID: String? = nil,
         deckCoordinator: TerminalDeckCoordinator? = nil,
         isFocused: Bool = false,
+        onPaneFocusRequested: ((String) -> Void)? = nil,
         onSessionReady: ((String) -> Void)? = nil,
     ) {
         self.configuration = configuration
@@ -80,6 +82,7 @@ struct TerminalSurfaceView: View {
         self.paneID = paneID
         self.deckCoordinator = deckCoordinator
         self.isFocused = isFocused
+        self.onPaneFocusRequested = onPaneFocusRequested
         self.onSessionReady = onSessionReady
         state = if configuration.isLive {
             controller.bootstrapLive()
@@ -169,6 +172,7 @@ struct TerminalSurfaceView: View {
             return
         }
 
+        onPaneFocusRequested?(paneID)
         deckCoordinator?.updateFocusedPane(paneID)
         deckCoordinator?.focusPane(paneID)
     }

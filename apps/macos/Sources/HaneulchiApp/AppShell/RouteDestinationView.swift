@@ -51,6 +51,7 @@ struct RouteDestinationView: View {
     let route: Route
     let snapshot: AppShellSnapshot
     let projectFocusModel: ProjectFocusView.Model
+    let projectFocusTerminalFocusToken: Int
     let settingsStatusViewModel: SettingsStatusViewModel
     let queuedProjectFocusFilePath: String?
     let onAction: (AppShellAction) -> Void
@@ -60,6 +61,7 @@ struct RouteDestinationView: View {
         case .projectFocus:
             ProjectFocusView(
                 model: projectFocusModel,
+                focusRequestToken: projectFocusTerminalFocusToken,
                 snapshot: snapshot,
                 queuedFilePath: queuedProjectFocusFilePath,
                 onAction: onAction,

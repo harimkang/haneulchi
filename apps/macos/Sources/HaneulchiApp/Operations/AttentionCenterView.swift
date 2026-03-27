@@ -57,7 +57,7 @@ struct AttentionCenterView: View {
             eyebrow: group.badgeLabel,
             title: item.headline,
             summary: item.summary,
-            meta: "\(item.stateLabel) · \(item.targetRoute.title)",
+            meta: "\(item.stateLabel) · \(item.targetRouteTitle)",
         ) {
             ViewThatFits(in: .horizontal) {
                 HStack(alignment: .center, spacing: HaneulchiMetrics.Spacing.sm) {
@@ -81,16 +81,19 @@ struct AttentionCenterView: View {
             .buttonStyle(HaneulchiButtonStyle(variant: .primary))
     }
 
+    @ViewBuilder
     private func secondaryActions(for item: AttentionCenterViewModel.Item) -> some View {
-        HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
-            HaneulchiIconButton(action: .resolve, tone: .secondary) {
-                viewModel.resolve(item)
-            }
-            HaneulchiIconButton(action: .dismiss, tone: .tertiary) {
-                viewModel.dismiss(item)
-            }
-            HaneulchiIconButton(action: .snooze, tone: .tertiary) {
-                viewModel.snooze(item)
+        if item.attentionActionID != nil {
+            HStack(spacing: HaneulchiMetrics.Spacing.xxs) {
+                HaneulchiIconButton(action: .resolve, tone: .secondary) {
+                    viewModel.resolve(item)
+                }
+                HaneulchiIconButton(action: .dismiss, tone: .tertiary) {
+                    viewModel.dismiss(item)
+                }
+                HaneulchiIconButton(action: .snooze, tone: .tertiary) {
+                    viewModel.snooze(item)
+                }
             }
         }
     }

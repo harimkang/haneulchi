@@ -30,6 +30,7 @@ final class AppShellModel: ObservableObject {
     @Published private(set) var quickDispatchOrigin: Route?
     @Published private(set) var quickDispatchTaskID: String?
     @Published private(set) var projectFocusRefreshToken = 0
+    @Published private(set) var projectFocusTerminalFocusToken = 0
     @Published private(set) var isNewSessionSheetPresented = false
     @Published private(set) var newSessionSheetViewModel: NewSessionSheetViewModel?
     @Published private(set) var isCommandPalettePresented = false
@@ -79,6 +80,7 @@ final class AppShellModel: ObservableObject {
         quickDispatchOrigin: Route? = nil,
         quickDispatchTaskID: String? = nil,
         projectFocusRefreshToken: Int = 0,
+        projectFocusTerminalFocusToken: Int = 0,
         isNewSessionSheetPresented: Bool = false,
         newSessionSheetViewModel: NewSessionSheetViewModel? = nil,
         isCommandPalettePresented: Bool = false,
@@ -104,6 +106,7 @@ final class AppShellModel: ObservableObject {
         self.quickDispatchOrigin = quickDispatchOrigin
         self.quickDispatchTaskID = quickDispatchTaskID
         self.projectFocusRefreshToken = projectFocusRefreshToken
+        self.projectFocusTerminalFocusToken = projectFocusTerminalFocusToken
         self.isNewSessionSheetPresented = isNewSessionSheetPresented
         self.newSessionSheetViewModel = newSessionSheetViewModel
         self.isCommandPalettePresented = isCommandPalettePresented
@@ -226,6 +229,7 @@ final class AppShellModel: ObservableObject {
                 quickDispatchOrigin: model.quickDispatchOrigin,
                 quickDispatchTaskID: model.quickDispatchTaskID,
                 projectFocusRefreshToken: model.projectFocusRefreshToken,
+                projectFocusTerminalFocusToken: model.projectFocusTerminalFocusToken,
                 isNewSessionSheetPresented: model.isNewSessionSheetPresented,
                 newSessionSheetViewModel: model.newSessionSheetViewModel,
                 isCommandPalettePresented: model.isCommandPalettePresented,
@@ -336,9 +340,14 @@ final class AppShellModel: ObservableObject {
         case let .selectRoute(route):
             setSelectedRoute(route)
         case .toggleNotificationDrawer:
+            let wasPresented = isNotificationDrawerPresented
             isNotificationDrawerPresented.toggle()
+            if wasPresented, !isNotificationDrawerPresented {
+                requestProjectFocusTerminalRefocus()
+            }
         case .dismissNotificationDrawer:
             isNotificationDrawerPresented = false
+            requestProjectFocusTerminalRefocus()
         case .refreshShellSnapshot:
             break
         case .openSettings:
@@ -364,12 +373,14 @@ final class AppShellModel: ObservableObject {
             isWorkflowDrawerPresented = true
         case .dismissWorkflowDrawer:
             isWorkflowDrawerPresented = false
+            requestProjectFocusTerminalRefocus()
         case .presentTaskContextDrawer:
             taskContextDrawerModel = makeTaskContextDrawerModel()
             isTaskContextDrawerPresented = true
         case .dismissTaskContextDrawer:
             isTaskContextDrawerPresented = false
             taskContextDrawerModel = nil
+            requestProjectFocusTerminalRefocus()
         case .reconcileAutomation:
             do {
                 try coreBridge?.reconcileAutomation()
@@ -415,12 +426,14 @@ final class AppShellModel: ObservableObject {
             quickDispatchComposer = nil
             quickDispatchOrigin = nil
             quickDispatchTaskID = nil
+            requestProjectFocusTerminalRefocus()
         case let .submitQuickDispatch(targetID, message):
             if let adapterKind = targetID.split(separator: ":", maxSplits: 1).dropFirst().first {
                 let taskID = quickDispatchTaskID
                 quickDispatchComposer = nil
                 quickDispatchOrigin = nil
                 quickDispatchTaskID = nil
+                requestProjectFocusTerminalRefocus()
                 pendingQuickDispatchReplay = PendingQuickDispatchReplay(
                     taskID: taskID,
                     message: message,
@@ -434,6 +447,7 @@ final class AppShellModel: ObservableObject {
                 quickDispatchComposer = nil
                 quickDispatchOrigin = nil
                 quickDispatchTaskID = nil
+                requestProjectFocusTerminalRefocus()
             }
         case let .terminalSessionReady(sessionID):
             if let pendingQuickDispatchReplay {
@@ -452,6 +466,7 @@ final class AppShellModel: ObservableObject {
             quickDispatchComposer = nil
             quickDispatchOrigin = nil
             quickDispatchTaskID = nil
+            requestProjectFocusTerminalRefocus()
         case .exportSnapshot:
             if let coreBridge, let payload = try? coreBridge.stateSnapshotJSON() {
                 let exportURL = snapshotExportURL()
@@ -470,6 +485,7 @@ final class AppShellModel: ObservableObject {
             isNewSessionSheetPresented = false
             newSessionSheetViewModel = nil
             pendingQuickDispatchReplay = nil
+            requestProjectFocusTerminalRefocus()
         case let .launchSession(descriptor):
             do {
                 let bootstrappedDescriptor = try bootstrapIfNeeded(descriptor)
@@ -489,6 +505,7 @@ final class AppShellModel: ObservableObject {
             if isCommandPalettePresented {
                 isCommandPalettePresented = false
                 commandPaletteViewModel = nil
+                requestProjectFocusTerminalRefocus()
             } else {
                 if shellSnapshot == nil {
                     await refreshShellSnapshot()
@@ -499,6 +516,7 @@ final class AppShellModel: ObservableObject {
         case .dismissCommandPalette:
             isCommandPalettePresented = false
             commandPaletteViewModel = nil
+            requestProjectFocusTerminalRefocus()
         case let .queueFileSelection(path):
             setSelectedRoute(.projectFocus)
             pendingProjectFocusFilePath = path
@@ -554,6 +572,7 @@ final class AppShellModel: ObservableObject {
             inventoryViewModel = await loadInventoryViewModel()
         case .dismissInventory:
             isInventoryPresented = false
+            requestProjectFocusTerminalRefocus()
         case let .openInventoryFinder(path):
             NSWorkspace.shared.selectFile(nil, inFileViewerRootedAtPath: path)
         case let .openInventorySession(taskID, worktreeId):
@@ -691,6 +710,14 @@ final class AppShellModel: ObservableObject {
 
         let report = try? await readinessRunner.run(for: selectedProject)
         updateReadinessReport(report)
+    }
+
+    private func requestProjectFocusTerminalRefocus() {
+        guard entrySurface == .shell, selectedRoute == .projectFocus else {
+            return
+        }
+
+        projectFocusTerminalFocusToken &+= 1
     }
 
     private func fetchWorkflowStatus(for project: LauncherProject) -> WorkflowStatusPayload? {

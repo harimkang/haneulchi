@@ -10,6 +10,7 @@ private final class RecordingHostHandle: TerminalHostHandle {
     private(set) var copyCalls = 0
     private(set) var selectAllCalls = 0
     private(set) var keyDownCalls = 0
+    var reportsFirstResponder = false
 
     func focusTerminal() {
         focusCalls += 1
@@ -33,6 +34,10 @@ private final class RecordingHostHandle: TerminalHostHandle {
 
     func handleKeyDown(_: NSEvent) {
         keyDownCalls += 1
+    }
+
+    func isTerminalFirstResponder() -> Bool {
+        reportsFirstResponder
     }
 }
 
@@ -97,4 +102,36 @@ func deckCoordinatorRoutesKeyEventsToFocusedPane() throws {
     #expect(handled)
     #expect(first.keyDownCalls == 0)
     #expect(second.keyDownCalls == 1)
+}
+
+@MainActor
+@Test(
+    "deck coordinator does not intercept key events when the focused terminal already owns first responder",
+)
+func deckCoordinatorDoesNotInterceptFirstResponderKeyEvents() throws {
+    let handle = RecordingHostHandle()
+    handle.reportsFirstResponder = true
+    let coordinator = TerminalDeckCoordinator()
+    coordinator.register(handle, for: "pane-1")
+    coordinator.updateFocusedPane("pane-1")
+
+    let event = try #require(
+        NSEvent.keyEvent(
+            with: .keyDown,
+            location: .zero,
+            modifierFlags: [],
+            timestamp: 0,
+            windowNumber: 0,
+            context: nil,
+            characters: "a",
+            charactersIgnoringModifiers: "a",
+            isARepeat: false,
+            keyCode: 0,
+        ),
+    )
+
+    let handled = coordinator.handleKeyDown(event)
+
+    #expect(handled == false)
+    #expect(handle.keyDownCalls == 0)
 }

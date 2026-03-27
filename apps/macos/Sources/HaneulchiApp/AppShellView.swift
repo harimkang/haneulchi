@@ -225,6 +225,7 @@ struct AppShellView: View {
                 route: shellModel.selectedRoute,
                 snapshot: snapshot,
                 projectFocusModel: projectFocusModel,
+                projectFocusTerminalFocusToken: shellModel.projectFocusTerminalFocusToken,
                 settingsStatusViewModel: shellModel.settingsStatusViewModel ?? .empty,
                 queuedProjectFocusFilePath: shellModel.pendingProjectFocusFilePath,
                 onAction: performAction,

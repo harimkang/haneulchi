@@ -13,7 +13,7 @@ struct InspectorPanelView: View {
 
             sectionPicker
 
-            ScrollView {
+            ScrollView(showsIndicators: true) {
                 VStack(alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
                     sectionContent
                         .font(contentFont)
@@ -135,7 +135,7 @@ struct InspectorPanelView: View {
             .pickerStyle(.segmented)
             .padding(sectionPickerPadding)
         case .compactScroll:
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal, showsIndicators: true) {
                 HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                     ForEach(InspectorSection.allCases, id: \.self) { section in
                         Button {

@@ -62,6 +62,7 @@ struct ProjectFocusView: View {
     }
 
     let model: Model
+    let focusRequestToken: Int
     let snapshot: AppShellSnapshot?
     let queuedFilePath: String?
     let onAction: (AppShellAction) -> Void
@@ -71,11 +72,13 @@ struct ProjectFocusView: View {
 
     init(
         model: Model,
+        focusRequestToken: Int = 0,
         snapshot: AppShellSnapshot? = nil,
         queuedFilePath: String? = nil,
         onAction: @escaping (AppShellAction) -> Void = { _ in },
     ) {
         self.model = model
+        self.focusRequestToken = focusRequestToken
         self.snapshot = snapshot
         self.queuedFilePath = queuedFilePath
         self.onAction = onAction
@@ -120,6 +123,7 @@ struct ProjectFocusView: View {
 
                 TerminalDeckView(
                     model: model.deck,
+                    focusRequestToken: focusRequestToken,
                     signalPresentation: focusedSessionSignal,
                     onQuickDispatch: {
                         onAction(.presentQuickDispatch(.projectFocus))

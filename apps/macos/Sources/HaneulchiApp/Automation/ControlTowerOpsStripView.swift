@@ -37,18 +37,40 @@ struct ControlTowerOpsStripView: View {
                 }
             }
 
-            let columns = Array(
-                repeating: GridItem(.flexible(), spacing: HaneulchiMetrics.Spacing.sm),
-                count: viewportContext.viewportClass == .compact ? 1 : 2,
-            )
-
-            LazyVGrid(columns: columns, alignment: .leading, spacing: HaneulchiMetrics.Spacing.sm) {
-                ForEach(model.secondaryStripMetrics) { metric in
-                    HaneulchiMetricTile(metric: metric)
+            HaneulchiOpsRailPanel(
+                title: "Diagnostics",
+                count: model.secondaryStripMetrics.isEmpty ? nil : model.secondaryStripMetrics
+                    .count,
+            ) {
+                LazyVGrid(
+                    columns: secondaryMetricColumns,
+                    alignment: .leading,
+                    spacing: HaneulchiMetrics.Spacing.sm,
+                ) {
+                    ForEach(model.secondaryStripMetrics) { metric in
+                        HaneulchiMetricTile(metric: metric)
+                    }
                 }
             }
-            .padding(.horizontal, HaneulchiMetrics.Padding.card)
         }
+    }
+
+    private var secondaryMetricColumns: [GridItem] {
+        let count = switch viewportContext.viewportClass {
+        case .compact:
+            1
+        case .medium:
+            2
+        case .wide:
+            3
+        case .expanded:
+            4
+        }
+
+        return Array(
+            repeating: GridItem(.flexible(minimum: 120), spacing: HaneulchiMetrics.Spacing.sm),
+            count: count,
+        )
     }
 
     private func actionButton(_ chromeAction: HaneulchiChromeAction, action: (() -> Void)?)

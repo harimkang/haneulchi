@@ -7,8 +7,9 @@ struct AttentionCenterViewModel {
         let stateLabel: String
         let summary: String?
         let severity: WarningFlag
-        let targetRoute: Route
-        let targetSessionID: String?
+        let targetRouteTitle: String
+        let openAction: AppShellAction
+        let attentionActionID: String?
     }
 
     let items: [Item]
@@ -49,8 +50,9 @@ struct AttentionCenterViewModel {
                     stateLabel: "manual takeover",
                     summary: session.latestSummary ?? "Operator takeover active.",
                     severity: .failed,
-                    targetRoute: .projectFocus,
-                    targetSessionID: session.sessionID,
+                    targetRouteTitle: Route.projectFocus.title,
+                    openAction: .jumpToSession(session.sessionID),
+                    attentionActionID: nil,
                 )
             }
             if session.dispatchState == .dispatchFailed {
@@ -62,8 +64,9 @@ struct AttentionCenterViewModel {
                         .compactMap(\.self)
                         .joined(separator: " · "),
                     severity: .failed,
-                    targetRoute: .projectFocus,
-                    targetSessionID: session.sessionID,
+                    targetRouteTitle: Route.projectFocus.title,
+                    openAction: .jumpToSession(session.sessionID),
+                    attentionActionID: "attention-dispatch-\(session.sessionID)",
                 )
             }
             return nil
@@ -76,8 +79,9 @@ struct AttentionCenterViewModel {
                 stateLabel: attention.severity.rawValue,
                 summary: attention.summary,
                 severity: attention.severity,
-                targetRoute: attention.targetRoute,
-                targetSessionID: attention.targetSessionID,
+                targetRouteTitle: attention.targetRoute.title,
+                openAction: Self.openAction(for: attention),
+                attentionActionID: attention.attentionID,
             )
         }
 
@@ -92,21 +96,50 @@ struct AttentionCenterViewModel {
     }
 
     func open(_ item: Item) {
-        openTargetAction(
-            item.targetSessionID.map(AppShellAction.jumpToSession)
-                ?? .selectRoute(item.targetRoute),
-        )
+        openTargetAction(item.openAction)
     }
 
     func resolve(_ item: Item) {
-        resolveAttentionAction(item.id)
+        guard let attentionActionID = item.attentionActionID else {
+            return
+        }
+
+        resolveAttentionAction(attentionActionID)
     }
 
     func dismiss(_ item: Item) {
-        dismissAttentionAction(item.id)
+        guard let attentionActionID = item.attentionActionID else {
+            return
+        }
+
+        dismissAttentionAction(attentionActionID)
     }
 
     func snooze(_ item: Item) {
-        snoozeAttentionAction(item.id)
+        guard let attentionActionID = item.attentionActionID else {
+            return
+        }
+
+        snoozeAttentionAction(attentionActionID)
+    }
+
+    private static func openAction(for attention: AppShellSnapshot
+        .AttentionSummary) -> AppShellAction
+    {
+        switch attention.actionHint {
+        case "reload_workflow":
+            return .presentWorkflowDrawer
+        case "open_review":
+            return .selectRoute(.reviewQueue)
+        case "focus_session":
+            if let targetSessionID = attention.targetSessionID {
+                return .jumpToSession(targetSessionID)
+            }
+        default:
+            break
+        }
+
+        return attention.targetSessionID.map(AppShellAction.jumpToSession)
+            ?? .selectRoute(attention.targetRoute)
     }
 }

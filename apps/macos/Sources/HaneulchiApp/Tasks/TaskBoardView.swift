@@ -21,7 +21,7 @@ struct TaskBoardView: View {
     var body: some View {
         Group {
             if presentationLayout.requiresVerticalOverflowScroll {
-                ScrollView {
+                ScrollView(showsIndicators: true) {
                     routeContent
                 }
             } else {
@@ -71,7 +71,7 @@ struct TaskBoardView: View {
     }
 
     private var projectFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
+        ScrollView(.horizontal, showsIndicators: true) {
             HStack(spacing: HaneulchiMetrics.Spacing.xs) {
                 filterButton(title: "All Projects", projectID: nil, taskCount: totalTaskCount)
                 ForEach(viewModel.projectOptions, id: \.projectID) { option in
@@ -122,7 +122,7 @@ struct TaskBoardView: View {
     private var boardContent: some View {
         switch presentationLayout.mode {
         case .fullBoard:
-            ScrollView(.horizontal, showsIndicators: false) {
+            ScrollView(.horizontal, showsIndicators: true) {
                 HStack(alignment: .top, spacing: layout.columnSpacing) {
                     ForEach(presentationLayout.rows.first?.columns ?? [], id: \.self) { columnID in
                         if let column = columnModel(for: columnID) {

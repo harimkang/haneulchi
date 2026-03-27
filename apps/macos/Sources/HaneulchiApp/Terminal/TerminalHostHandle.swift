@@ -9,4 +9,5 @@ protocol TerminalHostHandle: AnyObject {
     func copySelection()
     func selectAllText()
     func handleKeyDown(_ event: NSEvent)
+    func isTerminalFirstResponder() -> Bool
 }
