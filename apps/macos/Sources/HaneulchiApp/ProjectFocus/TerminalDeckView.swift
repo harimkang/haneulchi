@@ -55,7 +55,7 @@ struct TerminalDeckView: View {
         .padding(HaneulchiMetrics.Padding.compact)
         .background(HaneulchiChrome.Surface.recess)
         .onAppear {
-            deckCoordinator.updateFocusedPane(layout.focusedPaneID)
+            deckCoordinator.focusPane(layout.focusedPaneID)
 
             guard keyMonitor == nil else {
                 return
