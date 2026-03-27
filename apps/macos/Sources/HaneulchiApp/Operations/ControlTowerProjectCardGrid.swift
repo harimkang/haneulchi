@@ -4,22 +4,30 @@ struct ControlTowerProjectCardGrid: View {
     let cards: [ControlTowerViewModel.ProjectCard]
     let onOpenProject: (String) -> Void
     @Environment(\.viewportContext) private var viewportContext
+    @State private var availableWidth: CGFloat = 0
     private let layout = HaneulchiOperationalLayoutMetrics.standard
+
+    private var gridLayout: ControlTowerProjectGridLayout {
+        ControlTowerResponsiveLayout(viewportClass: viewportContext.viewportClass)
+            .projectGridLayout(
+                availableWidth: availableWidth,
+                spacing: layout.gridSpacing,
+            )
+    }
 
     private var columns: [GridItem] {
         Array(
             repeating: GridItem(
-                .flexible(minimum: 220, maximum: 320),
+                .fixed(gridLayout.cardWidth),
                 spacing: layout.gridSpacing,
                 alignment: .topLeading,
             ),
-            count: ControlTowerResponsiveLayout(viewportClass: viewportContext.viewportClass)
-                .projectGridColumnCount,
+            count: gridLayout.columnCount,
         )
     }
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: layout.gridSpacing) {
+        LazyVGrid(columns: columns, alignment: .leading, spacing: layout.gridSpacing) {
             ForEach(cards) { card in
                 Button {
                     onOpenProject(card.projectID)
@@ -101,6 +109,12 @@ struct ControlTowerProjectCardGrid: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .onGeometryChange(for: CGFloat.self) { geometry in
+            geometry.size.width
+        } action: { _, width in
+            availableWidth = width
         }
     }
 

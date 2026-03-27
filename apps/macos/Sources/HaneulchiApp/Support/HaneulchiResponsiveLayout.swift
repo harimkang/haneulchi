@@ -219,6 +219,50 @@ struct ControlTowerResponsiveLayout: Equatable, Sendable {
     var usesDenseProjectGrid: Bool {
         projectGridColumnCount >= 3
     }
+
+    func projectGridLayout(
+        availableWidth: CGFloat,
+        spacing: CGFloat,
+        minimumCardWidth: CGFloat = 220,
+        maximumCardWidth: CGFloat = 280,
+    ) -> ControlTowerProjectGridLayout {
+        let maxColumns = max(1, projectGridColumnCount)
+        let normalizedWidth = max(0, availableWidth)
+
+        let resolvedColumnCount: Int = if normalizedWidth > 0 {
+            max(
+                1,
+                min(
+                    maxColumns,
+                    Int((normalizedWidth + spacing) / (minimumCardWidth + spacing)),
+                ),
+            )
+        } else {
+            maxColumns
+        }
+
+        let proposedWidth: CGFloat = if normalizedWidth > 0 {
+            (normalizedWidth - spacing * CGFloat(resolvedColumnCount - 1))
+                / CGFloat(resolvedColumnCount)
+        } else {
+            maximumCardWidth
+        }
+
+        let cardWidth = min(
+            maximumCardWidth,
+            max(minimumCardWidth, floor(proposedWidth)),
+        )
+
+        return ControlTowerProjectGridLayout(
+            columnCount: resolvedColumnCount,
+            cardWidth: normalizedWidth > 0 ? min(normalizedWidth, cardWidth) : cardWidth,
+        )
+    }
+}
+
+struct ControlTowerProjectGridLayout: Equatable, Sendable {
+    let columnCount: Int
+    let cardWidth: CGFloat
 }
 
 struct WelcomeReadinessResponsiveLayout: Equatable, Sendable {

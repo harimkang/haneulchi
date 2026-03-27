@@ -15,12 +15,18 @@ let pluginLibraryDirectory = packageDirectory
         isDirectory: true,
     )
     .path
+let hcFFIArchivePath = packageDirectory
+    .appendingPathComponent(
+        ".build/plugins/outputs/macos/HaneulchiApp/destination/HCCoreFFIBuildPlugin/hc-ffi-build/libhc_ffi.a",
+        isDirectory: false,
+    )
+    .path
 let hcFFILinkerSettings: [LinkerSetting] = [
     .unsafeFlags([
-        "-L", pluginLibraryDirectory,
         "-L", vendorLibraryDirectory,
+        "-Xlinker", "-force_load",
+        "-Xlinker", hcFFIArchivePath,
     ]),
-    .linkedLibrary("hc_ffi"),
 ]
 
 let package = Package(

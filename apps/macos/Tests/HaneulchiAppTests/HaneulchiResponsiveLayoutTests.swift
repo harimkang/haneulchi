@@ -68,6 +68,24 @@ func controlTowerRoutePolicyUsesSharedViewportClasses() {
     #expect(expanded.usesDenseProjectGrid == true)
 }
 
+@Test("control tower project grid clamps card width instead of stretching flexible columns")
+func controlTowerProjectGridLayoutKeepsCardWidthsStable() {
+    let compact = ControlTowerResponsiveLayout(viewportClass: .compact)
+    let wide = ControlTowerResponsiveLayout(viewportClass: .wide)
+    let expanded = ControlTowerResponsiveLayout(viewportClass: .expanded)
+
+    let narrowLayout = compact.projectGridLayout(availableWidth: 260, spacing: 16)
+    let wideLayout = wide.projectGridLayout(availableWidth: 1100, spacing: 16)
+    let expandedLayout = expanded.projectGridLayout(availableWidth: 1400, spacing: 16)
+
+    #expect(narrowLayout.columnCount == 1)
+    #expect(narrowLayout.cardWidth == 260)
+    #expect(wideLayout.columnCount == 2)
+    #expect(wideLayout.cardWidth == 280)
+    #expect(expandedLayout.columnCount == 3)
+    #expect(expandedLayout.cardWidth == 280)
+}
+
 @Test("welcome launcher route policy stacks only in compact widths")
 func welcomeRoutePolicyUsesSharedViewportClasses() {
     let compact = WelcomeReadinessResponsiveLayout(viewportClass: .compact)
