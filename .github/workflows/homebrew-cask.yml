@@ -1,0 +1,56 @@
+name: Publish Homebrew Cask
+
+on:
+  workflow_dispatch:
+    inputs:
+      dmg_url:
+        description: "Published DMG URL"
+        required: true
+      tap_repository:
+        description: "Homebrew tap repository, for example haneulchi/homebrew-tap"
+        required: true
+
+jobs:
+  homebrew-cask:
+    runs-on: macos-latest
+    env:
+      DMG_URL: ${{ inputs.dmg_url }}
+      HOMEBREW_TAP_REPOSITORY: ${{ inputs.tap_repository }}
+      HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+    steps:
+      - name: Check out Haneulchi
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build DMG for checksum
+        run: npm run release:macos:dmg
+
+      - name: Render cask
+        run: npm run release:homebrew:cask
+
+      - name: Check out Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.HOMEBREW_TAP_REPOSITORY }}
+          token: ${{ env.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Publish cask update
+        run: |
+          mkdir -p homebrew-tap/Casks
+          cp dist/release/homebrew/haneulchi.rb homebrew-tap/Casks/haneulchi.rb
+          cd homebrew-tap
+          git config user.name "haneulchi-release-bot"
+          git config user.email "release@haneulchi.app"
+          git add Casks/haneulchi.rb
+          git commit -m "Update Haneulchi cask" || exit 0
+          git push
